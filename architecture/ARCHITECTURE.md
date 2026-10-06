@@ -63,6 +63,32 @@ screen live in `data/tools.local.json`, merged by `src/toolsRegistry.js`.
 Rows live in **r0** (`src/r0/registry.js`): an in-memory map checkpointed to
 SQLite, flushed at midnight.
 
+**The card is the biggest part of the screener tools.** TradingView supplies
+the candidates and their 32 columns; everything else on a card comes from nine
+more sources and the desk's own computations, each with its own cache,
+freshness and fallback:
+
+| On the card | Sources |
+|---|---|
+| quote, levels, ranges, volume, float, cap | TradingView scanner (re-quoted every 5 min) |
+| derived numbers, relations, technical catalysts | computed |
+| short interest, days to cover | FINRA → Yahoo → Nasdaq |
+| borrow | Alpaca (shortable), Nasdaq + NYSE (Reg SHO lists) |
+| news, catalyst, auto bias | TradingView news, Alpaca (Benzinga), Yahoo, SEC EDGAR, Finnhub; Google News as fallback |
+| market context, sector heat | the market snapshot (TradingView: indexes and 15 sector ETFs), computed by each tool |
+| industry and group | SIC (EDGAR) first, TradingView label otherwise |
+| the CANSLIM reading (C, A, I, S, N, L, M, base, ratings) | O'Neil values computed by qp (EDGAR facts, 13F, Polygon, Yahoo bars) |
+| score, shortlist marks | the tool's scorer; this tool's and every tool's stars |
+
+Stage by stage, field by field: [DATA-PIPELINE.md](../screeners/DATA-PIPELINE.md),
+[CARD.md](../screeners/CARD.md), [CARD-FIELDS.md](../screeners/CARD-FIELDS.md).
+
+**The Market tab** has two halves: the desk's live read (indexes, regime,
+sector heatmap, hot sectors), computed by each tool on every scan from
+TradingView's index and sector-ETF quotes; and O'Neil's method (market model
+M, industry groups L), computed by qp after each close. The live read is also
+stamped on every card. See [MARKET-TAB.md](../screeners/MARKET-TAB.md).
+
 **Schedule** (`src/scheduler.js`, every job in America/New_York, weekdays):
 discovery scans every 30 min 04:00–09:00, every 5 min 09:00–10:00, every
 15 min 10:00–16:00, once at 16:00; a live-card refresh every 5 min
@@ -112,9 +138,13 @@ stopping tools ([TOOL-LIFECYCLE.md](../screeners/TOOL-LIFECYCLE.md)) and every r
   cache in `~/.qp-cache/`.
 - Strategies and backtests live in `~/.qp/platform.db` (`QP_DB` overrides);
   `chart/seeds/*.json` are the git copies, restored when missing.
-- Nightly jobs run from systemd (`deploy/qp-daily.timer`, 22:30 UTC): O'Neil
-  RS, market, groups, SIC, 13F, EDGAR → `data/oneil-*.json`, `data/industry-map.json`,
-  which the screeners read.
+- **qp hosts the O'Neil computations, but their results belong to the
+  screener tools**: the card's CANSLIM fold, the `cs*` columns frozen into R1,
+  and the Market tab's M and L. A nightly job (systemd `deploy/qp-daily.timer`,
+  22:30 UTC) rebuilds RS, the market model, groups, SIC, 13F and EDGAR into
+  `data/oneil-*.json` and `data/industry-map.json`; each scan also asks qp
+  over HTTP for the per-card values, so a card has no CANSLIM reading while qp
+  is down ([CANSLIM.md](../qp/CANSLIM.md)).
 
 ## Journal (`journal/`)
 
