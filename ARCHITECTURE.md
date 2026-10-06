@@ -550,7 +550,7 @@ The nightly job, its six steps and how it is installed:
 - **The method does not change**: every rule and threshold in the legacy
   document carries over.
 
-**Leaf:** `design/ONEIL.md`.
+**Leaf:** [design/ONEIL.md](design/ONEIL.md).
 
 ### 6.6 Registers
 
@@ -872,7 +872,7 @@ one; the legacy documents are complete.
 | 6.2 Tools and screeners | `design/TOOLS-AND-SCREENERS.md` (to write) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
 | 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
 | 6.4 The market | [design/MARKET.md](design/MARKET.md) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
-| 6.5 Research data | `design/ONEIL.md` (to write) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
+| 6.5 Research data | [design/ONEIL.md](design/ONEIL.md) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
 | 6.6 Registers | `design/REGISTERS.md` (to write) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
 | 6.7 Learning | `design/LEARNING.md` (to write) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
 | 6.8 Quant | `design/QUANT.md` (to write) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |

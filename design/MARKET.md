@@ -64,7 +64,7 @@ and **15 sector ETFs**, with the columns `close`, `change`,
 
 **Yahoo daily bars** of the **S&P 500 (^GSPC)** and the **Nasdaq Composite
 (^IXIC)** for O'Neil's M. **The SIC industry map** and **whole-market RS
-ratings** for L (both from the research worker: `ONEIL.md` (to write)).
+ratings** for L (both from the research worker: [ONEIL.md](ONEIL.md)).
 
 **No regime rather than a wrong one** (D-S2): if SPY and QQQ are both missing
 any of close, SMA5, SMA20, SMA50 or SMA200, the scan records no regime, and
@@ -362,7 +362,7 @@ re-tune, each behind a versioned definition so history records which ran:
 
 ### 5.5 O'Neil on the tab
 
-M and L are **computed by the research worker** (`ONEIL.md` (to write)) and **only read** here. The rules in §2.10 and §2.11 carry over
+M and L are **computed by the research worker** ([ONEIL.md](ONEIL.md)) and **only read** here. The rules in §2.10 and §2.11 carry over
 unchanged. Through the day, the market engine re-checks M against the latest
 index quote (a distribution day in progress), labelled as provisional until
 the close.
