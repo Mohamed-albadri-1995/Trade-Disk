@@ -152,8 +152,10 @@ Express app, `journal/server.js`, data in `data/journal/` (`JOURNAL_DATA_DIR`).
 Imports broker/CSV files; the accounts add-on (`journal/src/addons/`) stores
 named Alpaca accounts (mode 0600) and fetches each one's fills on its own
 schedule, pairing them into round-trip trades under a stable id (a closed trade
-is never rewritten). Grading and card logic are in `journal/src/journal/` and
-`journal/src/trading/`.
+is never rewritten). The grading tables and check library in
+`journal/src/trading/` came from the removed live trading engine and have no
+reader. The full description, with what works and what does not:
+[journal/](../journal/README.md).
 
 ## Shared state — the coupling to respect
 
