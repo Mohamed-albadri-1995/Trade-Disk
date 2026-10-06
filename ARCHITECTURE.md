@@ -284,7 +284,7 @@ This one table replaces the per-process caches, the shared JSON files and the
 | job, job run | platform | job; each run with its result |
 | user, session, setting | platform | — |
 
-The full schema is a leaf: `design/DATA-MODEL.md` ([§12](#12-the-document-map)).
+The full schema is a leaf: `design/DATA-MODEL.md` (to write) ([§12](#12-the-document-map)).
 
 ### 5.4 Ownership: one writer for every table
 
@@ -463,7 +463,7 @@ flowchart LR
 - **Every field the old card shows is kept**, with its formula and its
   display rule. The leaf lists them one by one.
 
-**Leaf:** `design/CARD.md`.
+**Leaf:** [design/CARD.md](design/CARD.md).
 
 ### 6.4 The market
 
@@ -868,7 +868,7 @@ one; the legacy documents are complete.
 |---|---|---|
 | 6.1 Sources | `design/SOURCES.md` (to write) | [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [DATA-FEEDS](legacy/qp/DATA-FEEDS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 6.2 Tools and screeners | `design/TOOLS-AND-SCREENERS.md` (to write) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
-| 6.3 The card | `design/CARD.md` (to write) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
+| 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
 | 6.4 The market | `design/MARKET.md` (to write) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
 | 6.5 Research data | `design/ONEIL.md` (to write) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
 | 6.6 Registers | `design/REGISTERS.md` (to write) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
