@@ -489,6 +489,8 @@ and stamped on every card.
 - R2's O'Neil columns are read at export, so an old day shows today's status
   (D-D3).
 - With no index data, the desk once read the market as bearish (D-S2).
+- Four TradingView stock sectors have no mapping to a sector ETF, so their
+  cards get no sector bias or hot badge (found while writing the leaf).
 
 **The design.**
 - **One market engine** builds the market state each scan, for every tool,
@@ -503,7 +505,7 @@ and stamped on every card.
 - Sector score centred on 0 (−100 to +100), and the mid-term stage counting
   distinct facts; both need re-tuning, recorded in the leaf.
 
-**Leaf:** `design/MARKET.md`.
+**Leaf:** [design/MARKET.md](design/MARKET.md).
 
 ### 6.5 Research data: the O'Neil chain
 
@@ -869,7 +871,7 @@ one; the legacy documents are complete.
 | 6.1 Sources | `design/SOURCES.md` (to write) | [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [DATA-FEEDS](legacy/qp/DATA-FEEDS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 6.2 Tools and screeners | `design/TOOLS-AND-SCREENERS.md` (to write) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
 | 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
-| 6.4 The market | `design/MARKET.md` (to write) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
+| 6.4 The market | [design/MARKET.md](design/MARKET.md) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
 | 6.5 Research data | `design/ONEIL.md` (to write) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
 | 6.6 Registers | `design/REGISTERS.md` (to write) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
 | 6.7 Learning | `design/LEARNING.md` (to write) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |

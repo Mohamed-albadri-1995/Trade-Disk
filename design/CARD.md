@@ -272,7 +272,7 @@ decide; else "no read". The bias button cycles `⊙ AUTO (long ⚡)` → `▲ LO
 ### 2.9 Market context and themes
 
 Stamped on every card from the market snapshot of the scan
-(`MARKET.md` (to write); legacy [MARKET-TAB](../legacy/screeners/MARKET-TAB.md)):
+([MARKET.md](MARKET.md); legacy [MARKET-TAB](../legacy/screeners/MARKET-TAB.md)):
 `regime`, `regimeLabel`, `longTerm`, `midTerm`, `shortTerm`, `broadResolved`
 (the card's TradingView sector mapped to one of the 15 sector ETFs), `secBias`,
 `secScore`, `secHot`. If SPY and QQQ are both incomplete there is no regime
