@@ -1,5 +1,8 @@
 # If the desk were built from the beginning
 
+> **Superseded** by the trunk, [ARCHITECTURE.md](../../ARCHITECTURE.md). Kept as
+> the earlier draft it grew from.
+
 The same jobs, the same research rules, rebuilt around what the 2026-10
 review found. Every design choice below points at the failure it prevents.
 

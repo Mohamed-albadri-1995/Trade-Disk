@@ -1,37 +1,25 @@
 # Trade Desk: documentation
 
-The full description of the Trade Desk, written from its code
-(`Tade-desk-server`) so it can be read by a person and used to build a better
-version from scratch.
+The design of the Trade Desk as it should be built, and the full record of
+the desk as it runs today, from which that design is built.
 
-The desk is three programs on one box:
+## Start here: the trunk
 
-| Program | Does | Documents |
+**[ARCHITECTURE.md](ARCHITECTURE.md)** ([PDF](pdf/ARCHITECTURE.pdf)) is the
+whole desk in one document: what it is for, the ten domains, the running
+parts, the data, each domain's design, a trading day end to end, the rules
+that apply everywhere, deployment, backup and restore, and the migration.
+
+Every other document is a leaf of one of its sections. Its
+[document map](ARCHITECTURE.md#12-the-document-map) lists them all.
+
+## The two kinds of leaf
+
+| Folder | Holds | State |
 |---|---|---|
-| **Screener tools** | watch the market through TradingView screeners, build a card per stock, freeze a daily photo, measure what moved | [screeners/](screeners/README.md) |
-| **qp** | charts, strategies and backtests on the stocks the tools found; also hosts the O'Neil computations that fill the screener cards and the Market tab | [qp/](qp/README.md), with the library's code |
-| **Journal** | every trade after the fact: imports, Alpaca accounts, P&L, statistics | [journal/](journal/README.md) |
+| [design/](design/README.md) | the new design, one document per domain. Each carries the old design in full (every field, source and calculation), what failed, the new design and its contracts | written one by one |
+| [legacy/](legacy/) | the desk as it runs today, documented from its code: [screener tools](legacy/screeners/README.md), [qp](legacy/qp/README.md) (with its indicator library's code), [journal](legacy/journal/README.md), [today's architecture](legacy/architecture/ARCHITECTURE.md) | complete |
 
-How the programs connect, the login, backups, deployment and the landing page
-come last, once each program is documented on its own.
-
-## Architecture
-
-| Document | |
-|---|---|
-| [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) ([PDF](architecture/pdf/ARCHITECTURE.pdf)) | the desk as it runs today: the three programs, what they share, where everything lives |
-| [architecture/REBUILD-ARCHITECTURE.md](architecture/REBUILD-ARCHITECTURE.md) ([PDF](architecture/pdf/REBUILD-ARCHITECTURE.pdf)) | the desk as it would be built from the beginning: principles, target design, migration steps |
-
-The documents have their PDFs beside them: [screeners/pdf/](screeners/pdf/),
-[qp/pdf/](qp/pdf/), [journal/pdf/](journal/pdf/).
-
-## Phases
-
-1. **Screener tools**: done, in [screeners/](screeners/README.md).
-2. **qp**, with its indicator library: done, in [qp/](qp/README.md).
-3. **The journal**: done, in [journal/](journal/README.md).
-4. The links between the programs and the system-wide pages.
-
-Each document says which code it was written from. Where the code and a
-document disagreed, the code was taken as the truth and the disagreement was
-recorded in that program's `KNOWN-ISSUES.md`.
+Each legacy document says which code it was written from. Where the code and
+an older document disagreed, the code was taken as the truth, and the
+disagreement was recorded in that program's `KNOWN-ISSUES.md`.

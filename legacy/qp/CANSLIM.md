@@ -13,7 +13,7 @@ thing. Every section below therefore leads with **what it is not**.
 Sources are IBD's and William O'Neil + Co's own published descriptions, plus
 *How to Make Money in Stocks*. Where IBD's published number has **changed over
 the years**, both are given and the choice is made explicit rather than hidden
-in a constant — see [Thresholds that moved](#thresholds-that-moved).
+in a constant — see [Thresholds that moved](#5-thresholds-that-moved).
 
 ---
 
