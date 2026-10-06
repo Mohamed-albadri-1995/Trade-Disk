@@ -403,7 +403,7 @@ and the fold is open; if `tv.js` did not load, it says so (D-S4).
 
 T6 (Unexplained Move) adds `move2hPct` (the move over the last 120 minutes,
 Alpaca 1-minute bars) and `trend6mPct` (six-month trend before today) from its
-post-scan tests (`TOOLS-AND-SCREENERS.md` (to write)).
+post-scan tests ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md)).
 
 ---
 
@@ -475,7 +475,7 @@ by the card engine, except where noted.
 | `market_context` | regime, trend stages, sector ETF, sector bias, score, hot | the market engine (§6.4) | each scan | no regime, said plainly |
 | `themes` | theme tags | static lists, keyed on ticker and SIC code | daily | none |
 | `oneil_*` | C, A, N, S, L, I, M, RS, ratings, N events | **the research worker** (§6.5) | nightly; M also on each market-state change | "not built yet · last run DATE" |
-| `move_tests` (T6) | `move2hPct`, `trend6mPct` | Alpaca bars | at discovery, for the screeners that need them | the screener's test decides (`TOOLS-AND-SCREENERS.md` (to write)) |
+| `move_tests` (T6) | `move2hPct`, `trend6mPct` | Alpaca bars | at discovery, for the screeners that need them | the screener's test decides ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md)) |
 
 A fact family that every tool needs is fetched **once per ticker**, whichever
 tool found it first.

@@ -400,7 +400,7 @@ stopping tools: [legacy/screeners/TOOL-LIFECYCLE.md](legacy/screeners/TOOL-LIFEC
 - **Discovery** runs each due screener once per scan, merges the matches into
   one candidate per ticker per tool, and hands new tickers to the card engine.
 
-**Leaf:** `design/TOOLS-AND-SCREENERS.md`.
+**Leaf:** [design/TOOLS-AND-SCREENERS.md](design/TOOLS-AND-SCREENERS.md).
 
 ### 6.3 The card
 
@@ -869,7 +869,7 @@ one; the legacy documents are complete.
 | Trunk section | Design leaf | Legacy evidence it builds on |
 |---|---|---|
 | 6.1 Sources | `design/SOURCES.md` (to write) | [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [DATA-FEEDS](legacy/qp/DATA-FEEDS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
-| 6.2 Tools and screeners | `design/TOOLS-AND-SCREENERS.md` (to write) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
+| 6.2 Tools and screeners | [design/TOOLS-AND-SCREENERS.md](design/TOOLS-AND-SCREENERS.md) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
 | 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
 | 6.4 The market | [design/MARKET.md](design/MARKET.md) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
 | 6.5 Research data | [design/ONEIL.md](design/ONEIL.md) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
