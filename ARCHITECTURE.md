@@ -284,7 +284,7 @@ This one table replaces the per-process caches, the shared JSON files and the
 | job, job run | platform | job; each run with its result |
 | user, session, setting | platform | — |
 
-The full schema is a leaf: `design/DATA-MODEL.md` (to write) ([§12](#12-the-document-map)).
+The full schema, and where every legacy table goes: [design/DATA-MODEL.md](design/DATA-MODEL.md) ([§12](#12-the-document-map)).
 
 ### 5.4 Ownership: one writer for every table
 
@@ -832,19 +832,21 @@ Each step ships on its own, keeps the desk working, and can be undone.
 |---|---|---|---|
 | 1 | CI on every pull request | platform | none |
 | 2 | One front door; close every other port | platform | low · needs a domain name |
-| 3 | Configuration checked on save | tools & screeners | low |
-| 4 | The trading calendar and real instants everywhere | platform | low |
-| 5 | The fact store and source adapters; tools read short interest, borrow and news from it | sources, card | medium · compare cards old and new for a week |
+| 3 | Configuration checked on save (fixes D-S9, D-S10) | tools & screeners | low |
+| 4 | The trading calendar and real instants everywhere | platform, journal, registers | low |
+| 5 | The database, the fact store and source adapters; tools read short interest, borrow and news from it | sources, card | medium · compare cards old and new for a week |
 | 6 | The market engine, once for all tools; hot state persisted | market | low–medium |
 | 7 | The research worker: the O'Neil chain leaves the chart server | research data | medium |
 | 8 | One scheduler with run history and alerts | platform | medium · run side by side for a week |
 | 9 | Tools as rows: one engine for every tool; R1 compared row by row before each old process stops | tools & screeners, card, registers | the largest step · reversible per tool |
 | 10 | The score and scorecard rebuilt | learning | medium |
 | 11 | The journal's one pairing engine, real instants, stops | journal | medium · re-import and compare |
-| 12 | Postgres and Parquet; one restore command, rehearsed | platform | medium · the backup proves the copy |
+| 12 | Quant on the database; one fill model for alerts | quant | medium |
+| 13 | Verified backups; one restore command, rehearsed | platform | medium · the backup proves the copy |
+| 14 | One web shell | platform | low |
 
-The full plan, with what each step changes and how it is checked:
-`design/MIGRATION.md`.
+The full plan, with what each step changes, how it is checked and how it is
+undone, and the import of the old data: [design/MIGRATION.md](design/MIGRATION.md).
 
 ---
 
@@ -862,8 +864,8 @@ The full plan, with what each step changes and how it is checked:
 
 ## 12. The document map
 
-Every document has a place in this tree. The design leaves are written one by
-one; the legacy documents are complete.
+Every document has a place in this tree. The design leaves and the legacy
+documents are complete.
 
 | Trunk section | Design leaf | Legacy evidence it builds on |
 |---|---|---|
@@ -877,9 +879,9 @@ one; the legacy documents are complete.
 | 6.8 Quant | [design/QUANT.md](design/QUANT.md) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
 | 6.9 Journal | [design/JOURNAL.md](design/JOURNAL.md) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
 | 6.10 Platform | [design/PLATFORM.md](design/PLATFORM.md) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
-| 5 Data architecture | `design/DATA-MODEL.md` (to write) | the three legacy DATA-MODEL documents |
-| all | `design/API.md` (to write) | the three legacy API documents |
-| 10 Migration | `design/MIGRATION.md` (to write) | [the earlier rebuild draft](legacy/architecture/REBUILD-ARCHITECTURE.md) |
+| 5 Data architecture | [design/DATA-MODEL.md](design/DATA-MODEL.md) | the three legacy DATA-MODEL documents |
+| all | [design/API.md](design/API.md) | the three legacy API documents |
+| 10 Migration | [design/MIGRATION.md](design/MIGRATION.md) | [the earlier rebuild draft](legacy/architecture/REBUILD-ARCHITECTURE.md) |
 
 The open findings of the old desk, by program:
 [screeners](legacy/screeners/KNOWN-ISSUES.md), [qp](legacy/qp/KNOWN-ISSUES.md),

@@ -575,7 +575,7 @@ the schema ([REGISTERS.md](REGISTERS.md)).
 | `POST /api/tools/:tool/cards/:ticker/star` | star or unstar |
 | `POST /api/tools/:tool/cards/:ticker/bias` | set the manual bias (rescores) |
 
-The full API is a leaf of its own (`design/API.md`).
+The full API: [API.md](API.md).
 
 ---
 

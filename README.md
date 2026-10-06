@@ -17,7 +17,7 @@ Every other document is a leaf of one of its sections. Its
 
 | Folder | Holds | State |
 |---|---|---|
-| [design/](design/README.md) | the new design, one document per domain. Each carries the old design in full (every field, source and calculation), what failed, the new design and its contracts | written one by one |
+| [design/](design/README.md) | the new design, one document per domain. Each carries the old design in full (every field, source and calculation), what failed, the new design and its contracts | complete |
 | [legacy/](legacy/) | the desk as it runs today, documented from its code: [screener tools](legacy/screeners/README.md), [qp](legacy/qp/README.md) (with its indicator library's code), [journal](legacy/journal/README.md), [today's architecture](legacy/architecture/ARCHITECTURE.md) | complete |
 
 Each legacy document says which code it was written from. Where the code and
