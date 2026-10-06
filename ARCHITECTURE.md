@@ -649,7 +649,7 @@ and its honesty rules: [legacy/qp/BACKTEST.md](legacy/qp/BACKTEST.md).
   over HTTP from each tool's port.
 - **It computes no card or market facts.**
 
-**Leaf:** `design/QUANT.md`.
+**Leaf:** [design/QUANT.md](design/QUANT.md).
 
 ### 6.9 Journal
 
@@ -875,7 +875,7 @@ one; the legacy documents are complete.
 | 6.5 Research data | [design/ONEIL.md](design/ONEIL.md) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
 | 6.6 Registers | [design/REGISTERS.md](design/REGISTERS.md) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
 | 6.7 Learning | [design/LEARNING.md](design/LEARNING.md) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
-| 6.8 Quant | `design/QUANT.md` (to write) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
+| 6.8 Quant | [design/QUANT.md](design/QUANT.md) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
 | 6.9 Journal | [design/JOURNAL.md](design/JOURNAL.md) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
 | 6.10 Platform | `design/PLATFORM.md` (to write) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 5 Data architecture | `design/DATA-MODEL.md` (to write) | the three legacy DATA-MODEL documents |
