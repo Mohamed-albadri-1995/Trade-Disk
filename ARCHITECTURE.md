@@ -359,7 +359,7 @@ source by what it returns rather than by whether it answered.
 The card engine, the market engine, the research worker and the journal ask
 adapters for facts; they never call a source directly.
 
-**Leaf:** `design/SOURCES.md`.
+**Leaf:** [design/SOURCES.md](design/SOURCES.md).
 
 ### 6.2 Tools and screeners
 
@@ -678,7 +678,7 @@ snapshot and the grading half do not work (D-J13, D-J14).
   and the R1 row when the ticker was on a tool that day.
 - **The chart button** opens quant at the trade's real instants.
 
-**Leaf:** `design/JOURNAL.md`.
+**Leaf:** [design/JOURNAL.md](design/JOURNAL.md).
 
 ### 6.10 Platform
 
@@ -868,7 +868,7 @@ one; the legacy documents are complete.
 
 | Trunk section | Design leaf | Legacy evidence it builds on |
 |---|---|---|
-| 6.1 Sources | `design/SOURCES.md` (to write) | [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [DATA-FEEDS](legacy/qp/DATA-FEEDS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
+| 6.1 Sources | [design/SOURCES.md](design/SOURCES.md) | [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [DATA-FEEDS](legacy/qp/DATA-FEEDS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 6.2 Tools and screeners | [design/TOOLS-AND-SCREENERS.md](design/TOOLS-AND-SCREENERS.md) | [METHODOLOGY](legacy/screeners/METHODOLOGY.md), [SCREENER-BUILDER](legacy/screeners/SCREENER-BUILDER.md), [TOOL-LIFECYCLE](legacy/screeners/TOOL-LIFECYCLE.md), [IDEAS](legacy/screeners/IDEAS.md) part 2, [PAGES](legacy/screeners/PAGES.md) |
 | 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
 | 6.4 The market | [design/MARKET.md](design/MARKET.md) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
@@ -876,7 +876,7 @@ one; the legacy documents are complete.
 | 6.6 Registers | [design/REGISTERS.md](design/REGISTERS.md) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
 | 6.7 Learning | [design/LEARNING.md](design/LEARNING.md) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
 | 6.8 Quant | `design/QUANT.md` (to write) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
-| 6.9 Journal | `design/JOURNAL.md` (to write) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
+| 6.9 Journal | [design/JOURNAL.md](design/JOURNAL.md) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
 | 6.10 Platform | `design/PLATFORM.md` (to write) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 5 Data architecture | `design/DATA-MODEL.md` (to write) | the three legacy DATA-MODEL documents |
 | all | `design/API.md` (to write) | the three legacy API documents |
