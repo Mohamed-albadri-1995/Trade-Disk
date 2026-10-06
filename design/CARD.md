@@ -371,7 +371,7 @@ The score breakdown (tap the score): the base used (e.g. B4 = 09:40 long), the
 entry time and bias, the card's regime, which table scored it (a regime `sub`
 table or the `main` table and why), the bias the table read, its sample count,
 its confidence, a bar per factor's bucket, and a button to open the table. How
-it is computed today and why it is replaced: `LEARNING.md` (to write) when
+it is computed today and why it is replaced: [LEARNING.md](LEARNING.md) when
 written; legacy [SCORING-TODAY](../legacy/screeners/SCORING-TODAY.md).
 
 The star (☆/★) adds the card to this tool's shortlist; `★ also T2` shows
@@ -435,7 +435,7 @@ The CANSLIM document locked a card specification and built it in phases
 | D-S3 | a column shift could misalign every field | positional parsing | the adapter refuses misaligned batches (kept) |
 | D-S4 | the chart fold silently empty when `tv.js` failed | — | says so (kept) |
 | D-D1 | no card has a score; the shortlist auto-rule adds nothing | scorer off on every tool | the model applied in-process ([§5.3](#53-the-card-builder)) |
-| D-D2 | R4 narrower than R1 | a copied table | R4 is a view (`REGISTERS.md` (to write)) |
+| D-D2 | R4 narrower than R1 | a copied table | R4 is a view ([REGISTERS.md](REGISTERS.md)) |
 | D-D6 | a one-rung group roll-up shown as an ordinary industry on the Market tab | display | the card's rule used everywhere |
 | D-D7 | the short-interest tooltip names the wrong source order | text not generated | tooltips generated from the adapter's order |
 | — | 14 field explanations invisible on a phone | `title` attributes | tap ⓘ ([§5.6](#56-presentation)) |
@@ -492,7 +492,7 @@ Pure functions, each written once and tested with fixtures:
 | `technicalCatalysts(quote, derived, shortInterest)` | — | technical catalysts | §2.8 table |
 | `autoBias(catalyst, marketContext, manualBias)` | — | bias and reason | §2.8 rule |
 | `alignment(derived, catalyst)` | — | ALL BULL / ALL BEAR / none | §2.2 |
-| `score(toolModel, card, toolCard)` | the tool's current model | score, sample, confidence, breakdown | `LEARNING.md` (to write) |
+| `score(toolModel, card, toolCard)` | the tool's current model | score, sample, confidence, breakdown | [LEARNING.md](LEARNING.md) |
 
 The score is computed **once, at discovery**, and again only when the trader
 changes the bias.
@@ -505,7 +505,7 @@ changes the bias.
 | every 5 minutes, 04:00–16:00 | one batched TradingView call re-quotes every card of today; `derived` recomputed |
 | each discovery scan | `news` refreshed for live cards; `market_context` re-stamped |
 | a scan in which no screener of the tool matched | the tool card becomes stale |
-| the tool's capture minute | R1 freezes the card and the tool card (`REGISTERS.md` (to write)) |
+| the tool's capture minute | R1 freezes the card and the tool card ([REGISTERS.md](REGISTERS.md)) |
 | after the close | the research worker writes new `oneil_*` facts; tomorrow's cards read them |
 | midnight New York | today's cards and tool cards close; history stays in the database |
 
@@ -542,7 +542,7 @@ No blank that reads as zero (CANSLIM X7, E6).
 The whole card and the whole tool card at the capture minute, plus the
 version of every screener that matched and the id of the market state used.
 Every field in §2 is therefore in the photo, and every export is generated from
-the schema (`REGISTERS.md` (to write)).
+the schema ([REGISTERS.md](REGISTERS.md)).
 
 ---
 

@@ -73,7 +73,7 @@ and `downR = (entry − ll) ÷ ATR14`; a good move is `upR ≥ 1.3`; ATR14 from
 daily bars strictly before today; regular session only. The opening range
 (09:30–09:35), the minutes from the open at discovery, and whether another tool
 shortlisted the card are recorded for every card
-(`REGISTERS.md` (to write)).
+([REGISTERS.md](REGISTERS.md)).
 
 ### 2.3 The photo
 
@@ -281,7 +281,7 @@ retired on 2026-10-02.
 
 Each tool keeps its own shortlist; anything shortlisted on any tool shows on
 every other tool's card as `★ also T1 T7`, never touching that tool's own star
-or model (`REGISTERS.md` (to write)).
+or model ([REGISTERS.md](REGISTERS.md)).
 
 ---
 
@@ -536,7 +536,7 @@ because the photo of a day must use one time; no restart is involved.
 | **Suite** | every tool: status, today's counts, photo time, last scan |
 | **A tool's Screeners tab** | each screener with its rules in words, versions, window timeline with the capture minute, floor, post-scan tests, badges; the full editor (every field, including check window, purpose, mirror link) |
 | **Manage tools** | add, edit (with the checks of §8.3), pause, resume, archive, start, delete, restore |
-| **Comparison** | every screener against the benchmark and its mirror (`LEARNING.md` (to write)) |
+| **Comparison** | every screener against the benchmark and its mirror ([LEARNING.md](LEARNING.md)) |
 
 ### 8.7 Seeds and migrations
 

@@ -585,7 +585,7 @@ The nightly job, its six steps and how it is installed:
 - **Exports are generated from the schema**, so a new column appears in every
   export at once.
 
-**Leaf:** `design/REGISTERS.md`.
+**Leaf:** [design/REGISTERS.md](design/REGISTERS.md).
 
 ### 6.7 Learning: the score and the scorecard
 
@@ -620,7 +620,7 @@ should be copied: [legacy/screeners/SCORING-TODAY.md](legacy/screeners/SCORING-T
   own mirror, on the share of good moves and the share of days hit, with the
   sample shown beside every verdict.
 
-**Leaf:** `design/LEARNING.md`.
+**Leaf:** [design/LEARNING.md](design/LEARNING.md).
 
 ### 6.8 Quant: charts, strategies, backtests, alerts
 
@@ -873,8 +873,8 @@ one; the legacy documents are complete.
 | 6.3 The card | [design/CARD.md](design/CARD.md) | [CARD-FIELDS](legacy/screeners/CARD-FIELDS.md), [CARD](legacy/screeners/CARD.md), [DATA-PIPELINE](legacy/screeners/DATA-PIPELINE.md), [CANSLIM](legacy/qp/CANSLIM.md) §7, §11 |
 | 6.4 The market | [design/MARKET.md](design/MARKET.md) | [MARKET-TAB](legacy/screeners/MARKET-TAB.md), [CANSLIM](legacy/qp/CANSLIM.md) §2, §8, §9 |
 | 6.5 Research data | [design/ONEIL.md](design/ONEIL.md) | [CANSLIM](legacy/qp/CANSLIM.md), [qp OPERATIONS](legacy/qp/OPERATIONS.md) |
-| 6.6 Registers | `design/REGISTERS.md` (to write) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
-| 6.7 Learning | `design/LEARNING.md` (to write) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
+| 6.6 Registers | [design/REGISTERS.md](design/REGISTERS.md) | [REGISTERS](legacy/screeners/REGISTERS.md), [METHODOLOGY](legacy/screeners/METHODOLOGY.md) |
+| 6.7 Learning | [design/LEARNING.md](design/LEARNING.md) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
 | 6.8 Quant | `design/QUANT.md` (to write) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
 | 6.9 Journal | `design/JOURNAL.md` (to write) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
 | 6.10 Platform | `design/PLATFORM.md` (to write) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
