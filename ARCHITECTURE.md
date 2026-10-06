@@ -717,7 +717,7 @@ Today's arrangement: [legacy/architecture/ARCHITECTURE.md](legacy/architecture/A
 - **CI** runs every test on every pull request; red blocks the merge.
 - **One supervisor** (systemd or pm2, never both).
 
-**Leaf:** `design/PLATFORM.md`.
+**Leaf:** [design/PLATFORM.md](design/PLATFORM.md).
 
 ---
 
@@ -815,8 +815,7 @@ checks each one's health page; it stops and says why at the first failure.
 **Backup.** Every night: a database dump and the Parquet exports to R2,
 verified by restoring the dump into a scratch database and counting rows. The
 daily, monthly and analysis layout of today's backup is kept
-(legacy detail in the code repo's `docs/BACKUPS.md`, to be carried into the
-platform leaf).
+(legacy detail and the new design: [design/PLATFORM.md](design/PLATFORM.md) §5–§6).
 
 **Restore.** One command: `restore <date>` stops the services, restores the
 database, starts the services, and checks health. A monthly rehearsal
@@ -877,7 +876,7 @@ one; the legacy documents are complete.
 | 6.7 Learning | [design/LEARNING.md](design/LEARNING.md) | [IDEAS](legacy/screeners/IDEAS.md) parts 1 and 3, [SCORING-TODAY](legacy/screeners/SCORING-TODAY.md) |
 | 6.8 Quant | [design/QUANT.md](design/QUANT.md) | [qp](legacy/qp/README.md): LIBRARY, CATALOG, STRATEGIES, BACKTEST, ALERTS-AND-PRINTS, PAGE, SCALPS, PINE |
 | 6.9 Journal | [design/JOURNAL.md](design/JOURNAL.md) | [journal](legacy/journal/README.md): PAGE, ACCOUNTS, IMPORT, ANALYSIS |
-| 6.10 Platform | `design/PLATFORM.md` (to write) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
+| 6.10 Platform | [design/PLATFORM.md](design/PLATFORM.md) | [today's architecture](legacy/architecture/ARCHITECTURE.md), [MONITOR](legacy/screeners/MONITOR.md), [SETTINGS](legacy/screeners/SETTINGS.md), [DATACHECK](legacy/screeners/DATACHECK.md) |
 | 5 Data architecture | `design/DATA-MODEL.md` (to write) | the three legacy DATA-MODEL documents |
 | all | `design/API.md` (to write) | the three legacy API documents |
 | 10 Migration | `design/MIGRATION.md` (to write) | [the earlier rebuild draft](legacy/architecture/REBUILD-ARCHITECTURE.md) |
