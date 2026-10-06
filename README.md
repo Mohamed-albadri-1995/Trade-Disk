@@ -9,7 +9,7 @@ The desk is three programs on one box:
 | Program | Does | Documents |
 |---|---|---|
 | **Screener tools** | watch the market through TradingView screeners, build a card per stock, freeze a daily photo, measure what moved | [screeners/](screeners/README.md) |
-| **qp** | charts, strategies and backtests on the stocks the tools found; builds the O'Neil/CANSLIM data | [qp/](qp/README.md), with the library's code |
+| **qp** | charts, strategies and backtests on the stocks the tools found; also hosts the O'Neil computations that fill the screener cards and the Market tab | [qp/](qp/README.md), with the library's code |
 | **Journal** | every trade after the fact: imports, P&L, statistics | next phase |
 
 How the programs connect, the login, backups, deployment and the landing page

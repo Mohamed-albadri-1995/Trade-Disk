@@ -3,8 +3,14 @@
 The second program on the desk. It charts any stock with indicators that
 have been verified against TradingView, lets you build trading rules by
 clicking, backtests them on **the stocks the screener tools actually found,
-on the days they found them**, watches today's lists for live signals, and
-builds the O'Neil/CANSLIM data the screener cards and Market tab show.
+on the days they found them**, and watches today's lists for live signals.
+
+It also **hosts the O'Neil/CANSLIM computations**. Their results are not qp
+features: they are **card fields** (the CANSLIM fold, the `cs*` columns frozen
+into R1) and **Market-tab sections** (M and L) of the screener tools, which
+ask qp for them on every scan and read the files it writes each night. In a
+rebuild they move to their own worker
+([REBUILD-ARCHITECTURE.md](../architecture/REBUILD-ARCHITECTURE.md)).
 
 | | |
 |---|---|
@@ -90,7 +96,7 @@ flowchart LR
 | `chart/datacheck.py` | judging every source's data ([DATACHECK.md](../screeners/DATACHECK.md)) |
 | `chart/oplog.py` | the operations log |
 | `chart/auth.py` | the desk login, for qp and its WebSocket |
-| `chart/oneil.py`, `relstrength.py`, `sic.py`, `groups.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`, `canslim.py` | the CANSLIM chain ([CANSLIM.md](CANSLIM.md)) |
+| `chart/oneil.py`, `relstrength.py`, `sic.py`, `groups.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`, `canslim.py` | the CANSLIM chain: its results fill the screener cards and the Market tab ([CANSLIM.md](CANSLIM.md)) |
 | `chart/static/index.html` | the page |
 | `chart/seeds/*.json` | the bundled strategies |
 | `tools/compare_server.py`, `tools/data/*` | the verification page and the bar loaders |
@@ -131,8 +137,10 @@ flowchart LR
 12. **A feed is judged by what it returns, not by whether a key exists**
     ([DATA-FEEDS.md](DATA-FEEDS.md)).
 13. **Caches have limits tied to free disk.**
-14. **qp is the only writer of the O'Neil files**, rebuilt every night by one
-    job that never stops on one failed step ([OPERATIONS.md](OPERATIONS.md)).
+14. **The O'Neil results have one writer**, rebuilt every night by one job
+    that never stops on one failed step ([OPERATIONS.md](OPERATIONS.md)). They
+    belong to the cards and the Market tab, so the card must not depend on the
+    chart server being up: in a rebuild that writer is its own worker.
 15. **One supervisor**: pm2 only, never systemd as well.
 
 ## What not to copy
