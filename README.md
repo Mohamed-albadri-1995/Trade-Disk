@@ -15,6 +15,15 @@ The desk is three programs on one box:
 How the programs connect, the login, backups, deployment and the landing page
 come last, once each program is documented on its own.
 
+## Architecture
+
+| Document | |
+|---|---|
+| [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) ([PDF](architecture/pdf/ARCHITECTURE.pdf)) | the desk as it runs today: the three programs, what they share, where everything lives |
+| [architecture/REBUILD-ARCHITECTURE.md](architecture/REBUILD-ARCHITECTURE.md) ([PDF](architecture/pdf/REBUILD-ARCHITECTURE.pdf)) | the desk as it would be built from the beginning: principles, target design, migration steps |
+
+The screener documents have their PDFs in [screeners/pdf/](screeners/pdf/).
+
 ## Phases
 
 1. **Screener tools**: done, in [screeners/](screeners/README.md).
