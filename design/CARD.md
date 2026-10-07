@@ -8,7 +8,7 @@ largest domain of the desk.
 (§6.5) for the CANSLIM reading; Learning (§6.7) for the score; Registers
 (§6.6), which freeze it.
 
-**Built on:** [CARD-FIELDS](../legacy/screeners/CARD-FIELDS.md) (97 fields),
+**Built on:** [CARD-FIELDS](../legacy/screeners/CARD-FIELDS.md) (97 numbered fields and their lettered sub-fields),
 [CARD](../legacy/screeners/CARD.md) (layout and display),
 [DATA-PIPELINE](../legacy/screeners/DATA-PIPELINE.md) (how each value is fetched and
 computed), [CANSLIM](../legacy/qp/CANSLIM.md) §7, §11–§14 (the locked CANSLIM card
@@ -304,7 +304,8 @@ about 25 industries).
 ### 2.11 The CANSLIM reading
 
 Fetched by the browser through the tool's `/api/market/oneil/*` routes, which
-ask qp; also put on the row as 31 `cs*` columns so R1 freezes it. The method
+ask qp (each tool keeps qp's answers for the trading day and asks once per new
+ticker); also put on the row as 31 `cs*` columns so R1 freezes it. The method
 behind every value is in [CANSLIM](../legacy/qp/CANSLIM.md); the facts come from
 the research worker in the new design ([§6.5](../ARCHITECTURE.md#65-research-data-the-oneil-chain)).
 
@@ -371,8 +372,8 @@ The score breakdown (tap the score): the base used (e.g. B4 = 09:40 long), the
 entry time and bias, the card's regime, which table scored it (a regime `sub`
 table or the `main` table and why), the bias the table read, its sample count,
 its confidence, a bar per factor's bucket, and a button to open the table. How
-it is computed today and why it is replaced: [LEARNING.md](LEARNING.md) when
-written; legacy [SCORING-TODAY](../legacy/screeners/SCORING-TODAY.md).
+it is computed today and why it is replaced: [LEARNING.md](LEARNING.md);
+legacy [SCORING-TODAY](../legacy/screeners/SCORING-TODAY.md).
 
 The star (☆/★) adds the card to this tool's shortlist; `★ also T2` shows
 other tools' stars.
@@ -410,7 +411,8 @@ post-scan tests ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md)).
 ## 3. What was planned and never built
 
 The CANSLIM document locked a card specification and built it in phases
-([CANSLIM](../legacy/qp/CANSLIM.md) §12). Phases 1–5 shipped. What did not:
+([CANSLIM](../legacy/qp/CANSLIM.md) §12). Phases 1–5 shipped, and phase 6
+except S2 and I3. What did not:
 
 | Item | What it is | Why it matters | In the new design |
 |---|---|---|---|
@@ -428,7 +430,7 @@ The CANSLIM document locked a card specification and built it in phases
 | ID | Fault | Root cause | Prevented by |
 |---|---|---|---|
 | — | each tool fetches the same ticker's news, short interest and borrow, and builds its own card | the pipeline lives inside each tool | one shared card ([§5.1](#51-card-and-tool-card)) |
-| — | while qp restarts, every card's CANSLIM fold is blank, and every scan freezes empty `cs*` columns into R1 | O'Neil values computed inside the chart server, asked for on every scan | facts read from the fact store, written by the research worker |
+| — | a ticker first seen while qp is down or restarting has a blank CANSLIM fold until a later scan retries, and a photo taken in that gap freezes empty `cs*` columns into R1; five tools ask qp for the same tickers | O'Neil values computed inside the chart server and cached in each tool's memory for the day | facts written by the research worker, read from the fact store; a new ticker's facts within minutes ([ONEIL.md](ONEIL.md) §6.1) |
 | — | R1 cannot say when a fact was learned; backtests rebuild CANSLIM "as of" a day | facts carry no time | `known_at` and `as_of` on every fact |
 | D-S1 | short interest and borrow wiped on a re-quote | enriched fields not carried over | facts live apart from the quote |
 | D-S2, F-14 | missing data read as bearish or as zero | no honest null | `status` on every fact; derived values blank on missing input |
@@ -449,11 +451,14 @@ The CANSLIM document locked a card specification and built it in phases
 
 - **The card** is built by the card engine (desk-worker) and is the same for
   every tool. It is a projection of the fact store: for each fact family, the
-  latest `ok` fact at that instant, or the latest `none` / `unavailable` with
-  its reason.
+  latest fact known at that instant: an `ok` fact while it is fresh enough,
+  otherwise the latest `none` or `unavailable` with its reason, beside the last
+  `ok` value marked stale with its age.
 - **The tool card** holds `tool`, `ticker`, `day`, `screener_keys` (with the
-  version and first-match time of each), `first_seen`, `live`, `star`,
-  `manual_bias`, `score` (with model version, sample size and confidence).
+  version and first-match time of each), `first_seen`, `live`, `manual_bias`,
+  `score` (with model version, sample size and confidence). Its star is its row
+  in the tool's shortlist ([REGISTERS.md](REGISTERS.md) §4.6), so a pick is
+  recorded once.
 - The page draws a tool's list from its tool cards, joined to the shared
   cards.
 
@@ -464,7 +469,7 @@ by the card engine, except where noted.
 
 | Family | Fields | Adapters, in priority | Refreshed | When a source fails |
 |---|---|---|---|---|
-| `quote` | the 32 columns (§2.4) | TradingView scanner | at discovery; every 5 min for live and stale cards | the batch is refused; the last quote stays, marked with its age |
+| `quote` | the 32 columns (§2.4) | TradingView scanner | at discovery; every 5 min for live and stale cards. The latest is always kept; the history keeps the quote at discovery, at each photo and at the close (trunk §5.2) | the batch is refused; the last quote stays, marked with its age |
 | `derived` | §2.5 | computed from `quote` | with every quote | blank where an input is blank |
 | `short_interest` | short shares, `shortFloat`, basis, as-of, trend, days to cover | FINRA → Yahoo → Nasdaq | once a day per ticker; again only after a failure | `unavailable` with each source's reason |
 | `borrow` | shortable, easy to borrow, note | Alpaca | once a day | `unavailable` |
@@ -472,9 +477,9 @@ by the card engine, except where noted.
 | `news` | items with source, time, link; each source's status | TradingView, Alpaca, Yahoo, EDGAR, Finnhub; Google when fewer than 2 | each discovery scan for live cards; at most every 5 min per ticker | the other sources still count; the failing one is named |
 | `catalyst` | catalyst, others, technical catalysts | computed from `news` and `quote` | with `news` and `quote` | — |
 | `bias` | auto bias and its reason | computed from `catalyst` and market context | with either | "no read" |
-| `market_context` | regime, trend stages, sector ETF, sector bias, score, hot | the market engine (§6.4) | each scan | no regime, said plainly |
+| `market_context` | regime, trend stages, sector ETF, sector bias, score, hot | the market engine (§6.4) | each scan (kept in the history at discovery, each photo and the close, like the quote) | no regime, said plainly |
 | `themes` | theme tags | static lists, keyed on ticker and SIC code | daily | none |
-| `oneil_*` | C, A, N, S, L, I, M, RS, ratings, N events | **the research worker** (§6.5) | nightly; M also on each market-state change | "not built yet · last run DATE" |
+| `oneil_*` | C, A, N, S, L, I, M, RS, ratings, N events | **the research worker** (§6.5) | nightly; for a ticker carded for the first time, within minutes; M also provisionally every 30 minutes in the session | "computing · since 09:41" for a new ticker; else "not built yet · last run DATE" |
 | `move_tests` (T6) | `move2hPct`, `trend6mPct` | Alpaca bars | at discovery, for the screeners that need them | the screener's test decides ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md)) |
 
 A fact family that every tool needs is fetched **once per ticker**, whichever
@@ -494,19 +499,22 @@ Pure functions, each written once and tested with fixtures:
 | `alignment(derived, catalyst)` | — | ALL BULL / ALL BEAR / none | §2.2 |
 | `score(toolModel, card, toolCard)` | the tool's current model | score, sample, confidence, breakdown | [LEARNING.md](LEARNING.md) |
 
-The score is computed **once, at discovery**, and again only when the trader
-changes the bias.
+The score is computed **whenever the card changes**: at discovery, at each
+re-quote, on a new market state and when the trader changes the bias. It is a
+dot product in-process, so it costs nothing, and the photo freezes the score of
+the card it froze (today's desk also re-scores on every scan).
 
 ### 5.4 Lifecycle and timing
 
 | Event | What happens |
 |---|---|
 | a screener matches a ticker for a tool | tool card created or updated (screener key, first match); if the card does not exist today, the card engine builds it, fetching only families that are not fresh |
-| every 5 minutes, 04:00–16:00 | one batched TradingView call re-quotes every card of today; `derived` recomputed |
+| every 5 minutes, 04:00–16:00 | one batched TradingView call re-quotes every card of today; `derived` recomputed; scores re-applied |
+| a card is built for a ticker with no company facts | the research worker picks it up within 5 minutes ([ONEIL.md](ONEIL.md) §6.1); the CANSLIM fold says "computing · since HH:MM" until the facts land |
 | each discovery scan | `news` refreshed for live cards; `market_context` re-stamped |
 | a scan in which no screener of the tool matched | the tool card becomes stale |
 | the tool's capture minute | R1 freezes the card and the tool card ([REGISTERS.md](REGISTERS.md)) |
-| after the close | the research worker writes new `oneil_*` facts; tomorrow's cards read them |
+| after the close | the research worker writes new `oneil_*` facts; open cards and tomorrow's cards read them |
 | midnight New York | today's cards and tool cards close; history stays in the database |
 
 A restart loses nothing: cards and tool cards are rows, not memory.
@@ -572,10 +580,10 @@ the schema ([REGISTERS.md](REGISTERS.md)).
 | `GET /api/tools/:tool/cards?day=` | the tool's cards for the day, with filters and sort as in §2.13 |
 | `GET /api/cards/:ticker?day=` | one card with every family, its status and its as-of |
 | `GET /api/cards/:ticker/canslim?day=` | the CANSLIM panel |
-| `POST /api/tools/:tool/cards/:ticker/star` | star or unstar |
 | `POST /api/tools/:tool/cards/:ticker/bias` | set the manual bias (rescores) |
 
-The full API: [API.md](API.md).
+Starring is a shortlist route ([REGISTERS.md](REGISTERS.md) §5). The full API:
+[API.md](API.md).
 
 ---
 

@@ -15,7 +15,10 @@ programs, the shared state, the environment variables),
 [PAGES](../legacy/screeners/PAGES.md) (the suite and landing pages), the code
 repo's `docs/BACKUPS.md`, `docs/USER-GUIDE.md`, `src/auth/index.js`,
 `quant-platform/chart/auth.py`, `deploy-tools.sh`, `deploy/tool-ctl.sh`,
-`scripts/backup-r2.js`, `scripts/restore-r2.js`.
+`scripts/backup-r2.js`, `scripts/restore-r2.js`; the helper scripts of
+[the screener tools](../legacy/screeners/SCRIPTS.md) and
+[qp](../legacy/qp/SCRIPTS.md), and the journal's
+[OPERATIONS](../legacy/journal/OPERATIONS.md) (§7.1 says where each goes).
 
 ---
 
@@ -38,11 +41,12 @@ repo's `docs/BACKUPS.md`, `docs/USER-GUIDE.md`, `src/auth/index.js`,
 
 ### Legacy
 
-Every program listens on a **public port of its own** (thirteen: five tools,
-their scorers, the archive's ports, qp 8765, the journal 3100). Until the
-2026-10 review none asked who was calling (**S-1**): anyone who found a port
-could change settings, keys and strategies, and qp's log already showed
-internet scanners on 8765.
+Every program listens on a **public port of its own**, over plain HTTP
+(thirteen: the five running tools, the archive answering on the six stopped
+tools' ports, qp 8765, the journal 3100; the per-tool scorer ports are unused,
+the scorers being off). Until the 2026-10 review none asked who was calling
+(**S-1**): anyone who found a port could change settings, keys and
+strategies, and qp's log already showed internet scanners on 8765.
 
 The fix that runs today, `src/auth/index.js` (Node) and `chart/auth.py` (qp,
 pure ASGI so its WebSocket is covered):
@@ -50,7 +54,7 @@ pure ASGI so its WebSocket is covered):
 | Part | Rule |
 |---|---|
 | `data/auth.json` | gitignored, mode 0600, written by `scripts/set-password.sh`: `{ v, salt, hash, secret }`, the password as a **scrypt** hash (N 16384, r 8, p 1) and a random signing secret; re-read when it changes, so a new password applies everywhere at once |
-| `td_auth` cookie | `<expiry>.<HMAC-SHA256(secret, "td1.<expiry>")>`, **30 days**; a cookie, not Basic auth, because cookies ignore the port: signed in on one program, signed in on all |
+| `td_auth` cookie | `<expiry>.<HMAC-SHA256(secret, "td1.<expiry>")>`, **30 days**; a cookie, not Basic auth, because cookies ignore the port: signed in on one program, signed in on all. Flags `HttpOnly; SameSite=Lax`; not `Secure`, because nothing is served over HTTPS |
 | let through | `/login`, `/logout`; calls from the box itself (127.0.0.1, ::1) that did not pass a proxy (the programs call each other; the backup; the deploy's health probes) |
 | no password set | **locked, not open**: every outside request gets a page saying how to set one |
 | a new password | writes a new secret, signing everyone out |
@@ -61,8 +65,11 @@ pure ASGI so its WebSocket is covered):
 - **One HTTPS address** (Cloudflare Tunnel or Caddy with a certificate) in
   front of desk-web and quant; **every other port closed** to the internet.
 - **The same login** (scrypt hash, signed cookie, locked when unset), served
-  once by the front door or desk-web, with a session list and "sign out
-  everywhere".
+  by desk-web and checked by quant with the same secret, with a session list
+  and "sign out everywhere".
+- The cookie is `Secure; HttpOnly; SameSite=Lax`, and a request that changes
+  anything must carry the desk's own `Origin` (no cross-site form or script
+  can act as the trader).
 - Services call each other on the private network or localhost only.
 - Login attempts are rate-limited and logged.
 
@@ -122,8 +129,41 @@ schedule.
 Every run is a row: start, end, result, counts, error with stack. **A failed,
 missed or hung run sends a push alert**; the Monitor page shows every job of
 every domain, its last runs and its next run. The research worker, backup and
-alerts are jobs like any other: no pm2 cron, no systemd timer. The trading
-calendar (holidays, half days) decides which days run.
+quant's alert cycles are jobs like any other: no pm2 cron, no systemd timer,
+no loop of its own in any service. The trading calendar (holidays, half days)
+decides which days run.
+
+- **No overlap.** A job never runs twice at once: a run still going when its
+  next slot comes skips that slot, recorded as `skipped` (the legacy scan guard,
+  made general).
+- **Dependencies, not clock guesses.** A job can wait for another: training
+  waits for R3, the backup for the night's research run. Today the backup runs
+  at a fixed 23:20 UTC, fifty minutes after the nightly chain starts, whether
+  or not the chain has finished.
+- **Missed is said.** A job whose slot passed while desk-worker was down is
+  recorded as `missed` and alerts; a photo is never taken late as if on time
+  ([REGISTERS.md](REGISTERS.md) §4.2).
+
+The jobs of the new desk (New York time, trading days):
+
+| Job | Schedule | Domain |
+|---|---|---|
+| discovery | 04:00–09:00 every 30 min; 09:00–10:00 every 5; 10:00–16:00 every 15; 16:00 | tools and screeners |
+| re-quote (and re-score) | every 5 min, 04:00–16:00 | card |
+| research: new tickers | every 5 min, 04:00–16:00, while any are waiting | research data |
+| research: provisional M | every 30 min, 09:30–16:00 | research data |
+| quant alert cycle | every minute, 09:25–16:05, while alerts are on | quant |
+| shortlist auto-rule | one minute before each tool's photo | registers |
+| R1 photo | each tool's capture minute | registers |
+| R3 outcomes | 16:05 (half days: 15 minutes after the close) | registers |
+| research: training and scorecards | after R3 (about 16:20) | learning |
+| research: the night (O'Neil chain, SIC) | 18:30 | research data |
+| backup and verification | after the night's research run | platform |
+| journal sync | each account's own interval | journal |
+| health checks | each adapter's cadence; all of them before 04:00 | platform |
+| restore rehearsal | monthly | platform |
+
+R2 and R4 are views: no job writes them.
 
 ---
 
@@ -189,7 +229,7 @@ shell. No alerts.
 |---|---|---|
 | source health | scheduled checks ([SOURCES.md](SOURCES.md) §6) | red |
 | job runs | the scheduler | failed, missed or hung |
-| fact freshness | each fact family's clock (e.g. earnings older than 8 days, M older than 36 h) | amber, then red |
+| fact freshness | each fact family's clock, counted in trading sessions (e.g. M and groups not from the last completed session; earnings not refreshed in 8 days), so a weekend or a holiday never reads as stale | amber, then red |
 | service health | each service's `/health` (database reachable, last scan, queue depth) | down |
 | disk, memory | the box | under thresholds |
 | backup | the nightly verification | not clean |
@@ -233,7 +273,7 @@ It replaced a GitHub backup that pushed API keys in plain text (**S-2**).
 | Item | Rule |
 |---|---|
 | what | a database dump (Postgres `pg_dump`, or each SQLite file through the online backup API), the Parquet analysis exports, strategy JSON exports, **trained models** (rows in the database now) |
-| when | nightly, a scheduled job; and before every migration |
+| when | nightly, as soon as the night's research run ends (a dependency, not a clock time); and before every migration |
 | layout | the legacy `daily/`, `monthly/`, `analysis/` layout and retention, kept |
 | **verified** | the dump is restored into a scratch database and its row counts compared with the live ones; the manifest records the result; a mismatch is a red alert |
 | secrets | never in the backup; the trader keeps their own copy of the secret store |
@@ -250,8 +290,10 @@ process (`pm2 stop tool-T2`, copy, delete the `-wal`/`-shm` files, `pm2 start`),
 with the right owner for each file (`tool-Tn`, `archive`, `journal`, `qp`). A new
 box: clone, deploy (it starts empty), set the R2 keys, restore everything, stop
 all, copy files into place, start all, set the password, re-enter the keys and
-the journal's accounts. **Never rehearsed.** Models must be retrained by hand
-from the registers.
+the journal's accounts. The download step is tested
+(`tests/backup.r2.test.js`, against a stand-in bucket); a full restore onto a
+box is not on record and not scheduled. Models must be retrained by hand from
+the registers.
 
 ### New design
 
@@ -301,6 +343,21 @@ No CI: tests run when someone runs them.
 | **Deploy** | one command on the box: fetch the release, back up, run migrations, restart services in order (database, desk-worker, desk-web, quant, front door), check each `/health`; stop at the first failure and say why; roll back to the previous release on request |
 | **Supervisor** | one (systemd units, or pm2), never both; memory limits per service |
 | **Logs** | structured, per service, rotated; the last errors shown on the health page |
+| **The photo window** | a deploy within 15 minutes of any tool's capture minute on a trading day is refused unless forced |
+
+### 7.1 The legacy scripts, and where each goes
+
+| Legacy | New home |
+|---|---|
+| `scripts/set-password.sh`, `set-r2-keys.sh`, `set-alpaca-keys.js`, `sync-qp-env.js` | `desk secret set <name>`: one secret store, read by every service, so nothing is copied between files |
+| `deploy-tools.sh`, `deploy/tool-ctl.sh`, `deploy/qp-restart.sh`, `deploy/add-swap.sh` | `desk deploy` (§7); tools are rows, so no tool is started on its own; swap is set once at install |
+| `show-screeners`, `check-screeners`, `why-empty`, `try-filter`, `field-values`, `verify-tv-fields`, the `probe-*` scripts | the builder's Test (`count`, `totalCount`, which rule empties it), the adapter's live column list, and the scheduled health checks |
+| `audit-floor`, `purge-sub-floor`, `backfill_signals`, `rebuild_training`, `convert_legacy_to_r4.py`, `split-tool-history` | one-time repairs become versioned migrations and the import of old data ([MIGRATION.md](MIGRATION.md) §3); R4 is a view, so nothing needs rebuilding |
+| `analyse-bias`, `analyse-news-chain`, `card_lookup.py`, `verify_irdm_score.py`, `explain_score.py` | the Parquet exports and the API (a card as of a day, the R1 register, the score's breakdown) |
+| qp `run_status.py`, `run_fields.py` | the research checks on the health page; `desk fields <ticker>`: every CANSLIM field with its status and reason |
+| qp `run_daily.py`, `run_backfill.py`, `run_edgar.py`, `run_13f.py`, `run_sic.py` | the research worker's runs and steps, started by the scheduler or `desk research <step>` |
+| qp `tools/compare_server.py`, `gen_catalog.py`, `check_strategies.py`, `explain_strategy.py`, `seed_from_db.py`, `recover_strategies.py`, `rank_sweep.py`; `exec-compare.js`, `fill-compare.js`, `check-feeds.js` | kept with quant as they are: library verification, the catalogue, strategy checks and research scripts |
+| the journal's start-up order, its minute timer and its environment ([OPERATIONS](../legacy/journal/OPERATIONS.md)) | desk-web's start-up; the scheduler's journal-sync job |
 
 ---
 
@@ -361,3 +418,7 @@ could not take `desk.css` whole and served a sliced copy.
 4. **New-box test.** A fresh box restored with one command serves the same
    pages and numbers as the old one for a chosen past day.
 5. **CI gate.** A deliberately failing test blocks a merge.
+6. **Weekend test.** On a Monday before the open, and the morning after a
+   holiday, no freshness check is amber.
+7. **Overlap test.** A scan made to outlast its slot skips the next slot and
+   records it; two scans never run at once.

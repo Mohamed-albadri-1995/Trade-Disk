@@ -1,4 +1,4 @@
-# Sources: one adapter per external source
+# Sources: the adapters
 
 **Trunk section:** [§6.1 Sources](../ARCHITECTURE.md#61-sources).
 
@@ -39,8 +39,9 @@ In the old desk each source is called from inside the stage that needs it, in
 every tool's process: the same ticker's short interest is fetched once per tool
 that found it; a fallback order exists in one stage and not another; health is
 known only when someone presses the data-check button. An adapter puts
-everything about one source in one place, and every domain asks adapters for
-**facts**, never calling a source directly.
+everything about one endpoint family in one place (a provider with several
+endpoints, such as Yahoo or Alpaca, has one adapter for each), and every
+domain asks adapters for **facts**, never calling a source directly.
 
 ---
 
@@ -157,7 +158,7 @@ of them before the open) and feed one health page:
 | indexes ^GSPC, ^IXIC | as bar feeds; "M cannot be built" | — |
 | **cross-source agreement** (the only check that catches a confidently wrong feed) | worst close difference over 0.5 % | under 3 shared sessions; fewer than 2 working feeds ("configure a second feed") |
 | RS universe | no sessions; under 1,000 symbols | under 253 sessions |
-| research facts | missing a required field | older than their clock allows (M and groups: 36 h; SIC: 14 days) |
+| research facts | missing a required field | older than their clock allows, counted in trading sessions (M and groups: not from the last completed session; SIC: 14 days). The legacy check used 36 hours by the clock, which reads every weekend as stale |
 | EDGAR | ticker map under 5,000; no quarters for a known filer; 403 | — |
 | sector map | — | a card sector with no ETF mapping ([MARKET.md](MARKET.md) §4) |
 
@@ -192,7 +193,7 @@ page had no inputs: D-T4).
 |---|---|---|
 | — | the same ticker fetched once per tool | facts fetched once, shared |
 | D-S1 | short interest and borrow wiped on a re-quote | facts kept apart from the quote |
-| D-S2, F-14 | a missing value read as "no", 0 or bearish | the honest null |
+| D-S2, F-14 | a missing value read as a number or as bearish | the honest null |
 | D-S3 | a column shift misaligning every field | the alignment check (kept) |
 | Q-N6 | routes with their own Polygon default | no per-route defaults |
 | — | "alpaca ok" printed daily while the key was refused | health judged by content (kept, and scheduled) |

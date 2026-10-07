@@ -14,7 +14,8 @@ code with every import format run on a scratch database:
 [IMPORT](../legacy/journal/IMPORT.md) (the file formats, what was tested),
 [ANALYSIS](../legacy/journal/ANALYSIS.md) (technical snapshot, conditions,
 grading), [DATA-MODEL](../legacy/journal/DATA-MODEL.md),
-[KNOWN-ISSUES](../legacy/journal/KNOWN-ISSUES.md) (D-J1 to D-J20).
+[OPERATIONS](../legacy/journal/OPERATIONS.md) (start-up, the fetch timer, the
+tests), [KNOWN-ISSUES](../legacy/journal/KNOWN-ISSUES.md) (D-J1 to D-J20).
 
 ---
 
@@ -113,7 +114,8 @@ the trade cards with a setup dropdown, a two-tap delete, and the 📈 chart link
   library (`checks.js`), of which 55 can never answer for a journal trade.
 - **A grading engine** (setup expectancy, size multiplier, kill switch, letter
   grades) from the removed live trading engine, with no caller and no input.
-- **21 leftover tables** from the old all-in-one app.
+- **17 leftover tables** from the old all-in-one app (a fresh database has 30
+  tables; 13 are the journal's own).
 
 ---
 
@@ -203,20 +205,32 @@ format, with shorts, scale-ins, scale-outs and partial closes, runs in CI.
   stop · R unknown" and is counted apart (D-J9).
 - **Fees**: from the broker where reported; else from the account's fee rule,
   applied and labelled as estimated (D-J15). Editable.
-- **Snapshot** at the entry instant, from the desk's own data: the card's facts
-  as they were known then (fact store, `known_at` ≤ entry), the market state
-  current at the entry, and the R1 row when the ticker was on a tool that day.
-  MAE and MFE from 1-minute bars between the entry and exit instants (on the
-  right dates, from the bar adapters). No look-ahead, no table nothing writes
-  (D-J8, D-J13).
+- **Snapshot** at the entry instant, from nothing later than the entry:
+  - the **price structure** (VWAP, EMAs, levels, the day's range so far, RVOL,
+    ATR) computed by the card builder's own functions from 1-minute bars up to
+    the entry minute and daily bars before the day;
+  - **short interest, borrow, news, catalyst and the CANSLIM reading** from the
+    fact store as known at the entry (`known_at` ≤ entry). A ticker no tool
+    carded that day has none, so the journal asks the adapters for them with
+    their own dates (a settlement date, a quarter, a headline's time) and keeps
+    only what is dated before the entry; the rest is `unavailable`, said so;
+  - the **market state** current at the entry, and the **R1 row** when the
+    ticker was on a tool that day.
+
+  MAE and MFE come from 1-minute bars between the entry and exit instants (on
+  the right dates, from the bar adapters). No look-ahead, no table nothing
+  writes (D-J8, D-J13).
 
 ### 4.6 Analysis
 
 - The page's formulas (§2.3) are kept and computed **in one place** (the
   server, with the page rendering), so a number cannot differ between two
   implementations (D-J17).
-- **One condition system**: the check grammar of the card domain, evaluated on
-  the snapshot; only checks whose fields the snapshot holds are offered.
+- **One condition system**: rules over the snapshot's fields (the card's field
+  names), written with the screener builder's operators
+  ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md) §4.1); only checks whose
+  fields the snapshot holds are offered. It replaces both legacy systems (the
+  18 template rules and the 77-check library).
 - **Setup statistics** (expectancy in $ and R, win rate, payoff, drawdown,
   streaks) per setup on the Setups tab, from trades with stops. The legacy
   grading engine (size multipliers, kill switch) is **not carried over**: the

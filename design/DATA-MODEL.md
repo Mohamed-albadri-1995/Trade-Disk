@@ -48,8 +48,8 @@ design leaf.
 | `trading_calendar` | day | `is_open`, `open_at`, `close_at` (half days), `note` |
 | `users` | id | name, password hash (scrypt), created |
 | `sessions` | id | user, created, expires, last seen, user agent |
-| `jobs` | job | domain, schedule, calendar, enabled, expected_within, max_duration |
-| `job_runs` | job, started_at | ended_at, result (`ok`, `failed`, `missed`, `hung`), counts (jsonb), error, stack |
+| `jobs` | job | domain, schedule, calendar, depends_on, enabled, expected_within, max_duration |
+| `job_runs` | job, started_at | ended_at, result (`ok`, `failed`, `missed`, `skipped`, `hung`), counts (jsonb), error, stack |
 | `settings` | key, scope | value, type, range, default, description, version |
 | `setting_versions` | key, scope, version | value, changed_at, changed_by |
 | `alerts_sent` | id | signal, sent_at, message, recovered_at |
@@ -78,13 +78,18 @@ database, with its limits.
 
 | Table | Key | Columns |
 |---|---|---|
-| `facts` | subject, family, known_at | value (jsonb), status (`ok`, `none`, `unavailable`), reason, source, as_of |
+| `facts` | subject, family, known_at | value (jsonb), status (`ok`, `none`, `unavailable`), reason, source, as_of, provisional |
+| `facts_latest` | subject, family | the same columns: the newest fact of that family, 5-minute quotes included |
 | `cards` | ticker, day | the latest projection (jsonb) of every family, `market_state_id`, updated_at |
-| `tool_cards` | tool, ticker, day | screener_matches (jsonb: key, version, first match), first_seen, live, last_matched_at, star, manual_bias, score (jsonb: question, value, model version, sample, interval, breakdown) |
+| `tool_cards` | tool, ticker, day | screener_matches (jsonb: key, version, first match), first_seen, live, last_matched_at, manual_bias, score (jsonb: question, value, model version, sample, interval, breakdown) |
 
-`facts` is the fact store of the trunk ([§5.2](../ARCHITECTURE.md#52-the-fact-store)),
-shared by the card, market and research domains; each family has one writer
-(§3).
+`facts` and `facts_latest` are the fact store of the trunk
+([§5.2](../ARCHITECTURE.md#52-the-fact-store)), shared by the card, market and
+research domains; each family has one writer (§3), which writes both. Every
+fetch updates `facts_latest`; `facts` keeps every fetch except for the
+fast families (`quote`, `derived`, `market_context`), whose history holds only
+discovery, each photo and the close.
+A tool card's star is its `shortlist` row, not a column.
 
 ### Market ([MARKET.md](MARKET.md))
 
@@ -97,7 +102,7 @@ shared by the card, market and research domains; each family has one writer
 
 | Table / view | Key | Columns |
 |---|---|---|
-| `r1_photos` | tool, day, ticker | captured_at, card (jsonb), tool_card (jsonb), market_state_id, capture_version |
+| `r1_photos` | tool, day, ticker | captured_at, late (taken after the capture minute: kept out of training unless included), card (jsonb), tool_card (jsonb), market_state_id, capture_version |
 | `r2_slots` (view) | tool, day, slot | from `market_states` |
 | `bars_day` | ticker, day | 1-minute and daily bars used for outcomes (or a pointer to the Parquet file) |
 | `r3_outcomes` | tool, day, ticker, entry | entry_price, hh, ll, atr14, up_r, down_r, or_high, or_low, result, reason, captured_at |
@@ -143,8 +148,8 @@ Every family is a row type in `facts`. Its writer, its subject and its clock:
 
 | Family | Subject | Writer | Clock |
 |---|---|---|---|
-| `quote` | ticker | card engine | 5 minutes |
-| `derived` | ticker | card engine | with the quote |
+| `quote` | ticker | card engine | 5 minutes (latest); history at discovery, each photo and the close |
+| `derived` | ticker | card engine | with the quote (history as the quote's) |
 | `short_interest` | ticker | card engine | daily |
 | `borrow` | ticker | card engine | daily |
 | `reg_sho` | ticker | card engine | settlement day |
@@ -152,8 +157,8 @@ Every family is a row type in `facts`. Its writer, its subject and its clock:
 | `catalyst`, `bias` | ticker | card engine | with news / quote |
 | `themes` | ticker | card engine | daily |
 | `move_tests` | ticker | card engine (discovery) | at discovery |
-| `market_context` | ticker | card engine (from the market state) | each scan |
-| `bars_universe`, `group_ranking`, `oneil_m` | `market` | research worker | each close |
+| `market_context` | ticker | card engine (from the market state) | each scan (history as the quote's; the market states keep their own) |
+| `bars_universe`, `group_ranking`, `oneil_m` | `market` | research worker | each close; `oneil_m` also every 30 minutes in the session, marked provisional |
 | `rs_rating`, `rs_line`, `sic`, `oneil_l`, `oneil_c`, `oneil_a`, `oneil_s`, `oneil_i`, `oneil_n_base`, `oneil_n_events`, `oneil_ratings` | ticker | research worker | per [ONEIL.md](ONEIL.md) §6.1 |
 
 ---
@@ -229,8 +234,9 @@ running and archived tools alike, and the import is checked by row counts
 
 | Data | Kept | Note |
 |---|---|---|
-| `facts` | `quote` facts: 30 days at 5-minute grain, then the last per day; everything else: forever | the quote is most of the volume |
-| `cards`, `tool_cards` | forever | small |
+| `facts` | forever | the fast families keep three or so rows per ticker per day (discovery, photos, close); their 5-minute values live only in `facts_latest` |
+| `facts_latest` | one row per subject and family | overwritten |
+| `cards`, `tool_cards` | forever | about 1–2 MB a day for every tool together (estimate) |
 | `market_states` | 30 days at scan grain, then the R2 slots and the close per day | — |
 | `r1_photos`, `r3_outcomes`, `shortlist` | forever | the research record |
 | `job_runs`, `health_checks`, `source_calls` | 90 days | — |
@@ -240,4 +246,4 @@ running and archived tools alike, and the import is checked by row counts
 
 The legacy backup was about 17 MB compressed a night for everything; the new
 database starts at roughly the same size and grows mainly with R1 photos (a few
-MB a month per tool) and quote facts (bounded by the retention above).
+MB a month per tool) and the day's cards (estimates).

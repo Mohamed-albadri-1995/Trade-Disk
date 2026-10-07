@@ -51,7 +51,10 @@ schedule), [PAGES](../legacy/screeners/PAGES.md) (the suite and Manage tools pag
 ### 2.1 The tradability floor
 
 Added to **every screener on every tool** at the moment a scan is sent, not
-written into any screener, so one setting changes all:
+written into any screener, so one setting changes every screener of the tool.
+(Today each tool keeps its own copy of the setting, though the page says
+"every screener, every tool": D-T5. In the new design it is one desk setting,
+with a per-tool override shown as one.)
 
 | Rule | Why |
 |---|---|
@@ -389,7 +392,7 @@ empty in one match filled from another, never overwritten.
 ## 6. Legacy lifecycle
 
 **Each tool is its own program**: pm2 process `tool-Tn`, its scorer
-`scorer-Tn` on port + 1, database `data/tn.db` (T1: `data/tradedesk.db`), model
+`scorer-Tn` on port + 1 when switched on (it is off on every tool: D-D1), database `data/tn.db` (T1: `data/tradedesk.db`), model
 folder, temp folder, memory cap (T1 280M; T2, T6 240M; T11 200M; T7 180M;
 others 140M; scorer 180M; archive 120M). T1 also serves the landing page and
 Manage tools, so it can be neither stopped nor deleted.
@@ -424,7 +427,7 @@ applied at 16:50, because a restart empties the list built since 04:00.
 | D-S10 | startup repairs guarded by "the field is empty" put back a window the trader cleared or a rule they removed, silently | one-time fixes run as start-up code | versioned migrations that run once, ever |
 | D-S14 | with T9 stopped, the comparison page has no benchmark | the benchmark is a whole process costing ~90 MB | tools as rows: the benchmark costs a few MB and always runs |
 | — | editing a rule changes what a key means for every past card | no versions | screener versions; R1 records them |
-| — | each tool is a whole program (~90 MB, plus a scorer); tools stopped for lack of memory | one process per tool | one discovery engine for all tools |
+| — | each tool is a whole program (~90 MB); tools stopped for lack of memory, and every per-tool scorer is off | one process per tool | one discovery engine for all tools |
 | — | the check window, list-only and mirror link cannot be set in the editor | editor incomplete | every field editable |
 | — | post-scan tests are a hidden gate keyed on two screener keys | tests outside the definition | tests are named steps of the screener |
 | — | a rule that can never match, or matches everything, is saved without warning | no selectivity check | Test runs on save and shows `totalCount` |

@@ -201,6 +201,19 @@ shared files:
 Each value is null when its source has nothing. A failed source never fails
 the scan.
 
+**Asked once a day per ticker.** Each tool keeps qp's answers in its own
+memory for the New York day (`src/sideD/oneil.js`) and asks only for tickers
+it has not had an answer for, in batches (50 symbols for distribution days, 25
+for ratings, 20 for bases). EDGAR's C and A values are read **from qp's cache
+only** (batches of 40): a ticker the nightly walk has not reached reads "not
+fetched yet", and when a page shows its card the tool queues it for a
+background fetch, one name at a time, at most once a day. The card's CANSLIM
+section reads the same caches through the tool's `/api/market/oneil/*`
+routes. A failed ask is not cached, so a ticker first seen while qp is down
+stays blank until a later scan retries; a photo taken in that gap freezes the
+blanks. A tool restart starts the caches empty, and five tools ask for the
+same tickers separately.
+
 ### Industry map (soft)
 
 `src/sideA/industryMap.js` — records each row's TradingView sector and

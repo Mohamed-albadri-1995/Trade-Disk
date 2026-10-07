@@ -35,11 +35,14 @@ documents that describe each area are linked from [README.md](README.md).
 | D-S13 | LOW | `data/shortlist-all.json` is read, changed and written back by every tool; two publishes in the same instant can drop one tool's change until its next publish | `src/sideF/globalShortlist.js` |
 | D-S14 | MED | The benchmark tool (T9, Stocks in Play) is stopped, and the archive answers only `/api/warehouse/*`, so `/screeners/compare` has no benchmark and every stopped tool's screeners are missing from it | `src/archive/server.js`, `public/compare.html` |
 | D-S15 | LOW (display) | The Screener tab never refreshes by itself; cards on screen are as old as the last page load, tab switch or Run Scan, though the server re-quotes them every 5 minutes | `public/index.html` |
+| D-D8 | LOW (data) | `POST /api/warehouse/collect` runs the R1 (and R2) capture at any time with `INSERT OR REPLACE`: called after the capture minute, it replaces the day's photo with a later one, silently (found in the design review, 2026-10-07). No page calls it; `captured_at` still shows the real time | `src/routes/warehouse.js`, `src/warehouse/registers.js` |
 
 ## Fixed in the 2026-10 review
 
 | # | What was wrong | Test |
 |---|---|---|
+| S-1 | (desk-wide) No program asked who was calling: anyone who reached a port could change settings, keys and strategies. Now one password guards every program (a cookie shared across ports; `scripts/set-password.sh`), qp's WebSocket included; the box's own localhost calls pass | `tests/auth.login.test.js`, qp `logic_audit111.py` |
+| S-2 | (desk-wide) The daily backup pushed every API key and token to GitHub in plain text. The GitHub backup was removed; backups go to Cloudflare R2 without keys | `tests/backup.r2.test.js` |
 | F-21 | The industry map flipped between SIC (nightly, market-wide) and TradingView labels (every scan): a scan replaced a SIC entry and dropped its code, so the morning's group ranks put the stocks on screen into thin groups. Both sources were deliberate — TradingView labels came first; SIC replaced them because groups built from screener output ranked a stock against what the screeners caught. The fix keeps that decision: SIC wins, TradingView fills only the gaps | `tests/industryMap.sicWins.test.js` |
 | T8 | T8's shared ★ CANSLIM list was frozen and fading with T8 stopped. Retired: the list, its badge, its page and `/api/canslim` are gone; the O'Neil letters on every card replace it. T8's registers stay archived | `tests/home.levels.test.js`, `tests/pipeline.stages.test.js` |
 | D-S6 | Not a fault: T1's name "Swing trades after huge volume" vs its Big Move / Pre-Mkt / Trend screeners is kept as is on the trader's word (2026-10-02) | — |
@@ -55,3 +58,13 @@ documents that describe each area are linked from [README.md](README.md).
 | F-14 | Missing TradingView inputs became numbers (a fabricated "<0.5" pre-market band on ~1 card in 11, −100 % gaps) | `tests/sideB.missingInputs.test.js` |
 | F-17 | Hot sectors counted scans instead of trading days (hot after 15 minutes) | `tests/sideD.hotByDay.test.js` |
 | F-13 | A range filter mirrored to the same range | `tests/screenerStore.mirrorRange.test.js` |
+
+## Fixed before this list began
+
+Fixed while the tools were first debugged; their tests are in the code
+repository's first commit (2026-10-01). Other documents cite them by ID.
+
+| # | What was wrong | Test |
+|---|---|---|
+| D-S1 | The 5-minute re-quote rebuilt each card's `stock` from a fresh TradingView quote, and TradingView never serves short interest, borrow or Reg SHO, so those fields were erased every few minutes. The refresh now carries every enriched field the quote lacks (`carryEnriched`) | `tests/sideG.carryEnriched.test.js` |
+| D-S2 | `regime.js` read a missing index value as 0, so an empty answer stamped every card "Strong Downtrend / BEARISH". The snapshot now needs SPY (or QQQ) with a close and its moving averages; without either it is withdrawn and the stage fails out loud | `tests/sideD.engine.missingData.test.js` |

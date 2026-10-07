@@ -2,14 +2,14 @@
 
 One document per domain of the [architecture](../ARCHITECTURE.md), plus the
 schema, the API and the migration. The trunk's
-[document map](../ARCHITECTURE.md#12-the-document-map) shows where each leaf
+[document map](../ARCHITECTURE.md#13-the-document-map) shows where each leaf
 hangs and which legacy documents it builds on.
 
 | Trunk section | Leaf | Covers |
 |---|---|---|
 | 6.1 | [SOURCES.md](SOURCES.md) | every external source behind an adapter; bar feeds and the cache; fallback orders; health; keys |
 | 6.2 | [TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md) | every tool and screener rule by rule; the builder; discovery; lifecycle |
-| 6.3 | [CARD.md](CARD.md) | the card: all 97 legacy fields, fact families, the builder, presentation |
+| 6.3 | [CARD.md](CARD.md) | the card: all 97 numbered legacy fields, fact families, the builder, presentation |
 | 6.4 | [MARKET.md](MARKET.md) | the market read: regime, sectors, hot sectors, M and L on the tab |
 | 6.5 | [ONEIL.md](ONEIL.md) | the O'Neil chain: every letter's rules, what was built, the research worker |
 | 6.6 | [REGISTERS.md](REGISTERS.md) | R0–R4 and the shortlist, every column; the research record |
