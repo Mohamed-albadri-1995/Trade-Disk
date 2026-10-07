@@ -1205,6 +1205,12 @@ the CANSLIM panel (§11.3) · `NEWS` = the card's existing News section ·
 | **6** | 13F & FINRA: I1–I4, S2, S3 | phase 5 |
 | **7** | The N pipeline: N1–N9, N11–N15 | phases 3 and 5 |
 
+**Since this table was written**, phase 6 has shipped I1, I2 and I4 (Form 13F,
+`chart/f13.py`, the nightly step "institutional sponsorship") and S3 (FINRA
+short interest, filled by the screener tools); S2 (the float estimate) and I3
+(funds / banks / management %) are not built. Phase 7 is not built. What
+reaches the card: [CARD-FIELDS](../screeners/CARD-FIELDS.md) #65–#83f.
+
 **E1–E8 are not a phase.** Every phase ships its own definition cards with it;
 a field that arrives without its explanation is not finished. The Method page
 (E4) grows with each phase rather than being written once at the end.
@@ -1618,7 +1624,8 @@ column is 300–400px and an eight-quarter table does not fit in one, which is
 how the tables quietly become a single percentage again.
 
 **I is not built** and says so on the panel: fund ownership by quarter comes
-from Form 13F, which is phase 6. It is not estimated.
+from Form 13F, which is phase 6. It is not estimated. (True when written; I
+has since been built from 13F: see §12.10.)
 
 ### 17.4 What the first live data check found
 

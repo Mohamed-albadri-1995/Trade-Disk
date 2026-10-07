@@ -6,7 +6,8 @@ which of it is used.
 Written from `journal/src/db/index.js`, `journal/src/journal/db.js`,
 `journal/src/trading/db.js`, `grading.js`, `checks.js`, `volumeBaseline.js`,
 `journal/server.js` and `journal/src/addons/accounts.js`. The table list was
-taken from a fresh database built by the real code: **31 tables**.
+taken from a fresh database built by the real code: **30 tables** (31 with
+SQLite's own `sqlite_sequence`).
 
 ---
 
@@ -24,8 +25,9 @@ taken from a fresh database built by the real code: **31 tables**.
 all-in-one app. `deploy-tools.sh` stops the old process and **copies** that
 database (and the accounts file) once into `data/journal/` when no
 `journal.db` exists, leaving the old install in place as a backup. The code
-still creates that old app's whole schema, so a fresh database has 31 tables
-and the journal uses 10 of them.
+still creates that old app's whole schema, so a fresh database has 30 tables:
+13 are the journal's own (described below, some never written), and 17 are
+leftovers of that old app.
 
 ---
 

@@ -35,7 +35,7 @@ Two different questions, kept apart on purpose:
 | Read | Answers | Clock | Built today by |
 |---|---|---|---|
 | **The desk's read** | what is the tape doing right now, and which sectors lead? | every scan | each tool, from TradingView quotes |
-| **O'Neil's method** | should I be buying at all, and where is the leadership? | after each close (M also re-checked through the day) | qp, from index bars and whole-market RS |
+| **O'Neil's method** | should I be buying at all, and where is the leadership? | after each close (M also provisionally every 30 minutes in the session) | qp, from index bars and whole-market RS |
 
 They use different words so the trader can never mistake one for the other.
 Both are stamped on every card, and both are frozen into the registers.
@@ -336,7 +336,7 @@ context on a card can always be traced to one snapshot.
 | `mid_term` | the checks, the stage, Bollinger position |
 | `long_term` | the bias, distance from the 200-day |
 | `regime` | slug, label, stance, guidance, confidence |
-| `oneil_m` | status, why, per-index live counts, follow-through, rally attempt, the distribution days, the rules in use: copied from the latest M fact so the state is complete on its own |
+| `oneil_m` | status, why, per-index live counts, follow-through, rally attempt, the distribution days, the rules in use, provisional or final: copied from the latest M fact so the state is complete on its own |
 | `oneil_l_ref` | the id of the group ranking current at that instant |
 | `status` | `ok`, or `no_regime` with the reason |
 
@@ -363,9 +363,10 @@ re-tune, each behind a versioned definition so history records which ran:
 ### 5.5 O'Neil on the tab
 
 M and L are **computed by the research worker** ([ONEIL.md](ONEIL.md)) and **only read** here. The rules in §2.10 and §2.11 carry over
-unchanged. Through the day, the market engine re-checks M against the latest
-index quote (a distribution day in progress), labelled as provisional until
-the close.
+unchanged. Through the day the worker's market-model step also runs every 30
+minutes on today's index bars (a distribution day in progress) and writes a
+provisional M; the market state copies the latest M, labelled provisional
+until the close. The rules exist once, in the worker.
 
 ### 5.6 The tab
 

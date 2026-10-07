@@ -108,8 +108,11 @@ Each comes from a failure or a decision recorded in these documents.
 
 ---
 
-## Not in this folder yet
+## Elsewhere
 
 qp (charts, strategies, backtests, the CANSLIM calculations behind the card's
-O'Neil fold), the journal, and the system-wide pages (login, backups, deploy,
-how the programs connect) are documented in the next phases.
+O'Neil fold) is in [../qp/](../qp/README.md), the journal in
+[../journal/](../journal/README.md), and how the programs connect today
+(login, backups, deploy, shared files) in
+[../architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md). The new
+design built on all of it is the [trunk](../../ARCHITECTURE.md).

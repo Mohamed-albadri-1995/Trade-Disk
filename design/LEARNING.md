@@ -193,12 +193,15 @@ only. A model is a **versioned record**: question, features, coefficients,
 scaler, training window, sample, walk-forward metrics, published or not, and
 why.
 
-### 6.4 Applied at discovery
+### 6.4 Applied whenever the card changes
 
-The card engine scores each new tool card from the tool's current published
-model, in-process (a dot product and a logistic). The score is stored on the
-tool card with the model version, the sample and a confidence interval, and is
-frozen into R1. Changing the bias re-scores.
+The card engine scores each tool card from the tool's current published
+model, in-process (a dot product and a logistic), **whenever the card
+changes**: at discovery, at each re-quote, on a new market state and when the
+bias changes (today's desk also re-scores on every scan). The score is stored
+on the tool card with the model version, the sample and a confidence interval.
+The photo freezes the score of the card it froze, so the model is always judged
+on the features it saw.
 
 ### 6.5 The breakdown
 

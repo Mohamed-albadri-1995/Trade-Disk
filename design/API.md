@@ -18,6 +18,7 @@ caller).
 |---|---|
 | one origin | every route is behind the front door: `/api/…` on desk-web, `/quant/api/…` on quant |
 | login | every route needs the session cookie, except `/login`, `/logout` and `/health` (which answers only up or down) |
+| same origin | a request that changes anything must carry the desk's own `Origin`; the cookie is `Secure`, `HttpOnly`, `SameSite=Lax` |
 | JSON | requests and answers; exports also as CSV or Parquet where stated |
 | errors | `4xx` with `{ error, reasons[] }` for a refused request (every reason listed); `5xx` only for a fault, logged with its stack |
 | as of | read routes over history take `day` or `at`; nothing returns data from after it |
@@ -75,7 +76,6 @@ caller).
 | GET | `/api/tools/:tool/cards?day=&filters` | the tool's cards (search, screener, news, catalyst, aligned, sort) |
 | GET | `/api/cards/:ticker?day=` | one card: every family with status and as-of |
 | GET | `/api/cards/:ticker/canslim?day=` | the CANSLIM panel |
-| POST | `/api/tools/:tool/cards/:ticker/star` | star / unstar |
 | POST | `/api/tools/:tool/cards/:ticker/bias` | manual bias (re-scores) |
 
 ### Market ([MARKET.md](MARKET.md))
@@ -93,6 +93,7 @@ caller).
 |---|---|---|
 | GET | `/api/tools/:tool/registers/:reg/dates` | the days a register has (R1, R2, R3, R4, shortlist) |
 | GET | `/api/tools/:tool/registers/:reg/:day?format=csv\|json\|legacy` | the register |
+| POST, DELETE | `/api/tools/:tool/shortlist/:ticker` | star, unstar (the card's ☆/★ reads the shortlist) |
 | GET | `/api/shortlist?day=` | every tool's shortlist |
 | POST | `/api/tools/:tool/registers/R4/upload` | upload external rows (kept apart) |
 

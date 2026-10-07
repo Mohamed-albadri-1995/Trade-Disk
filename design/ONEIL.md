@@ -267,7 +267,8 @@ HARVEST (24 months) → CLASSIFY (3 buckets) → REACT (price) → PERSIST (RS l
 
 | ID | Fault | Root cause | Prevented by |
 |---|---|---|---|
-| — | a qp restart blanks the CANSLIM reading on every card, and scans freeze empty `cs*` columns into R1 | the chain lives inside the chart server, which every scan calls per card | the research worker writes facts; cards read them |
+| — | a ticker first seen while qp is down or restarting has a blank CANSLIM reading until a later scan, and a photo taken then freezes empty `cs*` columns into R1; five tools ask qp for the same tickers | the chain lives inside the chart server; each tool caches its answers for the day | the research worker writes facts; cards read them |
+| — | a new ticker's C and A arrive only if a page shows its card (a background fetch, one name at a time) or the nightly walk reaches it | lazy fetching tied to the page | the worker's new-ticker run (§6.1), whatever is on screen |
 | Q-N5 | the nightly job is a systemd timer installed by hand with a hard-coded user and path; without it the data goes stale silently | the one scheduler outside pm2 | the platform scheduler runs it; a missed or failed run alerts |
 | F-21 (fixed) | the industry map flipped between SIC and TradingView every morning | two writers for one file | one writer: the research worker |
 | — | a missing O'Neil file made the Market tab ask qp to build it inside a page request | computation in the request path | pages only read; "not built yet · last run DATE" |
@@ -283,16 +284,29 @@ HARVEST (24 months) → CLASSIFY (3 buckets) → REACT (price) → PERSIST (RS l
 ### 6.1 The research worker
 
 A Python job (it reuses qp's verified code: `relstrength.py`, `oneil.py`,
-`groups.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`), started by the
-platform scheduler after the close and on demand. It runs its steps, writes
-facts, records its run, and exits. Each step is independent: one failure never
-stops the rest, and each failure is reported.
+`groups.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`), always started by
+the platform scheduler. It runs its steps, writes facts, records its run, and
+exits. Each step is independent: one failure never stops the rest, and each
+failure is reported.
+
+| Run | When (New York, trading days) | Steps |
+|---|---|---|
+| **the night** | 18:30, once the day's whole-market bars are published (today's timer: 22:30 UTC) | all eleven, below |
+| **new tickers** | every 5 minutes, 04:00–16:00, while any ticker carded today has no company facts and no attempt today | 6–10 for those tickers only |
+| **provisional M** | every 30 minutes, 09:30–16:00 | 3, on today's index bars so far, written as `provisional`; the night's run replaces it |
+| **by hand** | a button or `desk research <step>`: it queues the job, and no page waits | any |
+
+The "new tickers" list is a query over today's cards and the facts (a card
+whose ticker has no company fact and no attempt today), not a queue table, so
+the worker stays the only writer. EDGAR allows ten requests a second, so a
+morning's new tickers land within minutes; until then the card says
+"computing · since 09:41".
 
 | # | Step | Writes (fact family) | Clock | Budget |
 |---|---|---|---|---|
 | 1 | RS universe top-up | `bars_universe` (Polygon grouped daily, the newest sessions) | each close | minutes |
 | 2 | RS ratings | `rs_rating` per ticker (with the universe size) | each close | — |
-| 3 | market model | `oneil_m` for `market` (state, per-index counts, distribution days, rally, follow-through, rules in use) | each close; re-checked through the day by the market engine, labelled provisional | — |
+| 3 | market model | `oneil_m` for `market` (state, per-index counts, distribution days, rally, follow-through, rules in use) | each close; every 30 minutes in the session as `provisional` | — |
 | 4 | SIC map | `sic` per ticker | new listings and changes: nightly | — |
 | 5 | groups | `group_ranking` for `market`; `oneil_l` per ticker (group, level, rank of N, percentile, letter, RS in group, rotation, roll-up) | each close | — |
 | 6 | earnings | `oneil_c`, `oneil_a` per ticker | weekly, and on a new 10-Q or 10-K | a time budget per night |
@@ -302,10 +316,12 @@ stops the rest, and each failure is reported.
 | 10 | ratings | `oneil_ratings` (RS, Grp, A/D, volume vs 50-day; then EPS, SMR, Composite) | each close | — |
 | 11 | N events | `oneil_n_events` per ticker | nightly, 24-month window | a time budget |
 
-**Which tickers.** Whole-market steps (1–5) cover every US stock. Per-company
-steps (6–11) cover the union of every ticker any tool has carded in the last
-90 days, every R1 ticker, and every ticker in an open trade, so the CANSLIM
-reading is ready before the card asks.
+**Which tickers.** Whole-market steps (1–5) cover every US stock, so RS,
+the group and the SIC code exist for any ticker the moment it is carded.
+Per-company steps (6–11) cover, each night, the union of every ticker any tool
+has carded in the last 90 days, every R1 ticker and every ticker in an open
+trade; a ticker carded for the first time is covered the same morning by the
+new-ticker run.
 
 ### 6.2 Facts, with dates
 
@@ -326,7 +342,7 @@ its decision bar ([trunk §5.2](../ARCHITECTURE.md#52-the-fact-store)).
 | Reader | Reads | Never |
 |---|---|---|
 | the card engine | `oneil_*`, `rs_rating`, `rs_line` for the card's ticker | computes any of them |
-| the market engine | `oneil_m`, `group_ranking` | computes them (it only re-checks M against today's quote, provisionally) |
+| the market engine | the latest `oneil_m` (final or provisional), `group_ranking` | computes any part of them |
 | quant | any of them, as of a day | writes them |
 | pages | through the card and the market state | trigger a build |
 
@@ -392,3 +408,5 @@ health page amber, then red, and sends an alert.
    checked by hand against index charts.
 5. **A missed run.** Skip the worker for a night: the health page goes amber
    and an alert arrives; cards show "last run DATE".
+6. **A new ticker.** A ticker carded for the first time at 10:00 shows its C,
+   A, N and S readings by 10:15, with nothing on screen.

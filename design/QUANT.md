@@ -232,7 +232,7 @@ Registers are read **over HTTP from each tool's port**.
 | Q-N4 | the CANSLIM gate has no control on the page | a control, reading facts as of the day |
 | Q-N6 | some routes default to Polygon | no per-route defaults ([SOURCES.md](SOURCES.md) §4) |
 | Q-N5 | the nightly O'Neil chain lives here | moved to the research worker ([ONEIL.md](ONEIL.md)) |
-| — | a qp restart blanks every card's CANSLIM reading | quant computes no card facts |
+| — | while qp is down or restarting, every ticker first seen has a blank CANSLIM reading, and a photo then freezes the blanks | quant computes no card facts |
 | — | registers read over HTTP from every tool's port; a stopped tool needs the archive process | read from the database |
 | — | a qp restart took 3 min 20 s (fixed) | one supervisor; a start-up check that refuses only a listening server |
 | — | alert repeats held in memory (a restart can alert again) | alert history stored |
@@ -286,7 +286,7 @@ nightly backup.
 | `strategies`, `strategy_versions` | id, version |
 | `backtests`, `backtest_trades` | id |
 | `alerts` | strategy, symbol, bar |
-| `approvals` (library) | primitive, commit |
+| `primitive_approvals` (mirrors the library's `approvals.json`) | primitive, commit |
 
 ### Reads
 

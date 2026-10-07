@@ -6,12 +6,14 @@ the desk as it runs today, from which that design is built.
 ## Start here: the trunk
 
 **[ARCHITECTURE.md](ARCHITECTURE.md)** ([PDF](pdf/ARCHITECTURE.pdf)) is the
-whole desk in one document: what it is for, the ten domains, the running
-parts, the data, each domain's design, a trading day end to end, the rules
-that apply everywhere, deployment, backup and restore, and the migration.
+whole desk in one document: what it is for, its constraints and quality
+goals, the ten domains, the running parts, the data, each domain's design, a
+trading day end to end and what happens when something breaks, the rules that
+apply everywhere, deployment, backup and restore, the migration, the decisions
+left to you, and the risks.
 
 Every other document is a leaf of one of its sections. Its
-[document map](ARCHITECTURE.md#12-the-document-map) lists them all.
+[document map](ARCHITECTURE.md#13-the-document-map) lists them all.
 
 ## The two kinds of leaf
 

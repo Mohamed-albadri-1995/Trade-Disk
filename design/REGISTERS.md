@@ -183,7 +183,8 @@ backtests; **Cloudflare R2** nightly CSVs per tool × register × day under
 | P-1 | `price936` whatever the capture time | a historical name | the photo's price is `price`; the legacy name is kept only in legacy exports |
 | D-S9 | T6's photo taken before its screener can find anything | no check | checked on save ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md) §8.3) |
 | D-D1 | the auto-rule adds nothing | no scores | scores applied in-process ([LEARNING.md](LEARNING.md)) |
-| — | empty `cs*` columns frozen while qp restarts | CANSLIM fetched from qp per scan | facts read from the fact store |
+| — | empty `cs*` columns frozen for tickers first seen while qp was down or restarting | CANSLIM fetched from qp and cached in each tool for the day | facts read from the fact store |
+| D-D8 | a manual route (`POST /api/warehouse/collect`) re-runs the R1 capture at any time and replaces the day's photo, silently | `INSERT OR REPLACE` with no time check | only the scheduler takes a photo; a late one is marked late (§4.2) |
 | — | R0 lost on restart until the checkpoint reload; hot-sector and live state in memory | memory state | tool cards are rows |
 | — | outcomes on weekday arithmetic; a missing bar silently drops a ticker (logged only) | no trading calendar; reasons not stored | the trading calendar; a reason row for every ticker not measured |
 | — | uploaded external rows mixed into training and verdicts | one table for both | uploads stored apart and labelled |
@@ -214,7 +215,14 @@ for every tool card of the day (live or stale):
 | `capture_version` | the version of the photo's definition |
 
 Nothing is left out, so any column can be added to an export later without
-losing a day. A re-capture of the same day replaces it and is logged.
+losing a day.
+
+**One photo, at its minute.** Only the scheduler takes a photo, at the
+capture minute. A photo that could not be taken then (the desk was down) is
+recorded as **missed**, with the reason. A photo taken later by hand keeps its
+real instant and is marked **late**; late photos stay out of training and
+verdicts unless included on purpose, because they hold what was known after
+the minute the method is defined at. A photo is never replaced.
 
 ### 4.3 R2: a view of the market history
 
@@ -255,7 +263,8 @@ unless explicitly included.
 
 The unified view is a query over every tool's shortlist (no shared file). The
 auto-rule runs one minute before each tool's photo, from scores that now
-exist.
+exist. Starring a card adds its row and unstarring removes it; the card's ☆/★
+is read from here, so a pick is recorded once.
 
 ### 4.7 Exports
 
