@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.9 Journal](../ARCHITECTURE.md#69-journal).
 
+> **Build status (2026-10-08).** Built: real New York instants (step 4). Every broker file (TradingView, TTP trades and orders, DXtrade, the paper log) is now read as fills and paired by the one engine the Alpaca accounts use, with fees and a report of every row not read (D-J1–D-J7, step 11). Not built: stops, trade snapshots from the fact store, and the journal's tables in Postgres.
+
 **Talks to:** Sources (§6.1: the trader's Alpaca accounts, broker files, bars);
 the Card and Registers (§6.3, §6.6: what the desk knew about the ticker at the
 entry); the Market (§6.4: the market state at the entry); Quant (§6.8: the

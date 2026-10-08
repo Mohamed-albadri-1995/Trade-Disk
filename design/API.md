@@ -2,6 +2,8 @@
 
 **Trunk section:** [§4 The running parts](../ARCHITECTURE.md#4-the-running-parts).
 
+> **Build status (2026-10-08).** Not built as designed: each tool still answers its own routes on its own port, and now also behind the gateway at `/tools/T<n>/`. The routes the migration added (the parity pages, `/api/facts`, `/api/learning/*`, `/db/<tool>/…`) are listed in the server's `docs/API.md`. One API for every tool comes with desk-web (MIGRATION step 16).
+
 Every route of the new desk in one place, by domain, and what it replaces. The
 domain leaves describe each route's behaviour in their contracts sections.
 

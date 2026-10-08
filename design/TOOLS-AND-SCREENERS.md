@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.2 Tools and screeners](../ARCHITECTURE.md#62-tools-and-screeners).
 
+> **Build status (2026-10-08).** Built: checks on save (step 3); tools, screeners and screener versions in Postgres (9a); the discovery engine and its per-tool switch (9b–9c). The engine saves no requests on this desk, because every tool's screeners are distinct, so it should stay off. Not built: tools as rows in one desk-worker (MIGRATION step 15), retiring the archive (16), and restarting T9.
+
 **Talks to:** Sources (§6.1: the TradingView scanner, and Alpaca and news for
 post-scan tests); the Card (§6.3), which receives every candidate; Registers
 (§6.6), which freeze each tool's photo and record the screener versions;

@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.7 Learning](../ARCHITECTURE.md#67-learning-the-score-and-the-scorecard).
 
+> **Build status (2026-10-08).** Prepared, not built, by the trader's choice: the direction-aware scorecard (Wilson intervals, the 1.3 ATR line), the training set (`/api/learning/dataset.csv`), and an empty model slot with its contract. No model is trained, and the legacy scorer stays off. A scorecard page is MIGRATION step 18; the model is step 20.
+
 **Talks to:** Registers (§6.6), which supply R4, the only training data; the
 Card (§6.3), which shows the score; Tools and screeners (§6.2), whose
 screeners the scorecard judges; Platform (§6.10), which schedules training.
