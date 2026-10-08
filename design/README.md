@@ -1,7 +1,9 @@
 # The design leaves
 
 One document per domain of the [architecture](../ARCHITECTURE.md), plus the
-schema, the API and the migration. The trunk's
+schema, the API and the migration. What is built and what is left: the trunk's
+[§0](../ARCHITECTURE.md#0-where-the-build-stands-2026-10-08) and
+[MIGRATION.md](MIGRATION.md) §2a and §6; each leaf opens with its build status. The trunk's
 [document map](../ARCHITECTURE.md#13-the-document-map) shows where each leaf
 hangs and which legacy documents it builds on.
 

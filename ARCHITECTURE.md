@@ -22,6 +22,7 @@ you, and the risks.
 
 ## Contents
 
+0. [Where the build stands (2026-10-08)](#0-where-the-build-stands-2026-10-08)
 1. [What the desk is for](#1-what-the-desk-is-for)
 2. [The desk and the outside world](#2-the-desk-and-the-outside-world)
 3. [The ten domains](#3-the-ten-domains)
@@ -36,6 +37,81 @@ you, and the risks.
 12. [Risks, and what contains them](#12-risks-and-what-contains-them)
 13. [The document map](#13-the-document-map)
 14. [Words used here](#14-words-used-here)
+
+---
+
+## 0. Where the build stands (2026-10-08)
+
+Migration steps 1–14 ([design/MIGRATION.md](design/MIGRATION.md)) are merged
+into the server repository and deployed to the box. They built **the data half**
+of this design: one shared record, its backup, and the jobs and alerts around
+it. They did not build **the program half**: one program serving every tool,
+one scheduler, and the new pages. The trader asked for that half on 2026-10-08;
+it is planned as steps 15–20 in [MIGRATION.md §6](design/MIGRATION.md).
+
+### What runs today
+
+```mermaid
+flowchart TB
+  subgraph BOX["the box (EC2 t3.micro, 1 GB)"]
+    GW["desk-gateway :8080<br/>one address, by path"]
+    T["tool-T1 · T2 · T6 · T7 · T11<br/>one Node process per tool<br/>own SQLite, own scheduler"]
+    AR["archive<br/>stopped tools' registers"]
+    QP["qp :8765<br/>charts · backtests · alerts<br/>+ nightly O'Neil chain"]
+    JN["journal :3100"]
+    BK["r2-backup (nightly)"]
+  end
+  DB[("Postgres on Railway<br/>the shared record, in shadow")]
+  R2[("Cloudflare R2")]
+  PH["phone (ntfy)"]
+  GW --> T & QP & JN
+  T -->|"copy + compare"| DB
+  QP -->|"research worker: O'Neil facts"| DB
+  QP -->|"registers over HTTP"| T
+  QP -->|"stopped tools"| AR
+  BK -->|"SQLite files + verified Postgres dump"| R2
+  T -->|"failed, missed or hung job"| PH
+```
+
+**In shadow** means each tool keeps doing its own work from its own SQLite file,
+and the shared answer is written beside it and compared. Nothing depends on the
+shared record yet. Each area has a switch: off, shadow or on.
+
+### Each running part of §4, against the design
+
+| Part (§4) | Status | Where it stands |
+|---|---|---|
+| front door | **built, not live** | `desk-gateway` serves every program on one port by path; `scripts/setup-domain.sh` adds a DuckDNS name with Caddy's HTTPS. Not live until the domain is set up and the other ports are closed |
+| desk-web | **not built** | still one Node process per running tool (five), plus the archive for the six stopped tools |
+| desk-worker | **not built** | each tool still runs its own scheduler and pipeline. T1 hosts the desk-wide jobs: the research triggers, The Night, the discovery engine and the restore rehearsal |
+| research worker | **built, in shadow** | `quant-platform/research/worker.py` writes the O'Neil readings as dated facts; the cards still read qp's |
+| quant | **partly built** | alerts use each strategy's own fill model, and their history survives restarts (live). Reading registers from the database is built but switched off. Facts "as of a day" are not built |
+| database | **built, in shadow** | Postgres on Railway: facts, market states, the research record of all eleven tools (imported, 0 differences), discovery scans, research runs |
+| object storage | **partly built** | nightly backup to R2 with a verified Postgres dump, one-command restore, a monthly rehearsal. Parquet exports are not built (the registers still go up as CSV) |
+
+### What building it taught, and what changes
+
+1. **The discovery engine saves nothing on this desk.** It merges requests only
+   when they are byte-identical: same filters, same floor, same minute. Every
+   tool here has its own screeners, so there is nothing to merge. Its value is
+   only consolidation, and that comes with desk-worker (step 15). Until then it
+   should stay off (`discoveryMode off`); it doubles the scan requests while it
+   compares.
+2. **Sharing facts pays only when tools hold the same tickers.** The store
+   counts the requests against the real source calls (`source_calls`). The
+   switch for each family is decided on those numbers, not assumed.
+3. **The market read is the same for every tool,** so sharing it is a clear
+   saving. It is switched on after its parity weeks.
+4. **The real gain of the program half is memory and simplicity.** Five tool
+   processes and the archive (about 70–95 MB each) become two programs on a
+   1 GB box, and a stopped tool becomes a row.
+5. **TypeScript is not worth a rewrite.** §4 asked for TypeScript in desk-web
+   and desk-worker. For one person's desk, rewriting working JavaScript in
+   another language is risk without a trading gain. The program half is built
+   in JavaScript, with the shared definitions in one module (§11).
+6. **Where the database lives is still open.** Railway was chosen to keep it off
+   the 1 GB box; the box and RDS are the alternatives (§11). Moving is one
+   restore.
 
 ---
 
@@ -241,8 +317,8 @@ flowchart TB
 | Part | Language | Does | Never does |
 |---|---|---|---|
 | **front door** | Cloudflare Tunnel or Caddy | one HTTPS address with TLS; routes `/quant` to quant and everything else to desk-web | hold any state |
-| **desk-web** | Node (TypeScript) | the login, every page and the API: the tools, cards, Market tab, registers, scorecard, settings, journal. Streams changes to open pages | run a timed job |
-| **desk-worker** | Node (TypeScript), same code base as desk-web | the only scheduler. Hosts discovery, the card engine, the market engine, register jobs, journal sync; starts the research worker and quant's alert cycles as jobs. Records every run | serve pages |
+| **desk-web** | Node (JavaScript) | the login, every page and the API: the tools, cards, Market tab, registers, scorecard, settings, journal. Streams changes to open pages | run a timed job |
+| **desk-worker** | Node (JavaScript), same code base as desk-web | the only scheduler. Hosts discovery, the card engine, the market engine, register jobs, journal sync; starts the research worker and quant's alert cycles as jobs. Records every run | serve pages |
 | **research worker** | Python | the O'Neil chain and model training each night; the O'Neil facts of tickers carded for the first time, within minutes; the provisional M through the session. Writes facts, then exits | stay running; start on its own |
 | **quant** | Python (FastAPI) | today's qp: the verified library, charts, strategies, backtests, live signal alerts (each cycle started by desk-worker), print sheets. Reads registers and facts from the database, as of any date; checks the same login cookie | compute card or market facts; keep a timer of its own |
 | **database** | Postgres | the system of record | — |
@@ -251,9 +327,11 @@ flowchart TB
 **Why two Node programs from one code base.** The page server must stay
 quick and must never stop because a scan is slow, and the scheduler must
 never run twice. One code base keeps the card and market logic in one place;
-two processes keep their duties apart. TypeScript gives every fact family,
-card field and route one typed definition, shared by the engines, the API and
-the pages.
+two processes keep their duties apart. One module of shared definitions gives
+every fact family, card field and route one definition, used by the engines,
+the API and the pages. (This design first asked for TypeScript; rewriting the
+working JavaScript in another language was judged risk without a trading gain,
+§0 and §11.)
 
 **Live pages.** An open page updates itself: desk-web streams changes
 (server-sent events) as desk-worker writes cards, tool cards and market
@@ -1008,22 +1086,26 @@ Keys are restored from the trader's own secret copy, never from the backup.
 
 Each step ships on its own, keeps the desk working, and can be undone.
 
-| # | Step | Domain | Risk |
-|---|---|---|---|
-| 1 | CI on every pull request | platform | none |
-| 2 | One front door; close every other port | platform | low · needs a domain name |
-| 3 | Configuration checked on save (fixes D-S9, D-S10) | tools & screeners | low |
-| 4 | The trading calendar and real instants everywhere | platform, journal, registers | low |
-| 5 | The database, the fact store and source adapters; tools read short interest, borrow and news from it | sources, card | medium · compare cards old and new for a week |
-| 6 | The market engine, once for all tools; hot state persisted | market | low–medium |
-| 7 | The research worker: the O'Neil chain leaves the chart server | research data | medium |
-| 8 | One scheduler with run history and alerts | platform | medium · run side by side for a week |
-| 9 | Tools as rows: one engine for every tool; R1 compared row by row before each old process stops | tools & screeners, card, registers | the largest step · reversible per tool |
-| 10 | The score and scorecard rebuilt | learning | medium |
-| 11 | The journal's one pairing engine, real instants, stops | journal | medium · re-import and compare |
-| 12 | Quant on the database; one fill model for alerts | quant | medium |
-| 13 | Verified backups; one restore command, rehearsed | platform | medium · the backup proves the copy |
-| 14 | One web shell | platform | low |
+| # | Step | Domain | Risk | Status (2026-10-08) |
+|---|---|---|---|---|
+| 1 | CI on every pull request | platform | none | done |
+| 2 | One front door; close every other port | platform | low · needs a domain name | built; the domain and closing the ports are the trader's to do |
+| 3 | Configuration checked on save (fixes D-S9, D-S10) | tools & screeners | low | done; T6's photo time is still the trader's decision |
+| 4 | The trading calendar and real instants everywhere | platform, journal, registers | low | done |
+| 5 | The database, the fact store and source adapters; tools read short interest, borrow and news from it | sources, card | medium · compare cards old and new for a week | built, in shadow; on, per family, if the call counts justify it |
+| 6 | The market engine, once for all tools; hot state persisted | market | low–medium | built, in shadow |
+| 7 | The research worker: the O'Neil chain leaves the chart server | research data | medium | built, in shadow; the chain still runs from qp's timer |
+| 8 | One scheduler with run history and alerts | platform | medium · run side by side for a week | history and alerts live; still one scheduler per tool |
+| 9 | Tools as rows: one engine for every tool; R1 compared row by row before each old process stops | tools & screeners, card, registers | the largest step · reversible per tool | partly: the research record is in the database; the processes, the archive and the engine's switch are step 15 |
+| 10 | The score and scorecard rebuilt | learning | medium | prepared (scorecard, training set, empty model slot); no model, by the trader's choice |
+| 11 | The journal's one pairing engine, real instants, stops | journal | medium · re-import and compare | the pairing engine for every file, done; stops and snapshots not built |
+| 12 | Quant on the database; one fill model for alerts | quant | medium | the fill model and alert history live; registers from the database built, off |
+| 13 | Verified backups; one restore command, rehearsed | platform | medium · the backup proves the copy | done |
+| 14 | One web shell | platform | low | one origin built; phone-first and ⓘ on every label are step 19 |
+
+Steps 15–20, the program half (one desk-worker, one desk-web, the record
+switched on, live pages, phone-first, the model), are in
+[design/MIGRATION.md §6](design/MIGRATION.md).
 
 The full plan, with what each step changes, how it is checked and how it is
 undone, and the import of the old data: [design/MIGRATION.md](design/MIGRATION.md).
@@ -1032,14 +1114,18 @@ undone, and the import of the old data: [design/MIGRATION.md](design/MIGRATION.m
 
 ## 11. Decisions that are yours
 
-| Decision | Options | Recommendation |
-|---|---|---|
-| Where it runs | stay on the t3.micro; a 2 GB instance (t3.small); a managed host | stay on EC2, on a 2 GB instance when convenient: the design fits 912 MiB with swap, as today's desk does, but with little room at the nightly peak |
-| The database | Postgres; SQLite with one writer per file | Postgres, for transactions, `as of` queries and one backup |
-| A domain name | needed for one HTTPS address | yes |
-| How far to go | steps 1–8 remove most duplicated work and risk; step 9 removes the per-tool memory cost | all, in order |
-| Push alerts | ntfy, Pushover, Telegram | any that reaches your phone |
-| T6's photo (D-S9) | move it after 11:30 (with its entries); or open the window earlier | yours: it decides what T6 measures; needed before step 3 of §10 |
+| Decision | Options | Recommendation | Decided (2026-10-08) |
+|---|---|---|---|
+| Where it runs | stay on the t3.micro; a 2 GB instance (t3.small); a managed host | stay on EC2, on a 2 GB instance when convenient: the design fits 912 MiB with swap, as today's desk does, but with little room at the nightly peak | the t3.micro; the program half (steps 15–16) frees most of the memory |
+| The database | Postgres; SQLite with one writer per file | Postgres, for transactions, `as of` queries and one backup | Postgres |
+| Where the database lives | on the box; Railway; AWS RDS | off the box while it has 1 GB | Railway for now; open, to come back to. Moving is one restore |
+| A domain name | needed for one HTTPS address | yes | a free DuckDNS name with Caddy; the script is ready, not yet run |
+| How far to go | steps 1–8 remove most duplicated work and risk; step 9 removes the per-tool memory cost | all, in order | 1–14 done; the program half (15–20) asked for |
+| Push alerts | ntfy, Pushover, Telegram | any that reaches your phone | ntfy, working |
+| T6's photo (D-S9) | move it after 11:30 (with its entries); or open the window earlier | yours: it decides what T6 measures; needed before step 3 of §10 | open, by the trader's choice |
+| The model (§6.7) | build one now; prepare only | — | prepared only; the trader may build their own |
+| TypeScript for desk-web and desk-worker | a rewrite in TypeScript; JavaScript with shared definitions | JavaScript: a rewrite adds risk without a trading gain | to confirm with the program half |
+| The discovery engine | keep, in shadow; off until desk-worker | off: it saves no requests with distinct screeners | to confirm (`discoveryMode off`) |
 
 ---
 

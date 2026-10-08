@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.1 Sources](../ARCHITECTURE.md#61-sources).
 
+> **Build status (2026-10-08).** Partly built, in shadow: the fact store shares short interest, borrow and news, and counts every request against the real calls (`source_calls`). Not built: one adapter per source for every fetch, the health checks and their page (MIGRATION step 18).
+
 **Talks to:** every domain that needs the outside world: Tools and screeners
 (the scanner), the Card (quotes, short interest, borrow, news), the Market
 (index and sector quotes), Research data (EDGAR, 13F, Polygon, index bars),

@@ -3,7 +3,10 @@
 **Trunk section:** [§10 From today's desk to this one](../ARCHITECTURE.md#10-from-todays-desk-to-this-one).
 
 How to get from the desk that runs today to the design, **without a rewrite and
-without stopping the desk**. Each step ships on its own, keeps the desk working,
+without stopping the desk**.
+
+**Status on 2026-10-08:** steps 1–14 are merged and deployed (§2a). They built
+the data half of the design. The program half is steps 15–20 (§6). Each step ships on its own, keeps the desk working,
 is checked against the old desk before the old part is switched off, and can be
 undone.
 
@@ -52,6 +55,31 @@ per-tool memory cost goes away.
 
 ---
 
+## 2a. Where each step stands (2026-10-08)
+
+Merged in the server repository (pull requests #5–#21) and deployed to the box
+on 2026-10-08. All eleven tools' history was imported into Postgres with
+0 differences.
+
+| # | Status | What was built | What is left |
+|---|---|---|---|
+| 1 | **done** | Jest and qp `run_all` on every pull request, with a Postgres 16 service | — |
+| 2 | **built** | `desk-gateway` (one port, every program by path); `scripts/setup-domain.sh` (DuckDNS + Caddy HTTPS) | the trader sets up the domain and closes the other ports |
+| 3 | **done** | capture times checked against the screeners' windows on save; startup repairs run once | T6's photo time: the trader's decision |
+| 4 | **done** | one calendar (`src/calendar.js`); New York instants; jobs skip closed days and the hours after an early close | — |
+| 5 | **in shadow** | the fact store (`facts`, `facts_latest`, `source_calls`, `fact_parity`) for short interest, borrow and news | switch on per family, if `source_calls` shows the tools share enough tickers |
+| 6 | **in shadow** | one market read per scan (`market_states`), hot sectors persisted (`hot_sector_days`) | parity weeks, then on; then the two corrections of MARKET.md §5.4 |
+| 7 | **in shadow** | `research/worker.py`: the O'Neil readings as dated facts; new tickers within minutes | parity, then on; the chain leaves qp's timer when `retire-old-schedulers.sh` runs |
+| 8 | **partly** | every run recorded (`job_runs`), ntfy alerts on failed, missed or hung jobs, The Night (chain, then backup) on T1 | still one scheduler per tool: step 15 |
+| 9 | **partly** | 9a: tools, versioned screeners, R1, R3, shortlist in Postgres, dual-written; 9b–9c: the discovery engine and its per-tool switch | the processes, the archive, tool cards, T9: steps 15–17. The engine saves no requests here (§5a) |
+| 10 | **prepared** | the scorecard (Wilson intervals, direction-aware), the training set, an empty model slot | the model, when the trader chooses one: step 20 |
+| 11 | **done, in part** | every broker file read as fills and paired by one engine (D-J1–D-J7 fixed) | stops, trade snapshots from the fact store |
+| 12 | **partly** | alerts on the strategy's own fill model, alert history kept (live); registers from `/db/<tool>` (built, off) | facts "as of a day" for qp; past backtests re-run against the database |
+| 13 | **done** | a verified Postgres dump in every nightly backup, `desk.js restore`, a monthly rehearsal | Parquet exports (the registers still go up as CSV) |
+| 14 | **partly** | one origin through the gateway | phone-first pages and ⓘ on every label: step 19 |
+
+---
+
 ## 3. Importing the old data
 
 Done once, at step 9 for each tool (step 11 for the journal, step 12 for qp),
@@ -88,7 +116,54 @@ field marked **unknown**, never guessed.
 
 ## 5. Decisions needed before starting
 
+*(Taken; their outcomes are in [the trunk's §11](../ARCHITECTURE.md#11-decisions-that-are-yours).)*
+
 From the trunk ([§11](../ARCHITECTURE.md#11-decisions-that-are-yours)): where it
 runs, Postgres or SQLite, a domain name, how far to go, and which push service
 to use. Step 3 also needs one decision of its own: **T6's photo**. Either move
 the photo after 11:30 (and its entries with it), or open its window earlier.
+
+
+---
+
+## 5a. What building steps 1–14 taught
+
+1. **Measure a saving before building for it.** The discovery engine merges
+   only byte-identical requests. This desk's tools all have different
+   screeners, so it saves no TradingView calls, and while it compares it
+   doubles them. It stays off (`discoveryMode off`) until desk-worker needs one
+   scan loop (step 15).
+2. **Fact sharing depends on overlap.** `source_calls` counts the requests
+   against the real calls per family and day; each family is switched on, or
+   left off, on those numbers.
+3. **Shadow first was right.** The import found no difference, and the first
+   deploy changed nothing the trader uses. It also meant the first steps gave
+   little the trader could see. The program half must end each step with
+   something visible.
+4. **The visible gain is in the program half:** memory on the 1 GB box, a
+   stopped tool that is just a row, and live pages.
+
+---
+
+## 6. Part 2: the program half (steps 15–20)
+
+Asked for by the trader on 2026-10-08. The rules of §1 still hold: each step
+ships on its own, is compared before the old part stops, and can be undone.
+
+| # | Step | Changes | Parity check | Undo | Risk |
+|---|---|---|---|---|---|
+| 15 | **One desk-worker** | one Node process runs every tool's schedule: its screeners (the same requests as today), the card pipeline, the refresh, R1–R3 captures and the shortlist rule. A tool becomes a row: the per-process singletons (`TOOL_ID`, the database handle, the live list) become one context per tool | per tool, the worker's R1 photo equals the old process's, row by row, for a week, one tool at a time | per tool: start its old process again | the largest |
+| 16 | **One desk-web** | one Node process serves every tool's pages and API under `/tools/T<n>/` (the gateway's paths); the archive is retired, as stopped tools are served from the record | every route of every tool returns the same JSON from desk-web as from the old process | the gateway points back at the per-tool processes | medium |
+| 17 | **The record switched on** | `registersMode on` (Postgres becomes the record; the SQLite files are kept read-only for a month), `quantRegistersMode on`, `marketMode on`, and the fact families that earned it; qp reads facts as of a day | the parity pages clean for two weeks first | each switch back to shadow | medium |
+| 18 | **Pages that use it** | a health page (jobs, sources, last backup, what is alerting), a scorecard page per tool and screener, live updates on open pages | each page against its API | additive | low |
+| 19 | **Phone first, ⓘ everywhere** | every page readable on a phone; every label's ⓘ works by tap (CARD.md §5.6) | every page at 430 px wide | — | low |
+| 20 | **The model** | when the trader chooses one (LEARNING.md §6) | a walk-forward Brier score better than the tool's base rate | the empty slot again | medium |
+
+**Memory, the reason for 15 and 16.** Today the five tool processes and the
+archive take about 70–95 MB each. Two programs replace six; the box keeps its
+1 GB and gains the room the nightly peak needs.
+
+**Left over from steps 1–14, and where it goes:** retiring the archive (16),
+restarting T9 (after 15), tool cards (15), trade stops and snapshots (after 17),
+facts as of a day for qp (17), Parquet exports (with 17), the market corrections
+(after 17's market switch).

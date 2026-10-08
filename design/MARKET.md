@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.4 The market](../ARCHITECTURE.md#64-the-market).
 
+> **Build status (2026-10-08).** Built, in shadow (`marketMode`): one market read per scan for every tool (`market_states`) and the hot sectors persisted (`hot_sector_days`), compared in `market_parity`. The two corrections of §5.4 wait for the switch (MIGRATION step 17).
+
 **Talks to:** Sources (§6.1: TradingView for index and sector-ETF quotes);
 Research data (§6.5: O'Neil's M and L, written nightly); the Card (§6.3), which
 carries the market context on every card; Registers (§6.6), whose R2 is a view

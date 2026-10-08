@@ -2,6 +2,8 @@
 
 **Trunk section:** [§5 The data architecture](../ARCHITECTURE.md#5-the-data-architecture).
 
+> **Build status (2026-10-08).** Built in Postgres (server `src/facts/index.js`, migrations 001–006): `facts`, `facts_latest`, `source_calls`, `market_states`, `hot_sector_days`, `tools`, `screeners`, `screener_versions`, `r1_photos`, `r3_outcomes`, and `shortlist` (as `shortlist_items`). Also built, though this model did not have them: the parity and run tables (`fact_parity`, `market_parity`, `desk_log`, `research_*`, `discovery_scans`, `engine_runs`, `engine_answers`). Not built: the platform tables (`jobs` and `job_runs` live in each tool's SQLite; the login stays in `auth.json`), `cards`, `tool_cards`, `scan_reports`, `bars_day`, `r4_uploads`, `models`, `scorecards` (computed on request), and the quant and journal tables, which are still in their SQLite files.
+
 Every table of the new desk in one place: its owner (the only writer), its
 key, its columns, and the legacy store it replaces. The domain leaves describe
 what each table means; this leaf is the schema and the map from the old data.

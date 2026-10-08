@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.6 Registers](../ARCHITECTURE.md#66-registers).
 
+> **Build status (2026-10-08).** Built: R1 photos (stamped with their screener versions), R3 outcomes and the shortlist are dual-written to Postgres, and all eleven tools' history was imported with 0 differences (`/api/registers/parity`). The tool's SQLite stays the record until `registersMode on` (MIGRATION step 17). R2 still lives in each tool's SQLite.
+
 **Talks to:** the Card (§6.3), whose cards and tool cards the photo freezes;
 Tools and screeners (§6.2), for capture and entry times and screener versions;
 the Market (§6.4), whose history R2 reads; Sources (§6.1), for the outcome

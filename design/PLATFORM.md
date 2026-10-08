@@ -3,6 +3,8 @@
 **Trunk section:** [§6.10 Platform](../ARCHITECTURE.md#610-platform), with
 [§9 Deployment, backup and restore](../ARCHITECTURE.md#9-deployment-backup-and-restore).
 
+> **Build status (2026-10-08).** Built: CI; the calendar; run history and ntfy alerts for every job (per tool, in SQLite); The Night on T1; the gateway and the domain script; the verified backup, `desk restore` and the monthly rehearsal; one login (S-1). Not built: desk-web and desk-worker (MIGRATION steps 15–16), settings with versions, the health page and live pages (step 18), and phone-first pages (step 19).
+
 **Talks to:** every domain. It gives them the front door and login, the one
 scheduler, configuration, health and alerts, backup and restore, deployment and
 the page shell.

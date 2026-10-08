@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.5 Research data](../ARCHITECTURE.md#65-research-data-the-oneil-chain).
 
+> **Build status (2026-10-08).** Built, in shadow (`researchMode`): the research worker (`quant-platform/research/worker.py`) writes every per-ticker reading and the market model as dated facts. It covers new tickers within minutes and runs a provisional M during the session. The nightly chain still runs from qp's systemd timer until `scripts/retire-old-schedulers.sh` hands it to T1's The Night.
+
 **Talks to:** Sources (§6.1: SEC EDGAR, Form 13F, Polygon, Yahoo, openFDA,
 USASpending); the Card (§6.3), which shows the CANSLIM reading; the Market
 (§6.4), which shows M and L; Quant (§6.8), whose backtest gate reads the same

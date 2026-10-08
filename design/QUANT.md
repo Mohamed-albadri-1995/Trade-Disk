@@ -2,6 +2,8 @@
 
 **Trunk section:** [§6.8 Quant](../ARCHITECTURE.md#68-quant-charts-strategies-backtests-alerts).
 
+> **Build status (2026-10-08).** Built: alerts run on each strategy's own fill model in real time, with their history kept (live). Registers can be read from the database through T1's `/db/<tool>`; this is built but off (`quantRegistersMode`). Not built: facts as of a day, strategies and backtests in Postgres, and a re-run of past backtests against the database (MIGRATION step 17).
+
 **Talks to:** Sources (§6.1: bar feeds); Registers (§6.6: R1 and the shortlist
 as backtest universes, R3 outcomes); Research data (§6.5: CANSLIM facts as of a
 day, for the backtest gate); the Market (§6.4: market states as of a day); the

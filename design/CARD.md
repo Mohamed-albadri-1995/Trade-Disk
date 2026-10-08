@@ -3,6 +3,8 @@
 **Trunk section:** [§6.3 The card](../ARCHITECTURE.md#63-the-card). The
 largest domain of the desk.
 
+> **Build status (2026-10-08).** The card is unchanged on screen. Short interest, borrow and news also go through the fact store, and the O'Neil readings through the research worker. Both run in shadow, so the card still shows the tool's own fetch. The card engine in desk-worker, tool cards and the other fact families are MIGRATION steps 15–17.
+
 **Talks to:** Sources (§6.1) for every external fact; Tools and screeners
 (§6.2) for candidates; the Market (§6.4) for market context; Research data
 (§6.5) for the CANSLIM reading; Learning (§6.7) for the score; Registers

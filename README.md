@@ -15,6 +15,11 @@ left to you, and the risks.
 Every other document is a leaf of one of its sections. Its
 [document map](ARCHITECTURE.md#13-the-document-map) lists them all.
 
+**Where the build stands:** the trunk's
+[§0](ARCHITECTURE.md#0-where-the-build-stands-2026-10-08) (2026-10-08). The plan,
+step by step, with what is done and the program half still to build (steps
+15–20): [design/MIGRATION.md](design/MIGRATION.md) ([PDF](pdf/MIGRATION.pdf)).
+
 ## The two kinds of leaf
 
 | Folder | Holds | State |
