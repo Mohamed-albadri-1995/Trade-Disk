@@ -1,7 +1,7 @@
 # Files on the box
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.4 (files on the box) and
-§3.2 (where each kind of data lives).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.3 (files on the box) and
+§5.2 (where each kind of data lives).
 
 **Talks to:**
 - **its writers:** the [desk](../desk/DESK.md), [qp](../quant/QUANT.md) and the

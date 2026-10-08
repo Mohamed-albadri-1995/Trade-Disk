@@ -18,8 +18,8 @@
 
 **What the tree changed:** one desk program for every tool instead of two;
 each tool's results kept in its own file with a copy in the shared record;
-documents by block and part instead of by domain. The trunk's
-[§2.3](../../ARCHITECTURE.md#23-why-one-program) says why.
+documents by block and part instead of by domain. The desk's document,
+[DESK.md](../../design/desk/DESK.md#why-one-program-not-two) says why.
 
 ## The leaves of the first design
 

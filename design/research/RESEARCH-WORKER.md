@@ -1,6 +1,6 @@
 # The research worker
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.6.
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.5.
 
 **Talks to:**
 - the [desk](../desk/DESK.md), whose scheduler starts every run

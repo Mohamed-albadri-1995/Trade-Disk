@@ -1,7 +1,7 @@
 # Alerts and the health page
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.8 (outside the box),
-§4.1 (when something goes wrong) and §5 (the rule "failures are loud").
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.7 (outside the box),
+§6.1 (when something goes wrong) and §7 (the rule "failures are loud").
 
 **Talks to:**
 - the [desk's jobs](../desk/JOBS.md): every run's result, and the jobs that

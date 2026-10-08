@@ -1,6 +1,6 @@
 # The front door
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.1.
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.1.
 **Talks to:**
 - the trader's phone and laptop;
 - the [desk](../desk/DESK.md), [qp](../quant/QUANT.md) and the

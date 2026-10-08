@@ -1,6 +1,6 @@
 # Data sources
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.8 (outside the box).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.7 (outside the box).
 
 **Talks to:** every block that needs the outside world. Each one reaches it
 through adapters:

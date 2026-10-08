@@ -1,7 +1,7 @@
 # Backups
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.8 (outside the box) and
-§6 (running it on the box).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.7 (outside the box) and
+§8 (running it).
 
 **Talks to:**
 - the [desk's jobs](../desk/JOBS.md): the night job starts the backup after the

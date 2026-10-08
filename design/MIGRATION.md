@@ -1,7 +1,7 @@
 # From today's desk to the design
 
-**Above:** [ARCHITECTURE.md](../ARCHITECTURE.md) §7 (status, and the way
-there).
+**Above:** [ARCHITECTURE.md](../ARCHITECTURE.md) §9 (where the build stands,
+and the way there).
 
 **Talks to:** every block's document. Each step below names the blocks it
 changes, and each block's status table names the step that finishes it. The
@@ -108,7 +108,7 @@ deployed to the box on 2026-10-08.
 | 6 | one market read per scan; hot sectors kept | **in shadow** | switched on (D) |
 | 7 | the research worker: O'Neil facts with their dates; new tickers within minutes | **in shadow** | the whole chain in the worker (C); switched on (D) |
 | 8 | run history; alerts on failed, missed, hung runs; the night | **partly** | one scheduler (B, C) |
-| 9 | the registers copied to the shared record, all eleven tools imported with 0 differences; the discovery engine | **done**; the engine **off** | the engine retires with B ([ARCHITECTURE §8](../ARCHITECTURE.md#8-decisions)) |
+| 9 | the registers copied to the shared record, all eleven tools imported with 0 differences; the discovery engine | **done**; the engine **off** | the engine retires with B ([ARCHITECTURE §10](../ARCHITECTURE.md#10-decisions)) |
 | 10 | the scorecard, the training set, an empty model slot | **prepared** | the scorecard page (E); the model (F) |
 | 11 | the journal: one pairing engine for every source | **done, in part** | stops, the entry snapshot (D), the tables ([JOURNAL.md](journal/JOURNAL.md)) |
 | 12 | qp: alerts on the strategy's own fill model, alert history; registers from the shared record (off) | **partly** | alert cycles from the desk (C); reads as of a day (D) |
@@ -362,7 +362,7 @@ marked **unknown**, never guessed.
    each step of the program half ends with something visible.
 4. **Two programs were the hardest part of the earlier plan.** Everything a
    page shows from the scans would have had to be copied into the database all
-   day. One program removes that ([ARCHITECTURE §2.3](../ARCHITECTURE.md#23-why-one-program)).
+   day. One program removes that ([DESK.md](desk/DESK.md#why-one-program-not-two)).
 
 ---
 

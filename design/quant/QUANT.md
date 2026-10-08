@@ -1,6 +1,6 @@
 # qp: charts, strategies, backtests, alerts
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.5.
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.4.
 
 **Talks to:**
 - the [front door](../front-door/FRONT-DOOR.md) (`/quant/`);

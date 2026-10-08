@@ -1,7 +1,7 @@
 # The box
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md), §2 (the box around every
-program) and §6 (running it).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §3 (the box around every
+program) and §8 (running it).
 **Talks to:** every program on it. The [front door](../front-door/FRONT-DOOR.md)
 is its only open port; the [backups](../outside/BACKUPS.md) carry its files off it.
 
@@ -87,7 +87,7 @@ beside the system.
 
 About 500–650 MB in all. The night's research run happens at 18:30, when no
 scan is due, and may use swap. A 2 GB instance removes the squeeze; that is the
-trader's decision ([ARCHITECTURE §8](../../ARCHITECTURE.md#8-decisions)).
+trader's decision ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
 
 **Today's limits, until the tools move into the desk:**
 

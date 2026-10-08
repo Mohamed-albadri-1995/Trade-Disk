@@ -56,7 +56,7 @@ review. Layers 2 and 3 are written after it.
 ## How each document is built
 
 Every document has the same parts, in the same order
-([ARCHITECTURE.md §10](../ARCHITECTURE.md#10-the-document-tree)):
+([ARCHITECTURE.md §12](../ARCHITECTURE.md#12-the-document-tree)):
 1. **its place:** the document above it, and the blocks it talks to;
 2. **what it is:** its job, what it owns, what it never does;
 3. **its diagram;**

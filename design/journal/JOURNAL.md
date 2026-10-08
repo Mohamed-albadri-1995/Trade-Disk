@@ -1,6 +1,6 @@
 # The journal
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.7.
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.6.
 
 **Talks to:**
 - the [front door](../front-door/FRONT-DOOR.md) (`/journal/`);

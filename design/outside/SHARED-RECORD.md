@@ -1,7 +1,7 @@
 # The shared record
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.8 (outside the box) and
-§3 (how the blocks share data).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.7 (outside the box) and
+§5 (how the blocks share data).
 
 **Talks to:**
 
@@ -138,7 +138,7 @@ qp reads them as of a day ([BACKTEST.md](../quant/BACKTEST.md)).
 | Table | Holds |
 |---|---|
 | `desk_log` | notable events, such as a hot-sector reset |
-| `discovery_scans`, `engine_runs`, `engine_answers` | the discovery engine's comparison record. The engine is off and retires with the move into the desk ([ARCHITECTURE §8](../../ARCHITECTURE.md#8-decisions)) |
+| `discovery_scans`, `engine_runs`, `engine_answers` | the discovery engine's comparison record. The engine is off and retires with the move into the desk ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)) |
 | `schema_migrations` | the migrations that have run |
 
 ### 3.6 Its switches
@@ -164,7 +164,7 @@ A family or an area is switched **on** only when its comparison is clean.
 - **For a fact family**, also when its call counts show the tools share enough
   tickers for sharing to pay ([MIGRATION.md](../MIGRATION.md) step D).
 - **The register copies have no "on".** They stay copies, and each tool's own
-  file stays the record ([ARCHITECTURE §8](../../ARCHITECTURE.md#8-decisions)).
+  file stays the record ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
   What is switched on is qp reading them (`quantRegistersMode`).
 
 ### 3.7 Where it lives
@@ -176,7 +176,7 @@ A family or an area is switched **on** only when its comparison is clean.
 - on the box, at 60–100 MB of its 912 MiB;
 - on AWS RDS.
 
-**This is an open decision for the trader** ([ARCHITECTURE §8](../../ARCHITECTURE.md#8-decisions)).
+**This is an open decision for the trader** ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
 Moving it is one dump and one restore.
 
 **What guards it:**

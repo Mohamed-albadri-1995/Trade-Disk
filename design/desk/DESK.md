@@ -1,7 +1,7 @@
 # The desk
 
-**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §2.2 (the desk) and §2.3
-(why one program).
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.2 (the desk), §1 (how the
+desk learns) and §6 (a trading day).
 
 **Talks to:**
 - the [front door](../front-door/FRONT-DOOR.md), which brings it every page and
@@ -206,6 +206,52 @@ Almost nothing: the screener, card, register and page code is the code that runs
 today. What changed is where each tool's state is kept (§3), so the same code
 runs once per tool, in that tool's context.
 
+### 4.5 The research each tool runs
+
+Every running tool runs the same method, kept exactly as the old desk learned
+it:
+- **The record of the day** (the photo, R1). At the tool's own minute in the
+  first hour (today between 09:36 and 10:16), every card on its list is frozen
+  exactly as it is known then. Only these records judge the tool.
+- **Two entry minutes,** A and B, a few minutes after the record.
+- **The outcome** (R3). After the close, the desk measures how far each
+  recorded stock moved, up and down, from each entry minute to the close, in
+  units of the stock's average daily range (ATR). A move of 1.3 ATR or more is
+  a good move. There is no stop, target or exit in this measure: it judges what
+  a tool finds, not a trade.
+- **A benchmark tool** that every other tool must beat by a clear margin, and a
+  **mirror** for each screener (the same setup facing the other way), to test
+  whether its direction is real.
+- **The order of work:** collect for about a month; cut the screeners whose
+  stocks do not move; only then work on entries, stops and targets.
+
+The exact measures: [TOOL.md](TOOL.md), and below it
+[REGISTERS.md](tool/REGISTERS.md) and [LEARNING.md](tool/LEARNING.md).
+
+### 4.6 A trading day, by the clock
+
+New York time, on trading days. Each job and its settings:
+[JOBS.md](JOBS.md).
+
+| When | Job | Who |
+|---|---|---|
+| 03:45 | every outside source checked | desk jobs |
+| 04:00–09:00 every 30 min; 09:00–10:00 every 5; 10:00–16:00 every 15; 16:00 | discovery: each screener only inside its own window | each running tool, with one market read |
+| 04:00–16:00 every 5 min | every card re-quoted and re-scored | each running tool |
+| 04:00–16:00 every 5 min, while any wait | research for the stocks carded for the first time | desk jobs → research worker |
+| 09:00–15:30 every 30 min | the market model, provisional | desk jobs → research worker |
+| 09:25–16:05 every minute, while alerts are on | qp's alert cycle | desk jobs → qp |
+| one minute before each tool's record | the shortlist rule | each running tool |
+| each tool's minute (09:36 … 10:16 today) | **the record of the day** (R1) | each running tool |
+| 09:26, 09:31 … 10:01 | R2: the market at fixed minutes, a view of the market history | the market reader |
+| 16:05 | **the outcomes** (R3) | each running tool |
+| 16:50 | capture-time changes made during the session take effect | desk jobs |
+| 18:30 | the night: the O'Neil research, then the backup | desk jobs → research worker, backup |
+| every minute, each account on its own interval | the journal's sync | desk jobs → journal |
+| every 5 min | the heartbeat; the box's memory and disk | desk jobs |
+| the 1st of each month, 09:10 | the restore rehearsal | desk jobs |
+| 00:00 | each tool's list starts a new day | each running tool |
+
 ---
 
 ## 5. Contracts
@@ -243,6 +289,8 @@ runs once per tool, in that tool's context.
 | the shared record is down | each tool works from its own file and fetches its facts itself; the copies wait; the health page says so |
 | a data source fails | that source's facts show `unavailable` with the reason; the cards still build ([SOURCES.md](../outside/SOURCES.md)) |
 | the front door is down | the desk keeps scanning and photographing; only the pages are out of reach |
+| a scan outlasts its slot | the next slot is skipped and recorded; two scans of one tool never run at once |
+| TradingView changes or drops a column | its adapter refuses the answer, and the scan report says why; no card gets shifted values ([SOURCES.md](../outside/SOURCES.md)) |
 
 ---
 
@@ -260,7 +308,49 @@ The detail:
 - [TOOL-LIFECYCLE](../../legacy/screeners/TOOL-LIFECYCLE.md);
 - [MONITOR](../../legacy/screeners/MONITOR.md).
 
-**What failed there:**
+### Why one program, not two
+
+**What the earlier design wanted, and why.** It split the desk into two
+programs, desk-web for the pages and desk-worker for the jobs, for three
+reasons:
+1. **Memory:** six programs on a 1 GB box.
+2. **Speed and safety:** a slow scan must never freeze the pages, and the
+   scheduler must never run twice.
+3. **Tools as rows:** adding or stopping a tool should not mean a program, and
+   a restart should lose nothing.
+
+**What building it showed.**
+- **The split was the hardest part.** Two programs share no memory. Everything
+  a page shows from the scans (the live lists, the scan status, the market
+  read, the jobs) would have had to be copied into the database all day, and
+  every button (scan now, a star, a bias, a job switched off) would have become
+  a message to the other program. That copying was the largest and riskiest
+  part of the plan.
+- **It broke one writer per file.** Both programs would have written each
+  tool's file.
+- **The speed reason hardly applies here.** A scan mostly waits on the
+  network, not on the processor; each tool already serves its pages while it
+  scans.
+- **Two programs save less memory than one.** The saving comes from loading
+  the code once; two programs load it twice.
+
+**What one program does instead.** It keeps every one of those reasons: one
+copy of the code for every tool; one scheduler, which can never run twice; a
+tool as a context, not a process; and each tool's list saved to its file after
+every change, so a restart loses nothing. It also drops the copying, and keeps
+one writer per file.
+
+**Its risks.** A crash stops every tool for a few seconds: the supervisor
+restarts the desk, and every list comes back from its file; a record whose
+minute passed is marked missed, and the phone is told. A heavy page could slow
+a scan: heavy work is kept out of page requests (§4.2). If that ever shows, the
+same code can still be split into two programs later, because the contexts
+make it possible.
+
+Decided by the trader on 2026-10-08 ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
+
+### What failed there
+
 - **Memory.** Tools were stopped for lack of memory: each was a whole copy of
   the program.
 - **The live list was lost on restart.** It lived only in memory, until a
