@@ -87,7 +87,7 @@ Each signal has one judge, and amber and red mean the same everywhere:
 | Signal | Judged by | Amber | Red |
 |---|---|---|---|
 | **a job's run** | the scheduler, on every run ([JOBS.md](../desk/JOBS.md)) | one failed run of a job that runs more often than every 15 minutes (a scan, a re-quote, the new-ticker run, an alert cycle, a journal sync) | any other job failed, missed or hung; a frequent job failed three runs in a row |
-| **a source** | the scheduled health checks ([SOURCES.md](SOURCES.md) §3.5), before the open and at each source's cadence | degraded: some of it failed, or a free tier's limit was reached | down: rejected, empty where it cannot be, or no answer |
+| **a source** | the scheduled health checks ([SOURCES.md](SOURCES.md) §3.5), before the day's first scan and at each source's cadence | degraded: some of it failed, or a free tier's limit was reached | down: rejected, empty where it cannot be, or no answer |
 | **a fact family's freshness** | the desk's freshness job, over `facts_latest`, against each family's clock ([CARD.md](../desk/tool/CARD.md), [RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md)) | older than its clock | older than twice its clock |
 | **a program** | the desk, asking each program's `/health` every minute | — | qp, the journal or the front door not answering for 3 minutes |
 | **the shared record** | every program that uses it | unreachable: the tools work from their own files, and the copies wait | unreachable for an hour, or the daily comparison of the copies finds differences |
@@ -97,7 +97,9 @@ Each signal has one judge, and amber and red mean the same everywhere:
 | **the desk itself** | the outside heartbeat check (§3.5) | — | no heartbeat for 15 minutes |
 
 **Counted in trading sessions.** A clock that spans a weekend or a holiday is
-counted on the trading calendar, so Monday morning never reads as stale.
+counted on the trading calendar, so Monday morning never reads as stale. The
+proof: on a Monday before the open, and on the morning after a holiday, no
+freshness signal is amber.
 
 **While a tool moves into the desk** ([MIGRATION.md](../MIGRATION.md) step B),
 the comparison copy also sends one line a day: that day's photo comparison,

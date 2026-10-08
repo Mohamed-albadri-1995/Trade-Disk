@@ -196,7 +196,9 @@ is lost, because the file is the same file.
 - **the desk jobs** move into the desk's own context and its own file,
   `data/desk.db` ([JOBS.md](desk/JOBS.md)). Their past runs stay in T1's file,
   as history;
-- **T1 becomes a tool like the others,** so it can be stopped.
+- **T1 becomes a tool like the others,** so it can be stopped. Home keeps
+  port 3000, where the landing page has always been, and T1 takes port 3090
+  ([WEB.md](desk/WEB.md) §3.1).
 
 **After the last tool:**
 - `deskTools` and `workerShadow` retire: the desk runs every running tool;
@@ -229,7 +231,7 @@ back to shadow ([SHARED-RECORD.md](outside/SHARED-RECORD.md) §3.6).
 
 | Switch | The check before | Then |
 |---|---|---|
-| `marketMode on` | a week of each tool's own read equal to the one read (`market_parity`) | every card is stamped from the one read; then the two corrections of [MARKET.md](desk/MARKET.md) |
+| `marketMode on` | a week of each tool's own read equal to the one read (`market_parity`); each tool's own hot-sector and bias thresholds equal to the desk's, or listed | every card is stamped from the one read; the R2 jobs retire, and R2 is read from the market history; then the corrections of [MARKET.md](desk/MARKET.md) |
 | `factsMode on`, family by family | `fact_parity` clean for a week, and `source_calls` showing the tools share enough tickers for sharing to pay | the family is read from the store |
 | `researchMode on` | the worker's facts equal qp's values, field by field, for a week; with qp stopped, the cards and the Market tab unchanged | the cards read the worker's facts; qp's O'Neil routes retire |
 | `quantRegistersMode on` | past backtests re-run against the shared record give identical trades | qp reads every tool's registers from the shared record |

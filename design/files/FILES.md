@@ -78,10 +78,10 @@ T1's file is `data/tradedesk.db`. Every other tool's is `data/t<n>.db`.
 |---|---|---|
 | `screeners` | the tool's screeners: key, name, rules, sort, size, run and check windows, mirror, list-only, paused | [SCREENERS.md](../desk/tool/SCREENERS.md) |
 | `screener_versions` | every saved version of every screener, so each photo can be read from this file alone (**to build**; today the versions are kept only in the shared record) | [SCREENERS.md](../desk/tool/SCREENERS.md) |
-| `settings` | the tool's settings: tradability floor, hot-sector and sector-bias thresholds, shortlist auto-rule, its name and pause | [PAGES.md](../desk/tool/PAGES.md) §Settings |
+| `settings` | the tool's settings: its floor override (today: its own floor), shortlist auto-rule, its name and pause; each change a new version (**versions: to build**). Until the one market read is switched on, also its own hot-sector and sector-bias thresholds, which then become the desk's | [PAGES.md](../desk/tool/PAGES.md) §Settings |
 | `r0_checkpoint` | the live list of the day, saved after every change (today: after every full scan), so a restart loses nothing | [REGISTERS.md](../desk/tool/REGISTERS.md) |
 | `r1_frozen` | R1: every card of the day, frozen at the capture minute, one row per ticker | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `r2_market_snapshots` | R2: the market state at the morning slots | [REGISTERS.md](../desk/tool/REGISTERS.md) |
+| `r2_market_snapshots` | R2 as each tool wrote it until the one market read is switched on; kept as history. After that, R2 is read from the market history in the desk's own file | [REGISTERS.md](../desk/tool/REGISTERS.md) |
 | `r3a`, `r3b` | R3: the outcomes from entry A and from entry B | [REGISTERS.md](../desk/tool/REGISTERS.md) |
 | `shortlist` | the day's picks, starred or chosen by the auto-rule | [REGISTERS.md](../desk/tool/REGISTERS.md) |
 | `r4a_train`, `r4b_train` | training rows uploaded by hand (`source = upload`). R4 itself is R1 joined to R3, computed on request | [LEARNING.md](../desk/tool/LEARNING.md) |
@@ -101,12 +101,21 @@ every day:
 ### 3.2 The desk's own file
 
 `data/desk.db` (**to build**). It holds what belongs to the desk rather than to
-any tool:
-- the desk jobs (`scheduler_jobs`), their runs (`job_runs`) and their alert
-  state (`alert_state`).
+any tool, written only by the desk in its own context:
 
-Today the desk jobs run in T1's program and are recorded in T1's file. That is
-one of the reasons T1 cannot be stopped.
+| Table | Holds | Detail |
+|---|---|---|
+| `scheduler_jobs`, `job_runs`, `alert_state` | the desk jobs, their runs, the desk's alert state | [JOBS.md](../desk/JOBS.md), [ALERTS.md](../outside/ALERTS.md) |
+| `market_states` | the market history: one state per market read, with its instant | [MARKET.md](../desk/MARKET.md) |
+| `hot_sector_days` | each sector's hot state per trading day | [MARKET.md](../desk/MARKET.md) |
+| `settings`, `setting_versions` | the desk's settings (the tradability floor, the market thresholds), each change a new version | [TOOL.md](../desk/TOOL.md) §3.1, [MARKET.md](../desk/MARKET.md) §3.14 |
+
+**Copied to the shared record** at the moment they are written, and compared
+every day: `market_states` and `hot_sector_days`.
+
+Today the desk jobs run in T1's program and are recorded in T1's file, and the
+market history is kept only in the shared record. That is one of the reasons
+T1 cannot be stopped.
 
 ### 3.3 The tool registry
 
@@ -155,7 +164,7 @@ replacement in the design:
 
 | File | Holds |
 |---|---|
-| `data/keys.json` | shared keys and the desk's switches: the shared record's address, the ntfy topic, the area modes, `workerShadow` |
+| `data/keys.json` | shared keys and the desk's switches: the shared record's address, the ntfy topics, the heartbeat address, the area modes, `workerShadow`, `deskTools` |
 | `data/auth.json` | the password hash and the cookie's signing secret |
 | `data/r2.json` | the backup bucket's keys |
 | `data/journal/journal-accounts.json` | the journal's Alpaca accounts |

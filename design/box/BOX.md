@@ -78,7 +78,7 @@ beside the system.
 
 | Program | pm2 name | Port (local) | Memory budget | pm2 limit |
 |---|---|---|---|---|
-| desk (every tool) | `desk` | one per tool: 3000, 3010 … 3120 | about 150–250 MB (estimate; measured as tools move in) | to set from the measurement |
+| desk (every tool) | `desk` | 3000 (home), and one per tool: 3010 … 3120; T1 on 3090 once it moves ([WEB.md](../desk/WEB.md) §3.1) | about 150–250 MB (estimate; measured as tools move in) | to set from the measurement |
 | qp | `qp` | 8765 | 70–150 MB (129 measured) | `deploy/qp.config.js` |
 | journal | `journal` | 3100 | about 66 MB | 160 MB |
 | front door | `desk-gateway`, Caddy | 8080; 443 outside | 40–80 MB | 80 MB (gateway) |

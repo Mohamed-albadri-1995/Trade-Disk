@@ -89,7 +89,7 @@ The gateway (`src/shell/gateway.js`) holds no state.
 
 | Path | Goes to |
 |---|---|
-| `/`, `/login`, `/logout` | the desk's home |
+| `/`, `/login`, `/logout`, `/screeners…`, `/market`, `/status`, `/settings` | the desk's home (today `/`, `/login` and `/logout` only; the rest **to build** with home in the desk, [WEB.md](../desk/WEB.md) §3.2) |
 | `/tools/T<n>/…` | that tool, in the desk (running or stopped) |
 | `/quant/…` | qp, including its live chart WebSocket (`/ws/live`) |
 | `/journal/…` | the journal |

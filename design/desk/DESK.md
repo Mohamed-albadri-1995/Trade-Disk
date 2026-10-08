@@ -33,7 +33,8 @@ only scheduler.
 
 **What it owns:**
 - each tool's own file, of which it is the only writer;
-- its own file, for the desk jobs' runs and alerts;
+- its own file, for the desk jobs' runs and alerts, the market history and the
+  desk's settings;
 - the live state of every tool, in memory and saved to each tool's file after
   every change.
 
@@ -76,7 +77,8 @@ flowchart TB
   RUN -->|"facts · scans"| SRC["data sources"]
   MKT -->|"index and sector quotes"| SRC
   RUN -->|"facts · register copies"| PG[("shared record")]
-  MKT -->|"market states"| PG
+  MKT -->|"market states (copy)"| PG
+  MKT ==>|"market history"| DF
   JOBS -->|"starts"| RW["research worker"]
   JOBS -->|"alert cycles · syncs"| OTH["qp · journal"]
   JOBS -->|"alerts · signals"| PH["ntfy"]
@@ -144,7 +146,7 @@ comparison: `src/worker/` (step 15b).
 | **home** | the landing page; the lists across all tools (the unified shortlist, the screener report, the comparison); Manage tools (add, start, stop, pause, edit, delete, restore) | [HOME.md](HOME.md) |
 | **running tools** | one tool end to end: its screeners and discovery, the card, the live list, the shortlist, the photo, the outcomes, the score, its pages and API | [TOOL.md](TOOL.md) |
 | **stopped tools** | a stopped tool's stored registers and history, read-only, on its own address | [STOPPED-TOOLS.md](STOPPED-TOOLS.md) |
-| **market reader** | the indexes, the regime, the short-, mid- and long-term reads, the 15 sectors and hot sectors: read once per scan for every tool, kept with its history, stamped on every card | [MARKET.md](MARKET.md) |
+| **market reader** | the indexes, the regime, the short-, mid- and long-term reads, the 15 sectors and hot sectors: read once per scan for every tool, stamped on every card, kept with its history in the desk's own file (R2 is that history at fixed minutes) | [MARKET.md](MARKET.md) |
 | **scheduler and desk jobs** | the only scheduler: every tool's jobs in its context, and the desk jobs (research runs, the night, the restore test, schedule changes, journal sync, qp's alert cycles with their signals pushed to the phone, the health checks, the heartbeat); every run recorded; failed, missed and hung runs alerted ([ALERTS.md](../outside/ALERTS.md)) | [JOBS.md](JOBS.md) |
 
 ### 4.1 Start-up
@@ -211,7 +213,7 @@ runs once per tool, in that tool's context.
 | It owns | Form |
 |---|---|
 | each tool's own file | SQLite, one per tool; the only writer ([FILES.md](../files/FILES.md)) |
-| the desk's own file | SQLite: the desk jobs, their runs, the desk's alert state |
+| the desk's own file | SQLite: the desk jobs, their runs, the desk's alert state; the market history; the desk's settings ([FILES.md](../files/FILES.md) §3.2) |
 | the live state of every tool | memory, saved to each tool's file after every change |
 | the routes of every tool and of home | [PAGES.md](tool/PAGES.md), [HOME.md](HOME.md), [WEB.md](WEB.md) |
 

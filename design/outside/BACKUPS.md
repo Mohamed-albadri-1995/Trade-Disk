@@ -227,9 +227,13 @@ SQLite file's integrity. A failure is a red alert. By hand:
 2. Put the secrets back from the trader's copy: `scripts/set-r2-keys.sh`, the
    shared record's address, `scripts/set-password.sh`.
 3. `node scripts/desk.js restore <day> --yes`.
-4. Put the API keys back in Settings, and the journal's accounts.
+4. Put the API keys back (`scripts/set-setting.js`, `scripts/set-alpaca-keys.js`)
+   and the journal's accounts.
 
 Nothing else is copied by hand.
+
+**The proof, once:** a fresh box, restored with one command, serves the same
+pages and numbers as the old one for a chosen past day.
 
 ### 3.9 Its credentials
 
@@ -307,3 +311,4 @@ The design that made it: the old PLATFORM §5–6, now carried here.
 | the analysis files read through the desk with each file opened read-only | **to build** (step A, when the archive stops). Today each tool's port and the archive serve them |
 | the analysis files as Parquet, under the registers' new names | **to build**. Today gzipped CSV, under the old names (R3A, R3B, R4A, R4B) |
 | three monthly rehearsals passed | **to do**. Until then, the old manual steps stay written down |
+| the new-box test | **to do**, once, before the old manual steps retire |

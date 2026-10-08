@@ -144,7 +144,7 @@ flowchart TB
   subgraph OUT["outside the box"]
     direction LR
     SRC["<b>data sources</b><br/>TradingView · Yahoo · Alpaca · FINRA<br/>Nasdaq · NYSE · SEC EDGAR · Polygon · news"]
-    PG[("<b>shared record</b> · Postgres<br/>facts · market states · O'Neil facts<br/>copies of the registers")]
+    PG[("<b>shared record</b> · Postgres<br/>facts · O'Neil facts<br/>copies of the registers and the market history")]
     R2[("<b>Cloudflare R2</b><br/>nightly backups")]
     PH["<b>ntfy → phone</b><br/>alerts"]
   end
@@ -158,7 +158,7 @@ flowchart TB
   TOOLS ==>|"one writer per file"| FILES
   TOOLS -->|"scans · facts"| SRC
   TOOLS -->|"facts · register copies"| PG
-  MKT -->|"market states"| PG
+  MKT -->|"market states (copy)"| PG
   JOBS -->|"starts"| RW
   RW -->|"O'Neil facts"| PG
   QP -->|"registers and facts, as of a day"| PG
@@ -207,7 +207,7 @@ each block.
 | research worker | the O'Neil chain and the models: runs as a job, then exits | [design/research/RESEARCH-WORKER.md](design/research/RESEARCH-WORKER.md) |
 | journal | every real trade, from broker fills and files | [design/journal/JOURNAL.md](design/journal/JOURNAL.md) |
 | data sources | every outside source, each behind an adapter | [design/outside/SOURCES.md](design/outside/SOURCES.md) |
-| shared record | Postgres: the facts with their times, the market states, the O'Neil facts, copies of the registers | [design/outside/SHARED-RECORD.md](design/outside/SHARED-RECORD.md) |
+| shared record | Postgres: the facts with their times, the O'Neil facts, copies of the registers and of the market history | [design/outside/SHARED-RECORD.md](design/outside/SHARED-RECORD.md) |
 | backups | the nightly copy to R2, and the one-command restore | [design/outside/BACKUPS.md](design/outside/BACKUPS.md) |
 | alerts | what reaches the phone, and the health page | [design/outside/ALERTS.md](design/outside/ALERTS.md) |
 
@@ -258,7 +258,8 @@ costs a few megabytes, not a process.
 - **Stopped tools:** each one's history, served read-only on its own address,
   so charts and backtests of everything it collected keep working.
 - **The market reader:** the indexes, regime, sectors and hot sectors, read once
-  per scan for every tool and stamped on every card.
+  per scan for every tool, stamped on every card, and kept with its history in
+  the desk's own file.
 - **The scheduler and the desk jobs:** the only scheduler on the box.
   - It runs every tool's jobs, and the jobs that run once for the whole desk:
     - the research runs;
@@ -418,7 +419,7 @@ It is the only writer of those facts. No page ever waits for it.
 
 **What the shared record holds:**
 - facts about the world, each with its time and source;
-- the market states;
+- a copy of the market history, written at the same moment as the desk's own;
 - the O'Neil facts;
 - a copy of every register, written at the same moment as the tool's own file
   and compared every day.
@@ -443,12 +444,14 @@ nightly backups, and it lets qp read any tool's history as of any day.
 | Data | Lives in | Only writer | Read by |
 |---|---|---|---|
 | tools, screeners (versioned), windows, capture times | the tool registry; each tool's file; screener versions copied to the shared record | the desk (Manage tools, the builder), checked on save | the desk; qp |
-| settings (floor, thresholds, keys) | each tool's file | the desk (Settings), checked on save | the desk |
+| a tool's settings: its floor override, its shortlist rule, its name and pause | each tool's file | the desk (the tool's Settings), checked on save, versioned | the desk |
+| the desk's settings: the tradability floor, the market thresholds | the desk's own file | the desk (home's Settings), checked on save, versioned | the desk |
+| the switches: the shared record's address, the area modes, the alert topics | `data/keys.json`, mode 0600 | the trader (`scripts/set-setting.js`) | every program |
 | the live list (R0) | the desk's memory, saved to the tool's file after every change | the desk | the desk's pages |
 | facts: quote, short interest, borrow, Reg SHO, news, catalyst | the shared record (history and latest); the desk's memory for the day | the desk, each family through its adapter | the desk, qp, the journal |
-| market states, hot sectors | the shared record | the desk's market reader | the desk, qp |
+| the market history: market states, hot sectors | the desk's own file, with a copy in the shared record | the desk's market reader | the desk, qp |
 | O'Neil facts, SIC map | the shared record | the research worker | the desk, qp, the journal |
-| registers: R1, R2, R3, shortlist (R4 is R1 joined to R3) | each tool's file, with a copy in the shared record | the desk (only its jobs write them) | the desk, qp, the research worker |
+| registers: R1, R3, shortlist (R2 is the market history at fixed minutes; R4 is R1 joined to R3) | each tool's file, with a copy in the shared record | the desk (only its jobs write them) | the desk, qp, the research worker |
 | models, scorecards | the shared record (models); computed on request (scorecards) | the research worker | the desk |
 | strategies, backtests, alert history | qp's file | qp | qp |
 | accounts, fills, trades, notes | the journal's file | the journal | the journal |
@@ -549,7 +552,7 @@ sequenceDiagram
 | 04:00–16:00 every 5 min, while any wait | research run for tickers carded for the first time | desk jobs → research worker |
 | 09:30–16:00 every 30 min | provisional M | desk jobs → research worker |
 | 09:25–16:05 every minute, while alerts are on | qp's alert cycle | desk jobs → qp |
-| 09:26, 09:31 … 10:01 | R2 market slots | running tools |
+| 09:26, 09:31 … 10:01 | R2: the market history at these minutes, a view that no job writes | market reader |
 | each tool's capture minute − 1 | shortlist auto-rule | running tools |
 | each tool's capture minute (09:36 … 10:16 today) | R1 photo | running tools |
 | 16:05 (half days: 15 minutes after the close) | R3 outcomes | running tools |
@@ -689,7 +692,7 @@ Keys are restored from the trader's own copy, never from the backup.
 | desk | **being built** | the tool context and the comparison copy are merged; the comparison is not yet started on the box. The tools still run as five programs (T1, T2, T6, T7, T11) |
 | · home | **in T1** | the landing page and Manage tools are served by T1, so T1 cannot be stopped |
 | · stopped tools | **the archive program** | one read-only program serves the six stopped tools' registers on their ports |
-| · market reader | **in shadow** | one market read per scan is stored with its history, and hot sectors survive restarts; each tool still reads its own |
+| · market reader | **in shadow** | one market read per scan is stored with its history in the shared record, and hot sectors survive restarts; each tool still reads its own. Not built: the history in the desk's own file; R2 as its view |
 | · scheduler and desk jobs | **partly** | every run recorded, alerts on failed, missed or hung runs. But: one scheduler per tool; the desk jobs run in T1; the journal and qp keep their own timers |
 | files on the box | **built** | one SQLite file per tool; qp's and the journal's files |
 | qp | **partly** | alerts use each strategy's own fill model, and their history survives restarts. Reading registers from the shared record is built but off. Facts "as of a day" are not built |
@@ -743,7 +746,7 @@ Detail, with each step's check:
 
 | Risk | Likelihood · impact | What contains it |
 |---|---|---|
-| TradingView's scanner is an unofficial endpoint: it can change columns, add limits or refuse the desk | medium · high: no discovery, no quotes | one adapter; the alignment check refuses shifted answers; fixtures in CI; a health check before the open; the scan report names the cause. No free replacement exists, so the desk says plainly when it is blind |
+| TradingView's scanner is an unofficial endpoint: it can change columns, add limits or refuse the desk | medium · high: no discovery, no quotes | one adapter; the alignment check refuses shifted answers; fixtures in CI; a health check before the day's first scan; the scan report names the cause. No free replacement exists, so the desk says plainly when it is blind |
 | Yahoo's quote and chart endpoints are unofficial (cookie and crumb) | medium · medium | short interest falls back to Nasdaq (FINRA comes first anyway); outcome bars fall back to Alpaca; index bars for M have no fallback, so M says "not built today" |
 | free tiers: Polygon end of day only, Alpaca's IEX feed (thin volume, short history), EDGAR ten requests a second | certain · bounded | each adapter states its limits; the hybrid feed's volume seam is named on the chart; the research worker has a time budget per night |
 | one program for every tool: a crash stops them all | low · medium | the supervisor restarts in seconds; every list and job history is in its file; a missed photo is recorded and alerted; every job is wrapped so one tool's error cannot reach another |
@@ -836,7 +839,7 @@ The open findings of the old desk:
 | **fact** | one known thing about a ticker or the market, with its source and time |
 | **fact family** | a group of facts fetched and refreshed together (quote, short interest, news, …) |
 | **adapter** | the only code that talks to one outside source |
-| **shared record** | the Postgres database: facts, market states, O'Neil facts, copies of the registers |
+| **shared record** | the Postgres database: facts, O'Neil facts, copies of the registers and of the market history |
 | **R0 … R4** | the registers: the live list, the photo, market snapshots, outcomes, training rows |
 | **photo (R1)** | every card of a tool, frozen at its capture minute |
 | **entry A / B** | the two entry minutes after the photo at which outcomes are measured |
@@ -844,7 +847,7 @@ The open findings of the old desk:
 | **good move** | at least 1.3 ATR in the direction being judged |
 | **benchmark** | Stocks in Play: the screener every other must beat |
 | **mirror** | the same screener facing the other way |
-| **tradability floor** | price ≥ $1, average volume ≥ 1M, ATR ≥ $1, ATR ≥ 3 % of price, added to every screener (two named exceptions) |
+| **tradability floor** | price ≥ $1, average volume ≥ 1M, ATR ≥ $1, ATR ≥ 3 % of price, added to every screener (two named exceptions); the desk's default, which a tool may override |
 | **honest null** | "unavailable, because …" instead of a made-up 0 or "no" |
 | **as of** | the facts known at a given instant, and nothing later |
 | **trading session** | one New York trading day on the calendar |

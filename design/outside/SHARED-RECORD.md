@@ -7,7 +7,7 @@
 
 | Program | What it does here |
 |---|---|
-| the [desk](../desk/DESK.md) | writes the facts it fetches, the market states and the copies of the registers |
+| the [desk](../desk/DESK.md) | writes the facts it fetches, and the copies of the registers and of the market history |
 | the [research worker](../research/RESEARCH-WORKER.md) | writes the O'Neil facts |
 | [qp](../quant/QUANT.md) | reads registers, market states and facts, as of a day |
 | the [journal](../journal/JOURNAL.md) | reads what was known at a trade's entry |
@@ -24,7 +24,7 @@ tool, needs:
 | It holds | Why it is shared |
 |---|---|
 | **facts about the world**, each with its time and source | short interest, news, the CANSLIM letters and the rest are the same whichever tool asks. Stored once, with the instant they became known, they give every reader the same answer "as of" any instant |
-| **the market states** and the hot sectors | one market read per scan serves every tool, and its history serves R2 and qp |
+| **a copy of the market history**: the market states and the hot sectors | the desk keeps the history in its own file; the copy lets qp read the market as of any day |
 | **the O'Neil facts** | written by the research worker, read by the desk, qp and the journal |
 | **a copy of every register** (R1, R3, the shortlist) and of the tools and screener versions | the copy keeps the research record safe if the box is lost between two nightly backups, and lets qp read any tool's history as of any day |
 
@@ -44,7 +44,7 @@ and the copies catch up.
 
 ```mermaid
 flowchart LR
-  DESK["desk"] ==>|"facts it fetches · market states<br/>copies of R1, R3, shortlist, screeners"| PGB
+  DESK["desk"] ==>|"facts it fetches · copies of the market history<br/>and of R1, R3, shortlist, screeners"| PGB
   RW["research worker"] ==>|"O'Neil facts · runs"| PGB
   subgraph PGB["shared record · Postgres"]
     F["<b>facts</b><br/>facts · facts_latest<br/>source_calls · fact_parity"]
@@ -55,7 +55,7 @@ flowchart LR
   end
   PGB -->|"as of a day"| QP["qp"]
   PGB -->|"as of the entry"| JR["journal"]
-  PGB -->|"facts · O'Neil facts · market state"| DESK
+  PGB -->|"facts · O'Neil facts"| DESK
   PGB -->|"nightly dump, verified"| R2[("Cloudflare R2")]
   classDef store fill:#f3f4f6,stroke:#6b7280,color:#111;
   classDef prog fill:#dbeafe,stroke:#1d4ed8,color:#111;
@@ -86,14 +86,18 @@ flowchart LR
   close.
 
 So the history stays small. Every photo holds its whole card anyway, and the
-market states keep their own history.
+market history is kept on its own.
 
 **The families, their writers and their clocks:**
 - the card's families: [CARD.md](../desk/tool/CARD.md);
 - the O'Neil families:
   [RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md).
 
-### 3.2 The market
+### 3.2 The copy of the market history
+
+The desk keeps the market history in its own file
+([MARKET.md](../desk/MARKET.md)). These are its copies, written at the same
+moment and compared every day, plus the comparison of the shadow weeks.
 
 | Table | Key | Holds |
 |---|---|---|
@@ -195,7 +199,7 @@ Moving it is one dump and one restore.
 
 | Reader | Reads |
 |---|---|
-| the desk | facts and O'Neil facts for its cards; the market state |
+| the desk | facts and O'Neil facts for its cards; the market state, only while the market history is not yet in its own file |
 | qp | registers, market states and facts, as of a day |
 | the journal | facts, the market state and R1 rows, as of a trade's entry |
 
@@ -212,7 +216,7 @@ lock so that two programs starting together cannot both migrate. Today they are
 |---|---|
 | it is unreachable | every program stays off it for a minute, then tries again. Tools work from their own files and fetch their own facts. The copies and the shared facts wait, and the gap is shown on the health page |
 | a write fails | the tool's own file already holds the row, so nothing is lost; the daily comparison finds the gap and the copy is written again |
-| it is lost | restore last night's dump. The register copies can also be rebuilt from the tools' files (`scripts/import-registers.js`), with 0 differences proven once |
+| it is lost | restore last night's dump. The register copies can also be rebuilt from the tools' files (`scripts/import-registers.js`), with 0 differences proven once, and the market history from the desk's file |
 | the address saved is wrong | refused before saving, with the reason ([BOX.md](../box/BOX.md) §4.3) |
 
 ---
@@ -246,7 +250,7 @@ The design that made it: [ARCHITECTURE](../../ARCHITECTURE.md) §3.
 | Part | Status |
 |---|---|
 | the store, its migrations, its switches, the TLS rule, the foreign-database guard | **built**, on Railway (2026-10-08) |
-| facts, market states, research facts | **built, in shadow** |
+| facts, market states, research facts | **built, in shadow**. The market states are today the only store; as a copy of the desk's own history they come at the end of step B |
 | register copies, with the history of all eleven tools imported (0 differences) | **built**, written and compared |
 | each area switched on | **to do**, area by area, when its comparison is clean (step D) |
 | `health_checks`, models | **to build** |

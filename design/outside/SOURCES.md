@@ -169,7 +169,7 @@ The data check of the old desk asked each source for data that **cannot**
 legitimately be empty, and judged the content, but only when a button was
 pressed. In the design the same checks run **on a schedule**:
 - each adapter at its own cadence;
-- all of them before the open.
+- all of them before the day's first scan, at 03:45 New York.
 
 They feed the health page ([ALERTS.md](ALERTS.md)).
 
