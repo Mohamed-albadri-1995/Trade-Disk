@@ -1,6 +1,6 @@
 # Registers: the research record
 
-**Trunk section:** [§6.6 Registers](../ARCHITECTURE.md#66-registers).
+**Trunk section:** [§6.6 Registers](ARCHITECTURE.md#66-registers).
 
 > **Build status (2026-10-08).** Built: R1 photos (stamped with their screener versions), R3 outcomes and the shortlist are dual-written to Postgres, and all eleven tools' history was imported with 0 differences (`/api/registers/parity`). The tool's SQLite stays the record until `registersMode on` (MIGRATION step 17). R2 still lives in each tool's SQLite.
 
@@ -11,9 +11,9 @@ bars; Learning (§6.7), which trains and judges on R4; Quant (§6.8), which
 backtests over R1; Platform (§6.10), which backs the registers up and exports
 them.
 
-**Built on:** [REGISTERS](../legacy/screeners/REGISTERS.md) (every register and
-column), [METHODOLOGY](../legacy/screeners/METHODOLOGY.md) (the photo, the entries,
-the measure), [DATA-MODEL](../legacy/screeners/DATA-MODEL.md), and the code in
+**Built on:** [REGISTERS](../../legacy/screeners/REGISTERS.md) (every register and
+column), [METHODOLOGY](../../legacy/screeners/METHODOLOGY.md) (the photo, the entries,
+the measure), [DATA-MODEL](../../legacy/screeners/DATA-MODEL.md), and the code in
 `src/warehouse/registers.js`, `src/sideH/capture.js`, `src/scheduler.js`,
 `src/db/index.js`, `scripts/backup-r2.js`.
 

@@ -1,6 +1,6 @@
 # Sources: the adapters
 
-**Trunk section:** [§6.1 Sources](../ARCHITECTURE.md#61-sources).
+**Trunk section:** [§6.1 Sources](ARCHITECTURE.md#61-sources).
 
 > **Build status (2026-10-08).** Partly built, in shadow: the fact store shares short interest, borrow and news, and counts every request against the real calls (`source_calls`). Not built: one adapter per source for every fetch, the health checks and their page (MIGRATION step 18).
 
@@ -10,12 +10,12 @@
 Registers (outcome bars), Quant (chart bars), the Journal (account fills,
 bars), Platform (health).
 
-**Built on:** [DATA-PIPELINE](../legacy/screeners/DATA-PIPELINE.md) (every call the
+**Built on:** [DATA-PIPELINE](../../legacy/screeners/DATA-PIPELINE.md) (every call the
 card pipeline makes, with endpoints and fallbacks),
-[DATA-FEEDS](../legacy/qp/DATA-FEEDS.md) (qp's bar feeds, warm-up, cache limits,
-borrow check), [DATACHECK](../legacy/screeners/DATACHECK.md) (judging each source
-by its content), [CANSLIM](../legacy/qp/CANSLIM.md) §3.1 and §10.4 (the free
-official sources for O'Neil data), [ACCOUNTS](../legacy/journal/ACCOUNTS.md) (the
+[DATA-FEEDS](../../legacy/qp/DATA-FEEDS.md) (qp's bar feeds, warm-up, cache limits,
+borrow check), [DATACHECK](../../legacy/screeners/DATACHECK.md) (judging each source
+by its content), [CANSLIM](../../legacy/qp/CANSLIM.md) §3.1 and §10.4 (the free
+official sources for O'Neil data), [ACCOUNTS](../../legacy/journal/ACCOUNTS.md) (the
 journal's Alpaca calls).
 
 ---

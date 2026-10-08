@@ -1,7 +1,7 @@
 # Platform
 
-**Trunk section:** [§6.10 Platform](../ARCHITECTURE.md#610-platform), with
-[§9 Deployment, backup and restore](../ARCHITECTURE.md#9-deployment-backup-and-restore).
+**Trunk section:** [§6.10 Platform](ARCHITECTURE.md#610-platform), with
+[§9 Deployment, backup and restore](ARCHITECTURE.md#9-deployment-backup-and-restore).
 
 > **Build status (2026-10-08).** Built: CI; the calendar; run history and ntfy alerts for every job (per tool, in SQLite); The Night on T1; the gateway and the domain script; the verified backup, `desk restore` and the monthly rehearsal; one login (S-1). Not built: desk-web and desk-worker (MIGRATION steps 15–16), settings with versions, the health page and live pages (step 18), and phone-first pages (step 19).
 
@@ -9,18 +9,18 @@
 scheduler, configuration, health and alerts, backup and restore, deployment and
 the page shell.
 
-**Built on:** [today's architecture](../legacy/architecture/ARCHITECTURE.md) (the
+**Built on:** [today's architecture](../../legacy/architecture/ARCHITECTURE.md) (the
 programs, the shared state, the environment variables),
-[MONITOR](../legacy/screeners/MONITOR.md) (every job and its schedule),
-[SETTINGS](../legacy/screeners/SETTINGS.md) (every setting, live and dead),
-[DATACHECK](../legacy/screeners/DATACHECK.md) (judging sources by content),
-[PAGES](../legacy/screeners/PAGES.md) (the suite and landing pages), the code
+[MONITOR](../../legacy/screeners/MONITOR.md) (every job and its schedule),
+[SETTINGS](../../legacy/screeners/SETTINGS.md) (every setting, live and dead),
+[DATACHECK](../../legacy/screeners/DATACHECK.md) (judging sources by content),
+[PAGES](../../legacy/screeners/PAGES.md) (the suite and landing pages), the code
 repo's `docs/BACKUPS.md`, `docs/USER-GUIDE.md`, `src/auth/index.js`,
 `quant-platform/chart/auth.py`, `deploy-tools.sh`, `deploy/tool-ctl.sh`,
 `scripts/backup-r2.js`, `scripts/restore-r2.js`; the helper scripts of
-[the screener tools](../legacy/screeners/SCRIPTS.md) and
-[qp](../legacy/qp/SCRIPTS.md), and the journal's
-[OPERATIONS](../legacy/journal/OPERATIONS.md) (§7.1 says where each goes).
+[the screener tools](../../legacy/screeners/SCRIPTS.md) and
+[qp](../../legacy/qp/SCRIPTS.md), and the journal's
+[OPERATIONS](../../legacy/journal/OPERATIONS.md) (§7.1 says where each goes).
 
 ---
 
@@ -221,7 +221,7 @@ produced them.
 ### Legacy
 
 The data check: one button, up to two minutes, asking every source for data
-that cannot be empty and judging the content ([DATACHECK](../legacy/screeners/DATACHECK.md)).
+that cannot be empty and judging the content ([DATACHECK](../../legacy/screeners/DATACHECK.md)).
 qp's `feedcheck` at deploy. qp's `run_status.py` and `run_fields.py` from a
 shell. No alerts.
 
@@ -359,7 +359,7 @@ No CI: tests run when someone runs them.
 | qp `run_status.py`, `run_fields.py` | the research checks on the health page; `desk fields <ticker>`: every CANSLIM field with its status and reason |
 | qp `run_daily.py`, `run_backfill.py`, `run_edgar.py`, `run_13f.py`, `run_sic.py` | the research worker's runs and steps, started by the scheduler or `desk research <step>` |
 | qp `tools/compare_server.py`, `gen_catalog.py`, `check_strategies.py`, `explain_strategy.py`, `seed_from_db.py`, `recover_strategies.py`, `rank_sweep.py`; `exec-compare.js`, `fill-compare.js`, `check-feeds.js` | kept with quant as they are: library verification, the catalogue, strategy checks and research scripts |
-| the journal's start-up order, its minute timer and its environment ([OPERATIONS](../legacy/journal/OPERATIONS.md)) | desk-web's start-up; the scheduler's journal-sync job |
+| the journal's start-up order, its minute timer and its environment ([OPERATIONS](../../legacy/journal/OPERATIONS.md)) | desk-web's start-up; the scheduler's journal-sync job |
 
 ---
 

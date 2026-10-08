@@ -1,6 +1,6 @@
 # The data model
 
-**Trunk section:** [§5 The data architecture](../ARCHITECTURE.md#5-the-data-architecture).
+**Trunk section:** [§5 The data architecture](ARCHITECTURE.md#5-the-data-architecture).
 
 > **Build status (2026-10-08).** Built in Postgres (server `src/facts/index.js`, migrations 001–006): `facts`, `facts_latest`, `source_calls`, `market_states`, `hot_sector_days`, `tools`, `screeners`, `screener_versions`, `r1_photos`, `r3_outcomes`, and `shortlist` (as `shortlist_items`). Also built, though this model did not have them: the parity and run tables (`fact_parity`, `market_parity`, `desk_log`, `research_*`, `discovery_scans`, `engine_runs`, `engine_answers`). Not built: the platform tables (`jobs` and `job_runs` live in each tool's SQLite; the login stays in `auth.json`), `cards`, `tool_cards`, `scan_reports`, `bars_day`, `r4_uploads`, `models`, `scorecards` (computed on request), and the quant and journal tables, which are still in their SQLite files.
 
@@ -9,8 +9,8 @@ key, its columns, and the legacy store it replaces. The domain leaves describe
 what each table means; this leaf is the schema and the map from the old data.
 
 **Built on:** the three legacy data models,
-[screeners](../legacy/screeners/DATA-MODEL.md), [qp](../legacy/qp/DATA-MODEL.md) and
-[journal](../legacy/journal/DATA-MODEL.md), and the contracts section of every
+[screeners](../../legacy/screeners/DATA-MODEL.md), [qp](../../legacy/qp/DATA-MODEL.md) and
+[journal](../../legacy/journal/DATA-MODEL.md), and the contracts section of every
 design leaf.
 
 ---
@@ -86,7 +86,7 @@ database, with its limits.
 | `tool_cards` | tool, ticker, day | screener_matches (jsonb: key, version, first match), first_seen, live, last_matched_at, manual_bias, score (jsonb: question, value, model version, sample, interval, breakdown) |
 
 `facts` and `facts_latest` are the fact store of the trunk
-([§5.2](../ARCHITECTURE.md#52-the-fact-store)), shared by the card, market and
+([§5.2](ARCHITECTURE.md#52-the-fact-store)), shared by the card, market and
 research domains; each family has one writer (§3), which writes both. Every
 fetch updates `facts_latest`; `facts` keeps every fetch except for the
 fast families (`quote`, `derived`, `market_context`), whose history holds only

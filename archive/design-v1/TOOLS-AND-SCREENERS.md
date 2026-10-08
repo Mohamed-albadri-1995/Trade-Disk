@@ -1,6 +1,6 @@
 # Tools and screeners
 
-**Trunk section:** [§6.2 Tools and screeners](../ARCHITECTURE.md#62-tools-and-screeners).
+**Trunk section:** [§6.2 Tools and screeners](ARCHITECTURE.md#62-tools-and-screeners).
 
 > **Build status (2026-10-08).** Built: checks on save (step 3); tools, screeners and screener versions in Postgres (9a); the discovery engine and its per-tool switch (9b–9c). The engine saves no requests on this desk, because every tool's screeners are distinct, so it should stay off. Not built: tools as rows in one desk-worker (MIGRATION step 15), retiring the archive (16), and restarting T9.
 
@@ -10,13 +10,13 @@ post-scan tests); the Card (§6.3), which receives every candidate; Registers
 Learning (§6.7), which judges every screener; Platform (§6.10), whose
 scheduler runs discovery.
 
-**Built on:** [METHODOLOGY](../legacy/screeners/METHODOLOGY.md) (every tool, every
-screener and why), [SCREENER-BUILDER](../legacy/screeners/SCREENER-BUILDER.md) (the
+**Built on:** [METHODOLOGY](../../legacy/screeners/METHODOLOGY.md) (every tool, every
+screener and why), [SCREENER-BUILDER](../../legacy/screeners/SCREENER-BUILDER.md) (the
 definition, editor, validation, mirrors, how a scan is sent),
-[TOOL-LIFECYCLE](../legacy/screeners/TOOL-LIFECYCLE.md) (adding, starting, pausing,
-stopping, deleting, the archive), [IDEAS](../legacy/screeners/IDEAS.md) part 2 (the
-intent for the builder), [MONITOR](../legacy/screeners/MONITOR.md) (the discovery
-schedule), [PAGES](../legacy/screeners/PAGES.md) (the suite and Manage tools pages).
+[TOOL-LIFECYCLE](../../legacy/screeners/TOOL-LIFECYCLE.md) (adding, starting, pausing,
+stopping, deleting, the archive), [IDEAS](../../legacy/screeners/IDEAS.md) part 2 (the
+intent for the builder), [MONITOR](../../legacy/screeners/MONITOR.md) (the discovery
+schedule), [PAGES](../../legacy/screeners/PAGES.md) (the suite and Manage tools pages).
 
 ---
 

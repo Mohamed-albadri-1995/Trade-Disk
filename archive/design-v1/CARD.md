@@ -1,6 +1,6 @@
 # The card
 
-**Trunk section:** [§6.3 The card](../ARCHITECTURE.md#63-the-card). The
+**Trunk section:** [§6.3 The card](ARCHITECTURE.md#63-the-card). The
 largest domain of the desk.
 
 > **Build status (2026-10-08).** The card is unchanged on screen. Short interest, borrow and news also go through the fact store, and the O'Neil readings through the research worker. Both run in shadow, so the card still shows the tool's own fetch. The card engine in desk-worker, tool cards and the other fact families are MIGRATION steps 15–17.
@@ -10,10 +10,10 @@ largest domain of the desk.
 (§6.5) for the CANSLIM reading; Learning (§6.7) for the score; Registers
 (§6.6), which freeze it.
 
-**Built on:** [CARD-FIELDS](../legacy/screeners/CARD-FIELDS.md) (97 numbered fields and their lettered sub-fields),
-[CARD](../legacy/screeners/CARD.md) (layout and display),
-[DATA-PIPELINE](../legacy/screeners/DATA-PIPELINE.md) (how each value is fetched and
-computed), [CANSLIM](../legacy/qp/CANSLIM.md) §7, §11–§14 (the locked CANSLIM card
+**Built on:** [CARD-FIELDS](../../legacy/screeners/CARD-FIELDS.md) (97 numbered fields and their lettered sub-fields),
+[CARD](../../legacy/screeners/CARD.md) (layout and display),
+[DATA-PIPELINE](../../legacy/screeners/DATA-PIPELINE.md) (how each value is fetched and
+computed), [CANSLIM](../../legacy/qp/CANSLIM.md) §7, §11–§14 (the locked CANSLIM card
 spec and what was built of it), and the code in `src/sideA`–`sideG` and
 `public/index.html`.
 
@@ -80,7 +80,7 @@ takes live and stale cards alike.
 ## 2. The legacy card in full
 
 Every field below is kept in the new design. The `#` column is the field's
-number in [CARD-FIELDS](../legacy/screeners/CARD-FIELDS.md), so each can be traced.
+number in [CARD-FIELDS](../../legacy/screeners/CARD-FIELDS.md), so each can be traced.
 
 ### 2.1 Layout
 
@@ -274,7 +274,7 @@ decide; else "no read". The bias button cycles `⊙ AUTO (long ⚡)` → `▲ LO
 ### 2.9 Market context and themes
 
 Stamped on every card from the market snapshot of the scan
-([MARKET.md](MARKET.md); legacy [MARKET-TAB](../legacy/screeners/MARKET-TAB.md)):
+([MARKET.md](MARKET.md); legacy [MARKET-TAB](../../legacy/screeners/MARKET-TAB.md)):
 `regime`, `regimeLabel`, `longTerm`, `midTerm`, `shortTerm`, `broadResolved`
 (the card's TradingView sector mapped to one of the 15 sector ETFs), `secBias`,
 `secScore`, `secHot`. If SPY and QQQ are both incomplete there is no regime
@@ -308,8 +308,8 @@ about 25 industries).
 Fetched by the browser through the tool's `/api/market/oneil/*` routes, which
 ask qp (each tool keeps qp's answers for the trading day and asks once per new
 ticker); also put on the row as 31 `cs*` columns so R1 freezes it. The method
-behind every value is in [CANSLIM](../legacy/qp/CANSLIM.md); the facts come from
-the research worker in the new design ([§6.5](../ARCHITECTURE.md#65-research-data-the-oneil-chain)).
+behind every value is in [CANSLIM](../../legacy/qp/CANSLIM.md); the facts come from
+the research worker in the new design ([§6.5](ARCHITECTURE.md#65-research-data-the-oneil-chain)).
 
 **The one-line summary** (#28–#39): C (EPS %chg, sales %chg, quarter,
 accelerating, beat +25 %) · A (3-year growth, wobble, ROE) · N (weeks, depth,
@@ -375,7 +375,7 @@ entry time and bias, the card's regime, which table scored it (a regime `sub`
 table or the `main` table and why), the bias the table read, its sample count,
 its confidence, a bar per factor's bucket, and a button to open the table. How
 it is computed today and why it is replaced: [LEARNING.md](LEARNING.md);
-legacy [SCORING-TODAY](../legacy/screeners/SCORING-TODAY.md).
+legacy [SCORING-TODAY](../../legacy/screeners/SCORING-TODAY.md).
 
 The star (☆/★) adds the card to this tool's shortlist; `★ also T2` shows
 other tools' stars.
@@ -413,7 +413,7 @@ post-scan tests ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md)).
 ## 3. What was planned and never built
 
 The CANSLIM document locked a card specification and built it in phases
-([CANSLIM](../legacy/qp/CANSLIM.md) §12). Phases 1–5 shipped, and phase 6
+([CANSLIM](../../legacy/qp/CANSLIM.md) §12). Phases 1–5 shipped, and phase 6
 except S2 and I3. What did not:
 
 | Item | What it is | Why it matters | In the new design |
@@ -562,7 +562,7 @@ the schema ([REGISTERS.md](REGISTERS.md)).
 
 | Table | Key | Notes |
 |---|---|---|
-| `facts` (the families in §5.2 except `oneil_*` and `market_context`) | subject, family, `known_at` | shared fact store ([trunk §5.2](../ARCHITECTURE.md#52-the-fact-store)) |
+| `facts` (the families in §5.2 except `oneil_*` and `market_context`) | subject, family, `known_at` | shared fact store ([trunk §5.2](ARCHITECTURE.md#52-the-fact-store)) |
 | `cards` | ticker, day | the latest projection, kept for the day |
 | `tool_cards` | tool, ticker, day | per-tool layer |
 

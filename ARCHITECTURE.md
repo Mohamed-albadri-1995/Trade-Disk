@@ -800,6 +800,15 @@ ARCHITECTURE.md ........................ the whole desk (this document)
 └── design/MIGRATION.md ................. from today's desk to this one
 ```
 
+**Where to read them.** Each document has a PDF in [pdf/](pdf/), in the same
+tree, and [pdf/DESIGN.pdf](pdf/DESIGN.pdf) holds all of them in this order.
+The index of the tree, with what is written so far:
+[design/README.md](design/README.md).
+
+**The first design,** which this tree replaces, is kept in
+[archive/design-v1/](archive/design-v1/README.md) until the documents below the
+blocks carry everything in it.
+
 The legacy documents are the evidence the design is built on. Each document
 in the tree lists the ones it uses:
 - [screener tools](legacy/screeners/README.md);

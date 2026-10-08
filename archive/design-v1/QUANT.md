@@ -1,6 +1,6 @@
 # Quant: charts, strategies, backtests, alerts
 
-**Trunk section:** [§6.8 Quant](../ARCHITECTURE.md#68-quant-charts-strategies-backtests-alerts).
+**Trunk section:** [§6.8 Quant](ARCHITECTURE.md#68-quant-charts-strategies-backtests-alerts).
 
 > **Build status (2026-10-08).** Built: alerts run on each strategy's own fill model in real time, with their history kept (live). Registers can be read from the database through T1's `/db/<tool>`; this is built but off (`quantRegistersMode`). Not built: facts as of a day, strategies and backtests in Postgres, and a re-run of past backtests against the database (MIGRATION step 17).
 
@@ -10,14 +10,14 @@ day, for the backtest gate); the Market (§6.4: market states as of a day); the
 Journal (§6.9: the chart of a trade, and backtests exported as trades);
 Platform (§6.10: login, scheduling, backups).
 
-**Built on:** the whole of [legacy/qp/](../legacy/qp/README.md):
-[LIBRARY](../legacy/qp/LIBRARY.md) and [CATALOG](../legacy/qp/CATALOG.md) (71 verified
-primitives) with their code in [library/](../legacy/qp/library/README.md),
-[STRATEGIES](../legacy/qp/STRATEGIES.md), [BACKTEST](../legacy/qp/BACKTEST.md),
-[ALERTS-AND-PRINTS](../legacy/qp/ALERTS-AND-PRINTS.md), [PAGE](../legacy/qp/PAGE.md),
-[DATA-FEEDS](../legacy/qp/DATA-FEEDS.md), [SCALPS](../legacy/qp/SCALPS.md),
-[SCALPS_SPEC](../legacy/qp/SCALPS_SPEC.md), [PINE](../legacy/qp/PINE.md),
-[KNOWN-ISSUES](../legacy/qp/KNOWN-ISSUES.md).
+**Built on:** the whole of [legacy/qp/](../../legacy/qp/README.md):
+[LIBRARY](../../legacy/qp/LIBRARY.md) and [CATALOG](../../legacy/qp/CATALOG.md) (71 verified
+primitives) with their code in [library/](../../legacy/qp/library/README.md),
+[STRATEGIES](../../legacy/qp/STRATEGIES.md), [BACKTEST](../../legacy/qp/BACKTEST.md),
+[ALERTS-AND-PRINTS](../../legacy/qp/ALERTS-AND-PRINTS.md), [PAGE](../../legacy/qp/PAGE.md),
+[DATA-FEEDS](../../legacy/qp/DATA-FEEDS.md), [SCALPS](../../legacy/qp/SCALPS.md),
+[SCALPS_SPEC](../../legacy/qp/SCALPS_SPEC.md), [PINE](../../legacy/qp/PINE.md),
+[KNOWN-ISSUES](../../legacy/qp/KNOWN-ISSUES.md).
 
 **In one line:** quant is the best-built part of the old desk. Its library,
 engine and backtest carry over almost unchanged; what changes is where it reads
@@ -247,7 +247,7 @@ Registers are read **over HTTP from each tool's port**.
 
 ### 4.1 Kept as it is
 
-- **The library**: its code ([library/](../legacy/qp/library/README.md)), the
+- **The library**: its code ([library/](../../legacy/qp/library/README.md)), the
   registry, the approval gate, the generated catalogue, the seven stated
   deviations. A new primitive is not used until approved.
 - **The engine**: the grammar, the exit priority, the risk block, the exit
@@ -300,7 +300,7 @@ nightly backup.
 
 ### Routes (quant, behind the front door at `/quant`)
 
-The legacy routes carry over ([legacy/qp/API.md](../legacy/qp/API.md): 53 routes
+The legacy routes carry over ([legacy/qp/API.md](../../legacy/qp/API.md): 53 routes
 and the live WebSocket), with the register routes reading the database and the
 alert routes reading stored history.
 

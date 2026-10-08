@@ -1,6 +1,6 @@
 # The journal
 
-**Trunk section:** [§6.9 Journal](../ARCHITECTURE.md#69-journal).
+**Trunk section:** [§6.9 Journal](ARCHITECTURE.md#69-journal).
 
 > **Build status (2026-10-08).** Built: real New York instants (step 4). Every broker file (TradingView, TTP trades and orders, DXtrade, the paper log) is now read as fills and paired by the one engine the Alpaca accounts use, with fees and a report of every row not read (D-J1–D-J7, step 11). Not built: stops, trade snapshots from the fact store, and the journal's tables in Postgres.
 
@@ -9,15 +9,15 @@ the Card and Registers (§6.3, §6.6: what the desk knew about the ticker at the
 entry); the Market (§6.4: the market state at the entry); Quant (§6.8: the
 chart of a trade); Platform (§6.10: keys, schedule, backup).
 
-**Built on:** [legacy/journal/](../legacy/journal/README.md), documented from the
+**Built on:** [legacy/journal/](../../legacy/journal/README.md), documented from the
 code with every import format run on a scratch database:
-[PAGE](../legacy/journal/PAGE.md) (every tab and formula),
-[ACCOUNTS](../legacy/journal/ACCOUNTS.md) (the Alpaca accounts and their pairing),
-[IMPORT](../legacy/journal/IMPORT.md) (the file formats, what was tested),
-[ANALYSIS](../legacy/journal/ANALYSIS.md) (technical snapshot, conditions,
-grading), [DATA-MODEL](../legacy/journal/DATA-MODEL.md),
-[OPERATIONS](../legacy/journal/OPERATIONS.md) (start-up, the fetch timer, the
-tests), [KNOWN-ISSUES](../legacy/journal/KNOWN-ISSUES.md) (D-J1 to D-J20).
+[PAGE](../../legacy/journal/PAGE.md) (every tab and formula),
+[ACCOUNTS](../../legacy/journal/ACCOUNTS.md) (the Alpaca accounts and their pairing),
+[IMPORT](../../legacy/journal/IMPORT.md) (the file formats, what was tested),
+[ANALYSIS](../../legacy/journal/ANALYSIS.md) (technical snapshot, conditions,
+grading), [DATA-MODEL](../../legacy/journal/DATA-MODEL.md),
+[OPERATIONS](../../legacy/journal/OPERATIONS.md) (start-up, the fetch timer, the
+tests), [KNOWN-ISSUES](../../legacy/journal/KNOWN-ISSUES.md) (D-J1 to D-J20).
 
 ---
 

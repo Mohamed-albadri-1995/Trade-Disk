@@ -1,6 +1,6 @@
 # Learning: the score and the scorecard
 
-**Trunk section:** [§6.7 Learning](../ARCHITECTURE.md#67-learning-the-score-and-the-scorecard).
+**Trunk section:** [§6.7 Learning](ARCHITECTURE.md#67-learning-the-score-and-the-scorecard).
 
 > **Build status (2026-10-08).** Prepared, not built, by the trader's choice: the direction-aware scorecard (Wilson intervals, the 1.3 ATR line), the training set (`/api/learning/dataset.csv`), and an empty model slot with its contract. No model is trained, and the legacy scorer stays off. A scorecard page is MIGRATION step 18; the model is step 20.
 
@@ -8,10 +8,10 @@
 Card (§6.3), which shows the score; Tools and screeners (§6.2), whose
 screeners the scorecard judges; Platform (§6.10), which schedules training.
 
-**Built on:** [IDEAS](../legacy/screeners/IDEAS.md) parts 1 and 3 (what the score
+**Built on:** [IDEAS](../../legacy/screeners/IDEAS.md) parts 1 and 3 (what the score
 and the scorecard are for, their rules, the open questions);
-[SCORING-TODAY](../legacy/screeners/SCORING-TODAY.md) (today's score and scorecard,
-step by step, and why neither should be copied); [METHODOLOGY](../legacy/screeners/METHODOLOGY.md)
+[SCORING-TODAY](../../legacy/screeners/SCORING-TODAY.md) (today's score and scorecard,
+step by step, and why neither should be copied); [METHODOLOGY](../../legacy/screeners/METHODOLOGY.md)
 (the measure, the benchmark, the mirrors, reading the scorecard). The code:
 `src/scoring/processor.py`, `scorer.py`, `server.py`, `src/sideE/score.js`,
 `src/training/trainingData.js`, `src/analysis/screenerReport.js`.
@@ -45,7 +45,7 @@ step by step, and why neither should be copied); [METHODOLOGY](../legacy/screene
 
 ## 2. The rules both keep
 
-From [IDEAS](../legacy/screeners/IDEAS.md), each learned on the live desk:
+From [IDEAS](../../legacy/screeners/IDEAS.md), each learned on the live desk:
 
 1. **Each tool learns only from itself.** Tools are separate experiments.
 2. **No look-ahead.** Inputs are what was known at the photo; outcomes only

@@ -1,6 +1,6 @@
 # The market
 
-**Trunk section:** [§6.4 The market](../ARCHITECTURE.md#64-the-market).
+**Trunk section:** [§6.4 The market](ARCHITECTURE.md#64-the-market).
 
 > **Build status (2026-10-08).** Built, in shadow (`marketMode`): one market read per scan for every tool (`market_states`) and the hot sectors persisted (`hot_sector_days`), compared in `market_parity`. The two corrections of §5.4 wait for the switch (MIGRATION step 17).
 
@@ -10,8 +10,8 @@ carries the market context on every card; Registers (§6.6), whose R2 is a view
 of this domain's history; Learning (§6.7), which uses regime and sector as
 features.
 
-**Built on:** [MARKET-TAB](../legacy/screeners/MARKET-TAB.md) (every block, formula and
-threshold of today's tab), [CANSLIM](../legacy/qp/CANSLIM.md) §2 (the market model's
+**Built on:** [MARKET-TAB](../../legacy/screeners/MARKET-TAB.md) (every block, formula and
+threshold of today's tab), [CANSLIM](../../legacy/qp/CANSLIM.md) §2 (the market model's
 exact rules), §8 (the tab's O'Neil block), §9 (the four levels of strength),
 §14 (the market reflected on each card), and the code in `src/sideD/` and
 `quant-platform/chart/oneil.py`, `groups.py`.
@@ -214,7 +214,7 @@ Defensive, …) are mapped too, for the index scanner. Then each card carries
 
 ### 2.10 M: O'Neil's market model
 
-Rebuilt from O'Neil's published descriptions ([CANSLIM](../legacy/qp/CANSLIM.md)
+Rebuilt from O'Neil's published descriptions ([CANSLIM](../../legacy/qp/CANSLIM.md)
 §2):
 
 | Rule | Value |
@@ -283,7 +283,7 @@ symbols and industries are mapped and how many groups are ranked.
 
 ## 3. What was planned and never built
 
-From [CANSLIM](../legacy/qp/CANSLIM.md) §9 and §12.1:
+From [CANSLIM](../../legacy/qp/CANSLIM.md) §9 and §12.1:
 
 | Item | What it is | In the new design |
 |---|---|---|

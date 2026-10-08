@@ -1,6 +1,6 @@
 # Research data: the O'Neil chain
 
-**Trunk section:** [§6.5 Research data](../ARCHITECTURE.md#65-research-data-the-oneil-chain).
+**Trunk section:** [§6.5 Research data](ARCHITECTURE.md#65-research-data-the-oneil-chain).
 
 > **Build status (2026-10-08).** Built, in shadow (`researchMode`): the research worker (`quant-platform/research/worker.py`) writes every per-ticker reading and the market model as dated facts. It covers new tickers within minutes and runs a provisional M during the session. The nightly chain still runs from qp's systemd timer until `scripts/retire-old-schedulers.sh` hands it to T1's The Night.
 
@@ -9,11 +9,11 @@ USASpending); the Card (§6.3), which shows the CANSLIM reading; the Market
 (§6.4), which shows M and L; Quant (§6.8), whose backtest gate reads the same
 facts as of a day.
 
-**Built on:** [CANSLIM](../legacy/qp/CANSLIM.md), the deepest document of the
+**Built on:** [CANSLIM](../../legacy/qp/CANSLIM.md), the deepest document of the
 old desk: the traps, the exact rules and their provenance, the card and panel
 specification (locked), the build phases and what each found;
-[qp OPERATIONS](../legacy/qp/OPERATIONS.md) (the nightly chain);
-[CARD-FIELDS](../legacy/screeners/CARD-FIELDS.md) #28–#88 (what reaches the card).
+[qp OPERATIONS](../../legacy/qp/OPERATIONS.md) (the nightly chain);
+[CARD-FIELDS](../../legacy/screeners/CARD-FIELDS.md) #28–#88 (what reaches the card).
 The code: `quant-platform/chart/oneil.py`, `relstrength.py`, `groups.py`,
 `sic.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`, `canslim.py`, and
 `deploy/run_daily.py`.
@@ -57,7 +57,7 @@ request or a scan, and they must not depend on the chart server being up.
 
 Most CAN SLIM concepts have a plain-English name that means something else in
 common use. Implementing the common reading produces numbers that look right
-and measure a different thing. From [CANSLIM](../legacy/qp/CANSLIM.md) §1:
+and measure a different thing. From [CANSLIM](../../legacy/qp/CANSLIM.md) §1:
 
 | Concept | What it is | What it is mistaken for |
 |---|---|---|
@@ -84,7 +84,7 @@ and measure a different thing. From [CANSLIM](../legacy/qp/CANSLIM.md) §1:
 
 Every rule below carries over. Thresholds are **O'Neil's own numbers**, named
 constants, printed beside any signal that fires
-([CANSLIM](../legacy/qp/CANSLIM.md) §5).
+([CANSLIM](../../legacy/qp/CANSLIM.md) §5).
 
 ### 3.1 M: the market model
 
@@ -162,7 +162,7 @@ wobble around trend, 0–99, low is good), **ROE** against O'Neil's **17 %**
 floor.
 
 **The five EDGAR traps**, each of which produces a normal-looking wrong number
-([CANSLIM](../legacy/qp/CANSLIM.md) §17.1):
+([CANSLIM](../../legacy/qp/CANSLIM.md) §17.1):
 
 | # | Trap | Rule |
 |---|---|---|
@@ -219,7 +219,7 @@ screen.
 
 ### 3.8 On each card: the market reflected
 
-From [CANSLIM](../legacy/qp/CANSLIM.md) §14, four per-card readings, each a
+From [CANSLIM](../../legacy/qp/CANSLIM.md) §14, four per-card readings, each a
 different number on every card:
 
 1. **Behaviour on the live distribution days**: on how many the stock's
@@ -234,7 +234,7 @@ different number on every card:
 
 ## 4. What was built, and what was not
 
-From the build manifest ([CANSLIM](../legacy/qp/CANSLIM.md) §12, §16):
+From the build manifest ([CANSLIM](../../legacy/qp/CANSLIM.md) §12, §16):
 
 | Phase | Delivered | State |
 |---|---|---|
@@ -248,7 +248,7 @@ From the build manifest ([CANSLIM](../legacy/qp/CANSLIM.md) §12, §16):
 | — | Composite (R1), EPS rating (R2), SMR (R5) | deferred: a composite without EPS and SMR would be a partial one wearing a complete name |
 | — | group new highs / lows (L4), sector rank (L7), index RS line (M11) | not built |
 
-**The N pipeline, as designed** ([CANSLIM](../legacy/qp/CANSLIM.md) §10):
+**The N pipeline, as designed** ([CANSLIM](../../legacy/qp/CANSLIM.md) §10):
 
 ```
 HARVEST (24 months) → CLASSIFY (3 buckets) → REACT (price) → PERSIST (RS line) → SCORE → one line
@@ -337,7 +337,7 @@ Each fact family above is written to the fact store with:
   checked against its definition later.
 
 This makes the backtest's CANSLIM gate exact: it reads the facts known before
-its decision bar ([trunk §5.2](../ARCHITECTURE.md#52-the-fact-store)).
+its decision bar ([trunk §5.2](ARCHITECTURE.md#52-the-fact-store)).
 
 ### 6.3 Who reads what
 

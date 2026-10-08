@@ -1,15 +1,15 @@
 # The API
 
-**Trunk section:** [§4 The running parts](../ARCHITECTURE.md#4-the-running-parts).
+**Trunk section:** [§4 The running parts](ARCHITECTURE.md#4-the-running-parts).
 
 > **Build status (2026-10-08).** Not built as designed: each tool still answers its own routes on its own port, and now also behind the gateway at `/tools/T<n>/`. The routes the migration added (the parity pages, `/api/facts`, `/api/learning/*`, `/db/<tool>/…`) are listed in the server's `docs/API.md`. One API for every tool comes with desk-web (MIGRATION step 16).
 
 Every route of the new desk in one place, by domain, and what it replaces. The
 domain leaves describe each route's behaviour in their contracts sections.
 
-**Built on:** the three legacy APIs: [screeners](../legacy/screeners/API.md) (each
-tool's routes, plus T1's Manage tools), [qp](../legacy/qp/API.md) (53 routes and a
-WebSocket), [journal](../legacy/journal/API.md) (29 routes, of which 14 had no
+**Built on:** the three legacy APIs: [screeners](../../legacy/screeners/API.md) (each
+tool's routes, plus T1's Manage tools), [qp](../../legacy/qp/API.md) (53 routes and a
+WebSocket), [journal](../../legacy/journal/API.md) (29 routes, of which 14 had no
 caller).
 
 ---
@@ -128,7 +128,7 @@ caller).
 
 ## 3. quant routes (`/quant/api/…`)
 
-The legacy qp routes carry over ([legacy/qp/API.md](../legacy/qp/API.md)): chart
+The legacy qp routes carry over ([legacy/qp/API.md](../../legacy/qp/API.md)): chart
 data and the live WebSocket (`/ws/live`), the library and approvals,
 strategies (save, load, evaluate, test a rule, explain, explain a scan),
 backtests (run, status, stop, delete, report, stats, CSV, journal CSV), the
