@@ -2,8 +2,8 @@
 
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §3 (the box around every
 program) and §8 (running it).
-**Talks to:** every program on it. The [front door](../front-door/FRONT-DOOR.md)
-is its only open port; the [backups](../outside/BACKUPS.md) carry its files off it.
+**Talks to:** every program on it. The [front door](../02-front-door/FRONT-DOOR.md)
+is its only open port; the [backups](../10-backups/BACKUPS.md) carry its files off it.
 
 ---
 
@@ -82,7 +82,7 @@ beside the system.
 
 | Program | pm2 name | Port (local) | Memory budget | pm2 limit |
 |---|---|---|---|---|
-| desk (every tool) | `desk` | 3000 (home), and one per tool: 3010 … 3120; T1 on 3090 once it moves ([WEB.md](../desk/WEB.md) §3.1) | about 150–250 MB (estimate; measured as tools move in) | to set from the measurement |
+| desk (every tool) | `desk` | 3000 (home), and one per tool: 3010 … 3120; T1 on 3090 once it moves ([WEB.md](../03-desk/WEB.md) §3.1) | about 150–250 MB (estimate; measured as tools move in) | to set from the measurement |
 | qp | `qp` | 8765 | 70–150 MB (129 measured) | `deploy/qp.config.js` |
 | journal | `journal` | 3100 | about 66 MB | 160 MB |
 | front door | `desk-gateway`, Caddy | 8080; 443 outside | 40–80 MB | 80 MB (gateway) |
@@ -122,13 +122,13 @@ is the kernel choosing what to kill, and it may choose `sshd`.
 
 **Each program has exactly one supervisor, never two.** Two supervisors once
 restarted one program 113,854 times (2026-09-23). The box's own services (sshd;
-Caddy and the DuckDNS updater, [FRONT-DOOR.md](../front-door/FRONT-DOOR.md))
+Caddy and the DuckDNS updater, [FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md))
 stay under systemd and cron as system services, never also under pm2.
 
 **The one exception, to be retired:** a systemd timer, `qp-daily.timer`, still
 runs qp's nightly O'Neil chain. `scripts/retire-old-schedulers.sh` removes it
 and the pm2 backup cron. The desk's night job then runs the chain and the backup
-([JOBS.md](../desk/JOBS.md)).
+([JOBS.md](../03-desk/JOBS.md)).
 
 ### 4.2 The deploy
 
@@ -140,7 +140,7 @@ One command on the box: `./deploy-tools.sh`.
 | reads the tool registry **after** the pull | or it starts the previous deploy's tools |
 | **refuses to reset** when the branch would take `quant-platform/` back to an older state | a deploy from an older branch once silently reverted qp |
 | installs what each program needs (`npm ci`; `psycopg2-binary` for the research worker when missing) | |
-| **backs up** every file and the shared record before it restarts anything (to build, [BACKUPS.md](../outside/BACKUPS.md)) | a restart is when migrations run, so there is always a copy from just before a schema changed |
+| **backs up** every file and the shared record before it restarts anything (to build, [BACKUPS.md](../10-backups/BACKUPS.md)) | a restart is when migrations run, so there is always a copy from just before a schema changed |
 | restarts in order: the desk (today: each tool through `deploy/tool-ctl.sh`), the comparison copy when one is listed, the archive (until it retires), the journal, the front door, qp (through `deploy/qp-restart.sh`, only if qp is running older code) | |
 | copies the Alpaca pair into `quant-platform/.env` (`scripts/sync-qp-env.js`) | so qp and the desk never hold different keys |
 | checks every program's `/health`, and what each data feed actually returned (`/api/feedcheck`, fetched, not inventoried) | a key that is present is not proof that it works |
@@ -166,7 +166,7 @@ blocks the merge.
 **The rules:**
 - **Mode 0600**, gitignored, never printed, never logged, never backed up.
 - The trader keeps a copy off the box; a restore puts the secrets back from that
-  copy ([BACKUPS.md](../outside/BACKUPS.md)).
+  copy ([BACKUPS.md](../10-backups/BACKUPS.md)).
 - Secrets are entered on the box, never pasted into a chat or a log.
 
 **To build.** One secret store, written by one command (`desk secret set
@@ -179,7 +179,7 @@ blocks the merge.
 | each program keeps its own local port; programs call each other on `127.0.0.1` | **today:** the programs' ports are still open to the internet. **The design:** only 443 (the front door) is open |
 
 The login treats a call from the box itself as local only when it did not pass
-through the front door ([FRONT-DOOR.md](../front-door/FRONT-DOOR.md)).
+through the front door ([FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md)).
 
 ### 4.5 Logs
 
@@ -190,7 +190,7 @@ restart count.
 **To build:**
 - rotated logs;
 - the last errors of every program, shown on the health page
-  ([ALERTS.md](../outside/ALERTS.md)).
+  ([ALERTS.md](../11-alerts/ALERTS.md)).
 
 ### 4.6 The old helper scripts, and where each goes
 
@@ -198,13 +198,13 @@ restart count.
 |---|---|
 | `scripts/set-password.sh`, `set-r2-keys.sh`, `set-alpaca-keys.js`, `set-setting.js`, `sync-qp-env.js` | one secret store and `desk secret set` (§4.3) |
 | `deploy-tools.sh`, `deploy/qp-restart.sh`, `deploy/add-swap.sh` | kept: the one deploy; swap is made once |
-| `deploy/tool-ctl.sh` | retired as the tools move into the desk: a tool is a context, not a process. Manage tools adds it to the desk instead ([HOME.md](../desk/HOME.md)) |
-| `show-screeners`, `check-screeners`, `why-empty`, `try-filter`, `field-values`, `verify-tv-fields`, `probe-*` | the screener builder's Test, the adapters' live column list, and the scheduled health checks ([SCREENERS.md](../desk/tool/SCREENERS.md), [SOURCES.md](../outside/SOURCES.md)) |
-| `audit-floor`, `purge-sub-floor`, `backfill_signals`, `rebuild_training`, `convert_legacy_to_r4.py`, `split-tool-history`, `rebuild-tool-db` | one-time repairs, kept as scripts until the import of the old data is complete ([MIGRATION.md](../MIGRATION.md)) |
+| `deploy/tool-ctl.sh` | retired as the tools move into the desk: a tool is a context, not a process. Manage tools adds it to the desk instead ([HOME.md](../03-desk/HOME.md)) |
+| `show-screeners`, `check-screeners`, `why-empty`, `try-filter`, `field-values`, `verify-tv-fields`, `probe-*` | the screener builder's Test, the adapters' live column list, and the scheduled health checks ([SCREENERS.md](../03-desk/tool/SCREENERS.md), [DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
+| `audit-floor`, `purge-sub-floor`, `backfill_signals`, `rebuild_training`, `convert_legacy_to_r4.py`, `split-tool-history`, `rebuild-tool-db` | one-time repairs, kept as scripts until the import of the old data is complete ([MIGRATION.md](../12-migration/MIGRATION.md)) |
 | `analyse-bias`, `analyse-news-chain`, `card_lookup.py`, `verify_irdm_score.py`, `export-training.js`, `archive-values.js` | the register exports and the API: a card as of a day, the R1 register, the score's breakdown |
-| `scripts/desk.js` (restore), `backup-r2.js`, `restore-r2.js`, `import-registers.js`, `facts-report.js`, `worker-report.js` | kept ([BACKUPS.md](../outside/BACKUPS.md), [SHARED-RECORD.md](../outside/SHARED-RECORD.md), [MIGRATION.md](../MIGRATION.md)) |
-| qp's `run_daily.py`, `run_backfill.py`, `run_edgar.py`, `run_13f.py`, `run_sic.py`, `run_status.py`, `run_fields.py` | the research worker's steps, started by the desk's scheduler; their checks on the health page ([RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md)) |
-| qp's `tools/` (compare server, catalogue, strategy checks, recovery, rank sweep), `exec-compare.js`, `fill-compare.js`, `check-feeds.js` | kept with qp as they are ([QUANT.md](../quant/QUANT.md)) |
+| `scripts/desk.js` (restore), `backup-r2.js`, `restore-r2.js`, `import-registers.js`, `facts-report.js`, `worker-report.js` | kept ([BACKUPS.md](../10-backups/BACKUPS.md), [SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md), [MIGRATION.md](../12-migration/MIGRATION.md)) |
+| qp's `run_daily.py`, `run_backfill.py`, `run_edgar.py`, `run_13f.py`, `run_sic.py`, `run_status.py`, `run_fields.py` | the research worker's steps, started by the desk's scheduler; their checks on the health page ([RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)) |
+| qp's `tools/` (compare server, catalogue, strategy checks, recovery, rank sweep), `exec-compare.js`, `fill-compare.js`, `check-feeds.js` | kept with qp as they are ([QP.md](../05-qp/QP.md)) |
 
 ---
 
@@ -227,8 +227,8 @@ restart count.
 | a program passes its memory limit | pm2 restarts it. The desk brings every tool's list back from its file; the restart count shows it |
 | memory runs short | swap absorbs a peak. Manage tools refuses to add a tool with less than 180 MB available |
 | a deploy fails midway | it stops at the failing step and says which. The programs already restarted keep running; the rest keep their previous code |
-| the box reboots | pm2 brings every program back; jobs whose slot passed are recorded as missed and alert ([JOBS.md](../desk/JOBS.md)) |
-| the box is lost | a new box: install, put back the secrets from the trader's copy, then `node scripts/desk.js restore <date>` ([BACKUPS.md](../outside/BACKUPS.md)). The shared record still holds the copy of every photo taken since the last backup |
+| the box reboots | pm2 brings every program back; jobs whose slot passed are recorded as missed and alert ([JOBS.md](../03-desk/JOBS.md)) |
+| the box is lost | a new box: install, put back the secrets from the trader's copy, then `node scripts/desk.js restore <date>` ([BACKUPS.md](../10-backups/BACKUPS.md)). The shared record still holds the copy of every photo taken since the last backup |
 
 ---
 
@@ -260,5 +260,5 @@ restart count.
 | the night handed to the desk's scheduler | **built, not switched**: `scripts/retire-old-schedulers.sh` is ready; the old timer still runs |
 | the photo-window guard on the deploy | **to build** (migration step A) |
 | one secret store | **to build** |
-| only 443 open | **to do by the trader** once the domain is set ([FRONT-DOOR.md](../front-door/FRONT-DOOR.md)) |
-| the desk as one pm2 process for every tool | **being built** ([DESK.md](../desk/DESK.md), [MIGRATION.md](../MIGRATION.md) steps A and B) |
+| only 443 open | **to do by the trader** once the domain is set ([FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md)) |
+| the desk as one pm2 process for every tool | **being built** ([DESK.md](../03-desk/DESK.md), [MIGRATION.md](../12-migration/MIGRATION.md) steps A and B) |

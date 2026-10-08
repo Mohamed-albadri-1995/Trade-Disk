@@ -18,25 +18,25 @@ of the tree.
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | the trunk: the whole desk, its blocks, how they share data, a trading day, the rules, the box, status, decisions, risks | written |
 | [design/](design/README.md) | the tree below the trunk: one document per block, then one per part. Its README lists every document, its PDF and its state | blocks written; parts to write |
-| [pdf/](pdf/) | a PDF of every design document, in the same tree, and `DESIGN.pdf` with all of them | generated from the Markdown |
-| [legacy/](legacy/) | the desk as it runs today, documented from its code: [screener tools](legacy/screeners/README.md), [qp](legacy/qp/README.md) (with its indicator library's code), [journal](legacy/journal/README.md), [today's architecture](legacy/architecture/ARCHITECTURE.md) | complete |
+| [pdf/](pdf) | a PDF of every design document, in the same tree, and `DESIGN.pdf` with all of them | generated from the Markdown |
+| [legacy/](legacy) | the desk as it runs today, documented from its code: [screener tools](legacy/screeners/README.md), [qp](legacy/qp/README.md) (with its indicator library's code), [journal](legacy/journal/README.md), [today's architecture](legacy/architecture/ARCHITECTURE.md) | complete |
 | [archive/design-v1/](archive/design-v1/README.md) | the first design (two programs, one document per domain), superseded on 2026-10-08 | kept until the tree carries everything in it |
 
 ## The tree
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): the whole desk
-  - [design/box/BOX.md](design/box/BOX.md): the machine, the supervisor, the deploy, the secrets
-  - [design/front-door/FRONT-DOOR.md](design/front-door/FRONT-DOOR.md): the address, TLS, routing, the one login
-  - [design/desk/DESK.md](design/desk/DESK.md): one program for every tool
-  - [design/files/FILES.md](design/files/FILES.md): every file on the box and its one writer
-  - [design/quant/QUANT.md](design/quant/QUANT.md): qp
-  - [design/research/RESEARCH-WORKER.md](design/research/RESEARCH-WORKER.md): the O'Neil facts
-  - [design/journal/JOURNAL.md](design/journal/JOURNAL.md): every real trade
-  - [design/outside/SOURCES.md](design/outside/SOURCES.md): every outside source
-  - [design/outside/SHARED-RECORD.md](design/outside/SHARED-RECORD.md): the shared record
-  - [design/outside/BACKUPS.md](design/outside/BACKUPS.md): backup and restore
-  - [design/outside/ALERTS.md](design/outside/ALERTS.md): alerts and the health page
-  - [design/MIGRATION.md](design/MIGRATION.md): from today's desk to the design
+  - [design/01-box/BOX.md](design/01-box/BOX.md): the machine, the supervisor, the deploy, the secrets
+  - [design/02-front-door/FRONT-DOOR.md](design/02-front-door/FRONT-DOOR.md): the address, TLS, routing, the one login
+  - [design/03-desk/DESK.md](design/03-desk/DESK.md): one program for every tool
+  - [design/04-files/FILES.md](design/04-files/FILES.md): every file on the box and its one writer
+  - [design/05-qp/QP.md](design/05-qp/QP.md): qp
+  - [design/06-research-worker/RESEARCH-WORKER.md](design/06-research-worker/RESEARCH-WORKER.md): the O'Neil facts
+  - [design/07-journal/JOURNAL.md](design/07-journal/JOURNAL.md): every real trade
+  - [design/08-data-sources/DATA-SOURCES.md](design/08-data-sources/DATA-SOURCES.md): every outside source
+  - [design/09-shared-record/SHARED-RECORD.md](design/09-shared-record/SHARED-RECORD.md): the shared record
+  - [design/10-backups/BACKUPS.md](design/10-backups/BACKUPS.md): backup and restore
+  - [design/11-alerts/ALERTS.md](design/11-alerts/ALERTS.md): alerts and the health page
+  - [design/12-migration/MIGRATION.md](design/12-migration/MIGRATION.md): from today's desk to the design
 
 The parts below each block: [design/README.md](design/README.md).
 

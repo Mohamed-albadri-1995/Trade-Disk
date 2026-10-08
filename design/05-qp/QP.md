@@ -3,14 +3,14 @@
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.4.
 
 **Talks to:**
-- the [front door](../front-door/FRONT-DOOR.md) (`/quant/`);
-- the [shared record](../outside/SHARED-RECORD.md): registers, market states
+- the [front door](../02-front-door/FRONT-DOOR.md) (`/quant/`);
+- the [shared record](../09-shared-record/SHARED-RECORD.md): registers, market states
   and facts, as of a day;
-- the [data sources](../outside/SOURCES.md): bars;
-- the [desk](../desk/DESK.md): its scheduler starts each alert cycle;
-- the [journal](../journal/JOURNAL.md): the chart of a trade, and backtests
+- the [data sources](../08-data-sources/DATA-SOURCES.md): bars;
+- the [desk](../03-desk/DESK.md): its scheduler starts each alert cycle;
+- the [journal](../07-journal/JOURNAL.md): the chart of a trade, and backtests
   exported as trades;
-- its own [files](../files/FILES.md).
+- its own [files](../04-files/FILES.md).
 
 ---
 
@@ -98,10 +98,10 @@ Plot it, test it, then compose it.
 |---|---|---|
 | **One fill model for preview, backtest and alerts.** Alerts evaluate with the strategy's own fill (default `desk`) | an alert and a backtest of the same strategy must take the same bar (Q-N9) | [SIGNAL-ALERTS.md](SIGNAL-ALERTS.md) |
 | **Registers, market states and facts are read as of a day from the shared record** | today they are read over HTTP from each tool's port, and a stopped tool needed the archive program | [BACKTEST.md](BACKTEST.md) |
-| **No O'Neil computation** | the research worker owns it. While qp was down, every ticker first seen had a blank CANSLIM reading, and a photo then froze the blanks | [RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md) |
-| **No timer of its own** | the desk's scheduler starts each alert cycle and records it, so a cycle that fails or does not run alerts | [JOBS.md](../desk/JOBS.md) |
+| **No O'Neil computation** | the research worker owns it. While qp was down, every ticker first seen had a blank CANSLIM reading, and a photo then froze the blanks | [RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md) |
+| **No timer of its own** | the desk's scheduler starts each alert cycle and records it, so a cycle that fails or does not run alerts | [JOBS.md](../03-desk/JOBS.md) |
 | **Alert history kept** | a restart never repeats an alert, and alerts can be reviewed | [SIGNAL-ALERTS.md](SIGNAL-ALERTS.md) |
-| **Signals on the phone** | today a signal reaches only an open page (a sound and a browser notification). The desk pushes each new one to its own ntfy topic; qp holds no push key | [ALERTS.md](../outside/ALERTS.md) §3.6 |
+| **Signals on the phone** | today a signal reaches only an open page (a sound and a browser notification). The desk pushes each new one to its own ntfy topic; qp holds no push key | [ALERTS.md](../11-alerts/ALERTS.md) §3.6 |
 | **Shared bars per cycle** | one fetch per symbol per cycle, shared by every strategy | [FEEDS.md](FEEDS.md) |
 | **The CANSLIM gate on the page** | it is in the API only today (Q-N4); letters that cannot be rebuilt for a day are refused before the run | [BACKTEST.md](BACKTEST.md) |
 | **`breakeven_after_target` simulated, or refused on save** | it is reported and never simulated today (Q-N7) | [STRATEGIES.md](STRATEGIES.md) |

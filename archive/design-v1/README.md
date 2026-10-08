@@ -14,12 +14,12 @@
   desk-web and desk-worker; ten domains);
 - one document per domain, listed below, with [MIGRATION.md](MIGRATION.md),
   the first migration plan (steps 1–20);
-- [pdf/](pdf/): their PDFs.
+- [pdf/](pdf): their PDFs.
 
 **What the tree changed:** one desk program for every tool instead of two;
 each tool's results kept in its own file with a copy in the shared record;
 documents by block and part instead of by domain. The desk's document,
-[DESK.md](../../design/desk/DESK.md#why-one-program-not-two) says why.
+[DESK.md](../../design/03-desk/DESK.md#why-one-program-not-two) says why.
 
 ## The leaves of the first design
 

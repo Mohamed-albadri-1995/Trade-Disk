@@ -3,9 +3,9 @@
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.1.
 **Talks to:**
 - the trader's phone and laptop;
-- the [desk](../desk/DESK.md), [qp](../quant/QUANT.md) and the
-  [journal](../journal/JOURNAL.md), behind it;
-- the [box](../box/BOX.md) it runs on.
+- the [desk](../03-desk/DESK.md), [qp](../05-qp/QP.md) and the
+  [journal](../07-journal/JOURNAL.md), behind it;
+- the [box](../01-box/BOX.md) it runs on.
 
 ---
 
@@ -81,7 +81,7 @@ flowchart TB
 
 Caddy and the DuckDNS updater are system services: systemd and cron. They are
 the box's own services, like `sshd`, not desk programs. Each has one
-supervisor, as every program does ([BOX.md](../box/BOX.md) §4.1).
+supervisor, as every program does ([BOX.md](../01-box/BOX.md) §4.1).
 
 ### 3.2 Routing by path
 
@@ -89,7 +89,7 @@ The gateway (`src/shell/gateway.js`) holds no state.
 
 | Path | Goes to |
 |---|---|
-| `/`, `/login`, `/logout`, `/screeners…`, `/market`, `/status`, `/settings` | the desk's home (today `/`, `/login` and `/logout` only; the rest **to build** with home in the desk, [WEB.md](../desk/WEB.md) §3.2) |
+| `/`, `/login`, `/logout`, `/screeners…`, `/market`, `/status`, `/settings` | the desk's home (today `/`, `/login` and `/logout` only; the rest **to build** with home in the desk, [WEB.md](../03-desk/WEB.md) §3.2) |
 | `/tools/T<n>/…` | that tool, in the desk (running or stopped) |
 | `/quant/…` | qp, including its live chart WebSocket (`/ws/live`) |
 | `/journal/…` | the journal |
@@ -107,7 +107,7 @@ The gateway (`src/shell/gateway.js`) holds no state.
 - **Links between programs.** Every HTML answer sets the cookie `desk_shell`
   to the address the browser used. The page shell then links by path
   (`/tools/T2/`, `/journal/`, `/quant/`) instead of by port
-  ([WEB.md](../desk/WEB.md) §3.3).
+  ([WEB.md](../03-desk/WEB.md) §3.3).
 
 ### 3.3 The one login
 
@@ -139,7 +139,7 @@ Every page of every program carries the same top bar (`public/desk.js`,
 `public/desk.css`). It names the programs and links to them by path when the
 page came through the front door, and by port when it did not. The bar and its
 assets are never cached without a check, so a deploy shows at once.
-Detail: [WEB.md](../desk/WEB.md) §3.3.
+Detail: [WEB.md](../03-desk/WEB.md) §3.3.
 
 ---
 
@@ -147,7 +147,7 @@ Detail: [WEB.md](../desk/WEB.md) §3.3.
 
 | It owns | Form |
 |---|---|
-| the routing table | built from the tool registry and the apps list ([FILES.md](../files/FILES.md)) |
+| the routing table | built from the tool registry and the apps list ([FILES.md](../04-files/FILES.md)) |
 | the login | `data/auth.json`; the `td_auth` cookie |
 | the address | the DuckDNS name; Caddy's certificate |
 

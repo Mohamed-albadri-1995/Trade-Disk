@@ -4,11 +4,11 @@
 §5.2 (where each kind of data lives).
 
 **Talks to:**
-- **its writers:** the [desk](../desk/DESK.md), [qp](../quant/QUANT.md) and the
-  [journal](../journal/JOURNAL.md), each writing only its own files;
-- **readers:** the [research worker](../research/RESEARCH-WORKER.md), which
+- **its writers:** the [desk](../03-desk/DESK.md), [qp](../05-qp/QP.md) and the
+  [journal](../07-journal/JOURNAL.md), each writing only its own files;
+- **readers:** the [research worker](../06-research-worker/RESEARCH-WORKER.md), which
   reads the tools' files read-only;
-- the [backups](../outside/BACKUPS.md), which copy every file every night.
+- the [backups](../10-backups/BACKUPS.md), which copy every file every night.
 
 ---
 
@@ -21,7 +21,7 @@ program that writes it**.
 - It works without the network.
 - It keeps each tool's results apart by construction, because no tool can open
   another's file.
-- A copy of its registers goes to the [shared record](../outside/SHARED-RECORD.md)
+- A copy of its registers goes to the [shared record](../09-shared-record/SHARED-RECORD.md)
   at the moment it is written, and the copy is compared with it every day.
 
 **The rules for every file:**
@@ -77,18 +77,18 @@ T1's file is `data/tradedesk.db`. Every other tool's is `data/t<n>.db`.
 
 | Table | Holds | Detail |
 |---|---|---|
-| `screeners` | the tool's screeners: key, name, rules, sort, size, run and check windows, mirror, list-only, paused | [SCREENERS.md](../desk/tool/SCREENERS.md) |
-| `screener_versions` | every saved version of every screener, so each photo can be read from this file alone (**to build**; today the versions are kept only in the shared record) | [SCREENERS.md](../desk/tool/SCREENERS.md) |
-| `settings` | the tool's settings: its floor override (today: its own floor), shortlist auto-rule, its name and pause; each change a new version (**versions: to build**). Until the one market read is switched on, also its own hot-sector and sector-bias thresholds, which then become the desk's | [PAGES.md](../desk/tool/PAGES.md) §Settings |
-| `r0_checkpoint` | the live list of the day, saved after every change (today: after every full scan), so a restart loses nothing | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `r1_frozen` | R1: every card of the day, frozen at the capture minute, one row per ticker | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `r2_market_snapshots` | R2 as each tool wrote it until the one market read is switched on; kept as history. After that, R2 is read from the market history in the desk's own file | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `r3a`, `r3b` | R3: the outcomes from entry A and from entry B | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `shortlist` | the day's picks, starred or chosen by the auto-rule | [REGISTERS.md](../desk/tool/REGISTERS.md) |
-| `r4a_train`, `r4b_train` | training rows uploaded by hand (`source = upload`). R4 itself is R1 joined to R3, computed on request | [LEARNING.md](../desk/tool/LEARNING.md) |
-| `scheduler_jobs` | the tool's jobs: schedule, on/off, the default it was saved with | [JOBS.md](../desk/JOBS.md) |
-| `job_runs` | every run of every job: start, end, result, error with stack (kept 30 days) | [JOBS.md](../desk/JOBS.md) |
-| `alert_state` | which causes are alerting now, so an alert is sent once | [ALERTS.md](../outside/ALERTS.md) |
+| `screeners` | the tool's screeners: key, name, rules, sort, size, run and check windows, mirror, list-only, paused | [SCREENERS.md](../03-desk/tool/SCREENERS.md) |
+| `screener_versions` | every saved version of every screener, so each photo can be read from this file alone (**to build**; today the versions are kept only in the shared record) | [SCREENERS.md](../03-desk/tool/SCREENERS.md) |
+| `settings` | the tool's settings: its floor override (today: its own floor), shortlist auto-rule, its name and pause; each change a new version (**versions: to build**). Until the one market read is switched on, also its own hot-sector and sector-bias thresholds, which then become the desk's | [PAGES.md](../03-desk/tool/PAGES.md) §Settings |
+| `r0_checkpoint` | the live list of the day, saved after every change (today: after every full scan), so a restart loses nothing | [REGISTERS.md](../03-desk/tool/REGISTERS.md) |
+| `r1_frozen` | R1: every card of the day, frozen at the capture minute, one row per ticker | [REGISTERS.md](../03-desk/tool/REGISTERS.md) |
+| `r2_market_snapshots` | R2 as each tool wrote it until the one market read is switched on; kept as history. After that, R2 is read from the market history in the desk's own file | [REGISTERS.md](../03-desk/tool/REGISTERS.md) |
+| `r3a`, `r3b` | R3: the outcomes from entry A and from entry B | [REGISTERS.md](../03-desk/tool/REGISTERS.md) |
+| `shortlist` | the day's picks, starred or chosen by the auto-rule | [REGISTERS.md](../03-desk/tool/REGISTERS.md) |
+| `r4a_train`, `r4b_train` | training rows uploaded by hand (`source = upload`). R4 itself is R1 joined to R3, computed on request | [LEARNING.md](../03-desk/tool/LEARNING.md) |
+| `scheduler_jobs` | the tool's jobs: schedule, on/off, the default it was saved with | [JOBS.md](../03-desk/JOBS.md) |
+| `job_runs` | every run of every job: start, end, result, error with stack (kept 30 days) | [JOBS.md](../03-desk/JOBS.md) |
+| `alert_state` | which causes are alerting now, so an alert is sent once | [ALERTS.md](../11-alerts/ALERTS.md) |
 | `migrations` | one-time repairs that have run | — |
 | `analysis_model` | dead: left from an older app; not read, dropped by a migration | — |
 
@@ -106,10 +106,10 @@ any tool, written only by the desk in its own context:
 
 | Table | Holds | Detail |
 |---|---|---|
-| `scheduler_jobs`, `job_runs`, `alert_state` | the desk jobs, their runs, the desk's alert state | [JOBS.md](../desk/JOBS.md), [ALERTS.md](../outside/ALERTS.md) |
-| `market_states` | the market history: one state per market read, with its instant | [MARKET.md](../desk/MARKET.md) |
-| `hot_sector_days` | each sector's hot state per trading day | [MARKET.md](../desk/MARKET.md) |
-| `settings`, `setting_versions` | the desk's settings (the tradability floor, the market thresholds), each change a new version | [TOOL.md](../desk/TOOL.md) §3.1, [MARKET.md](../desk/MARKET.md) §3.14 |
+| `scheduler_jobs`, `job_runs`, `alert_state` | the desk jobs, their runs, the desk's alert state | [JOBS.md](../03-desk/JOBS.md), [ALERTS.md](../11-alerts/ALERTS.md) |
+| `market_states` | the market history: one state per market read, with its instant | [MARKET.md](../03-desk/MARKET.md) |
+| `hot_sector_days` | each sector's hot state per trading day | [MARKET.md](../03-desk/MARKET.md) |
+| `settings`, `setting_versions` | the desk's settings (the tradability floor, the market thresholds), each change a new version | [TOOL.md](../03-desk/TOOL.md) §3.1, [MARKET.md](../03-desk/MARKET.md) §3.14 |
 
 **Copied to the shared record** at the moment they are written, and compared
 every day: `market_states` and `hot_sector_days`.
@@ -123,7 +123,7 @@ T1 cannot be stopped.
 | File | Holds | Written by |
 |---|---|---|
 | `tools.config.json` (in the code repository) | the built-in tools: id, name, port, flags (`enabled`, `archive`, `scorer`), accent, description, capture times and why | a code change |
-| `data/tools.local.json` (on the box) | tools added from the page, and overrides of any tool: name, description, accent, capture times, enabled, deleted, pending restart | Manage tools ([HOME.md](../desk/HOME.md)) |
+| `data/tools.local.json` (on the box) | tools added from the page, and overrides of any tool: name, description, accent, capture times, enabled, deleted, pending restart | Manage tools ([HOME.md](../03-desk/HOME.md)) |
 | `data/tool-stages.json` | each tool's stage override (validated, watch, retired …) | the landing page's stage control |
 
 Everything that lists tools reads the **merged** registry
@@ -137,10 +137,10 @@ disagree. A tool added from the page gets:
 
 | File | Holds | Detail |
 |---|---|---|
-| `~/.qp/platform.db` | `strategies`, `backtests`, `backtest_trades`; `alert_seen` and `alert_history` (since step 12, so a restart never repeats an alert) | [QUANT.md](../quant/QUANT.md) |
-| `~/.qp/strategies/*.json` | strategies exported as files | [STRATEGIES.md](../quant/STRATEGIES.md) |
-| `~/.qp-cache/` | bars and the O'Neil caches: **rebuildable**, not backed up | [FEEDS.md](../quant/FEEDS.md) |
-| qp's operations log | what qp did; rebuildable | [QUANT.md](../quant/QUANT.md) |
+| `~/.qp/platform.db` | `strategies`, `backtests`, `backtest_trades`; `alert_seen` and `alert_history` (since step 12, so a restart never repeats an alert) | [QP.md](../05-qp/QP.md) |
+| `~/.qp/strategies/*.json` | strategies exported as files | [STRATEGIES.md](../05-qp/STRATEGIES.md) |
+| `~/.qp-cache/` | bars and the O'Neil caches: **rebuildable**, not backed up | [FEEDS.md](../05-qp/FEEDS.md) |
+| qp's operations log | what qp did; rebuildable | [QP.md](../05-qp/QP.md) |
 
 ### 3.5 The journal's file
 
@@ -148,7 +148,7 @@ disagree. A tool added from the page gets:
 - the trades (`journal_trades`), setups, day notes and fee profiles;
 - the leftover tables of an older app, which are not read.
 
-Detail: [JOURNAL.md](../journal/JOURNAL.md).
+Detail: [JOURNAL.md](../07-journal/JOURNAL.md).
 
 ### 3.6 Shared files being retired
 
@@ -158,8 +158,8 @@ replacement in the design:
 | File | Written today by | Replaced by |
 |---|---|---|
 | `data/industry-map.json` | qp's nightly SIC step (first), and each tool from TradingView's labels for gaps | the `sic` facts in the shared record, written only by the research worker |
-| `data/oneil-market.json`, `oneil-groups.json`, `oneil-13f.json`, `data/oneil/` | qp's nightly chain | the O'Neil facts in the shared record, written only by the research worker ([RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md)) |
-| `data/shortlist-all.json` | each tool, when its shortlist changes | home reads every tool's shortlist directly: in one program, every tool's file is at hand ([HOME.md](../desk/HOME.md)) |
+| `data/oneil-market.json`, `oneil-groups.json`, `oneil-13f.json`, `data/oneil/` | qp's nightly chain | the O'Neil facts in the shared record, written only by the research worker ([RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)) |
+| `data/shortlist-all.json` | each tool, when its shortlist changes | home reads every tool's shortlist directly: in one program, every tool's file is at hand ([HOME.md](../03-desk/HOME.md)) |
 
 ### 3.7 Secrets
 
@@ -174,7 +174,7 @@ replacement in the design:
 **The rules:**
 - mode 0600, gitignored;
 - never in a backup, a log or a reply;
-- set on the box with the commands in [BOX.md](../box/BOX.md) §4.3.
+- set on the box with the commands in [BOX.md](../01-box/BOX.md) §4.3.
 
 ### 3.8 Working files
 
@@ -182,7 +182,7 @@ replacement in the design:
 |---|---|
 | `tmp/`, `tmp-t<n>/` | each tool's training CSV files and register exports; rebuildable |
 | `data/worker/` | the comparison copies of tools being moved into the desk (`t<n>.db`), with their daily photo checks; deleted after the move |
-| `src/scoring/outputs*` | the old scorer's model tables; no scorer runs; not carried ([LEARNING.md](../desk/tool/LEARNING.md)) |
+| `src/scoring/outputs*` | the old scorer's model tables; no scorer runs; not carried ([LEARNING.md](../03-desk/tool/LEARNING.md)) |
 
 ---
 
@@ -203,7 +203,7 @@ replacement in the design:
 | Event | What happens |
 |---|---|
 | a write fails half-way | the transaction is rolled back; nothing half-written is ever read |
-| a file is damaged | the monthly rehearsal checks every SQLite file's integrity, and the restore puts back the last good night ([BACKUPS.md](../outside/BACKUPS.md)) |
+| a file is damaged | the monthly rehearsal checks every SQLite file's integrity, and the restore puts back the last good night ([BACKUPS.md](../10-backups/BACKUPS.md)) |
 | the disk fills | writes fail loudly. The health page shows the free disk (to build); caches and working files are the first to go |
 | a file is missing at start | the desk creates an empty one for a running tool, and says so. A stopped tool with no file is not served, and the health page says why: an empty history must never look like a tool that found nothing |
 

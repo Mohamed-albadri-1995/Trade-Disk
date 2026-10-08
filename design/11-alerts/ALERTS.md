@@ -4,17 +4,17 @@
 §6.1 (when something goes wrong) and §7 (the rule "failures are loud").
 
 **Talks to:**
-- the [desk's jobs](../desk/JOBS.md): every run's result, and the jobs that
+- the [desk's jobs](../03-desk/JOBS.md): every run's result, and the jobs that
   check sources, facts, programs and the box;
-- the [data sources](SOURCES.md) §3.5: the scheduled health checks;
-- the [shared record](SHARED-RECORD.md): fact freshness, and whether it can be
+- the [data sources](../08-data-sources/DATA-SOURCES.md) §3.5: the scheduled health checks;
+- the [shared record](../09-shared-record/SHARED-RECORD.md): fact freshness, and whether it can be
   reached;
-- the [backups](BACKUPS.md): a night that is not clean, a failed rehearsal;
-- [qp](../quant/QUANT.md): the signals its alert cycles find
-  ([SIGNAL-ALERTS.md](../quant/SIGNAL-ALERTS.md));
-- the [box](../box/BOX.md): memory, disk, restarts;
+- the [backups](../10-backups/BACKUPS.md): a night that is not clean, a failed rehearsal;
+- [qp](../05-qp/QP.md): the signals its alert cycles find
+  ([SIGNAL-ALERTS.md](../05-qp/SIGNAL-ALERTS.md));
+- the [box](../01-box/BOX.md): memory, disk, restarts;
 - ntfy, which delivers to the phone, and an outside heartbeat check;
-- the desk's [home](../desk/HOME.md), which serves the health page.
+- the desk's [home](../03-desk/HOME.md), which serves the health page.
 
 ---
 
@@ -86,14 +86,14 @@ Each signal has one judge, and amber and red mean the same everywhere:
 
 | Signal | Judged by | Amber | Red |
 |---|---|---|---|
-| **a job's run** | the scheduler, on every run ([JOBS.md](../desk/JOBS.md)) | one failed run of a job that runs more often than every 15 minutes (a scan, a re-quote, the new-ticker run, an alert cycle, a journal sync) | any other job failed, missed or hung; a frequent job failed three runs in a row |
-| **a source** | the scheduled health checks ([SOURCES.md](SOURCES.md) §3.5), before the day's first scan and at each source's cadence | degraded: some of it failed, or a free tier's limit was reached | down: rejected, empty where it cannot be, or no answer |
-| **a fact family's freshness** | the desk's freshness job, over `facts_latest`, against each family's clock ([CARD.md](../desk/tool/CARD.md), [RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md)) | older than its clock | older than twice its clock |
+| **a job's run** | the scheduler, on every run ([JOBS.md](../03-desk/JOBS.md)) | one failed run of a job that runs more often than every 15 minutes (a scan, a re-quote, the new-ticker run, an alert cycle, a journal sync) | any other job failed, missed or hung; a frequent job failed three runs in a row |
+| **a source** | the scheduled health checks ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md) §3.5), before the day's first scan and at each source's cadence | degraded: some of it failed, or a free tier's limit was reached | down: rejected, empty where it cannot be, or no answer |
+| **a fact family's freshness** | the desk's freshness job, over `facts_latest`, against each family's clock ([CARD.md](../03-desk/tool/CARD.md), [RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)) | older than its clock | older than twice its clock |
 | **a program** | the desk, asking each program's `/health` every minute | — | qp, the journal or the front door not answering for 3 minutes |
 | **the shared record** | every program that uses it | unreachable: the tools work from their own files, and the copies wait | unreachable for an hour, or the daily comparison of the copies finds differences |
-| **the backup** | the night job and the monthly job ([BACKUPS.md](BACKUPS.md)) | the backup is off (no `data/r2.json`) | a night not clean; the dump did not verify; the rehearsal failed |
+| **the backup** | the night job and the monthly job ([BACKUPS.md](../10-backups/BACKUPS.md)) | the backup is off (no `data/r2.json`) | a night not clean; the dump did not verify; the rehearsal failed |
 | **the box** | the desk, every 5 minutes | memory available under 100 MB for 5 minutes; disk under 20 % free | disk under 10 % free; a program restarted by its supervisor (a crash or its memory limit) |
-| **sign-ins** | the front door ([FRONT-DOOR.md](../front-door/FRONT-DOOR.md)) | — | 10 failed sign-ins within an hour |
+| **sign-ins** | the front door ([FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md)) | — | 10 failed sign-ins within an hour |
 | **the desk itself** | the outside heartbeat check (§3.5) | — | no heartbeat for 15 minutes |
 
 **Counted in trading sessions.** A clock that spans a weekend or a holiday is
@@ -101,7 +101,7 @@ counted on the trading calendar, so Monday morning never reads as stale. The
 proof: on a Monday before the open, and on the morning after a holiday, no
 freshness signal is amber.
 
-**While a tool moves into the desk** ([MIGRATION.md](../MIGRATION.md) step B),
+**While a tool moves into the desk** ([MIGRATION.md](../12-migration/MIGRATION.md) step B),
 the comparison copy also sends one line a day: that day's photo comparison,
 clean or not.
 
@@ -128,7 +128,7 @@ clean or not.
   it is recorded and not tried again).
 
 **Where it is kept.** A tool's causes are kept in that tool's file; the desk's
-own causes in the desk's file ([FILES.md](../files/FILES.md)). The health page
+own causes in the desk's file ([FILES.md](../04-files/FILES.md)). The health page
 reads them all.
 
 ### 3.3 The message
@@ -180,7 +180,7 @@ topic.
 ### 3.6 Signal alerts to the phone
 
 When the desk starts one of qp's alert cycles, qp answers with the signals that
-are new in that cycle ([SIGNAL-ALERTS.md](../quant/SIGNAL-ALERTS.md)).
+are new in that cycle ([SIGNAL-ALERTS.md](../05-qp/SIGNAL-ALERTS.md)).
 - The desk pushes each one to the signals topic: the strategy, the symbol, the
   bar, the price.
 - qp's alert history already holds one row per strategy, symbol and bar, so a
@@ -214,12 +214,12 @@ desk every 30 seconds.
 | It owns | Where |
 |---|---|
 | `alert_state` | each tool's file (its causes); the desk's file (the desk's causes) |
-| `health_checks`, each check's result over time | the shared record ([SOURCES.md](SOURCES.md)) |
+| `health_checks`, each check's result over time | the shared record ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | `alertNtfyTopic`, `signalNtfyTopic`, `alertNtfyServer`, `heartbeatUrl` | `data/keys.json`, mode 0600 |
 
 | It reads | From |
 |---|---|
-| every job's runs | `job_runs`, in each tool's file and the desk's file ([JOBS.md](../desk/JOBS.md)) |
+| every job's runs | `job_runs`, in each tool's file and the desk's file ([JOBS.md](../03-desk/JOBS.md)) |
 | fact ages | `facts_latest`, in the shared record |
 | each program's health | its `GET /health` |
 | new signals | the answer of each alert cycle |

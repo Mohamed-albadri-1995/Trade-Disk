@@ -7,10 +7,10 @@ through adapters:
 
 | Block | Sources it uses |
 |---|---|
-| the [desk](../desk/DESK.md) | the scanner, quotes, short interest, borrow, news, index and sector quotes, outcome bars |
-| the [research worker](../research/RESEARCH-WORKER.md) | EDGAR, 13F filings, Polygon, index bars |
-| [qp](../quant/QUANT.md) | chart bars |
-| the [journal](../journal/JOURNAL.md) | account fills, bars |
+| the [desk](../03-desk/DESK.md) | the scanner, quotes, short interest, borrow, news, index and sector quotes, outcome bars |
+| the [research worker](../06-research-worker/RESEARCH-WORKER.md) | EDGAR, 13F filings, Polygon, index bars |
+| [qp](../05-qp/QP.md) | chart bars |
+| the [journal](../07-journal/JOURNAL.md) | account fills, bars |
 
 ---
 
@@ -99,7 +99,7 @@ flowchart LR
 **Every call is counted.** Each fact family keeps a count of the requests it
 received, the calls it actually made, its failures and its last error, per day
 (`source_calls`). These counts decide whether sharing a family across tools
-pays ([SHARED-RECORD.md](SHARED-RECORD.md)).
+pays ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md)).
 
 ### 3.2 Every source
 
@@ -117,13 +117,13 @@ pays ([SHARED-RECORD.md](SHARED-RECORD.md)).
 | **nasdaq_si** | `api.nasdaq.com/api/quote/{t}/short-interest` | none | `short_interest` (fallback, two weeks of history) | per symbol |
 | **nasdaq_regsho** | `nasdaqth{yyyymmdd}.txt` | none | `reg_sho` | per settlement day |
 | **nyse_regsho** | the NYSE threshold-securities download | none | `reg_sho` | per settlement day |
-| **edgar** | `data.sec.gov/api/xbrl/companyfacts/CIK{…}.json`; `www.sec.gov/files/company_tickers.json`; submissions (SIC, 8-K items); full-text search | a descriptive User-Agent (403 without it) | `oneil_c`, `oneil_a`, shares for `oneil_s`, `sic`, 8-K events, `news` | ten requests a second; the five EDGAR traps ([ONEIL.md](../research/ONEIL.md)); filings land weeks after the quarter's end |
+| **edgar** | `data.sec.gov/api/xbrl/companyfacts/CIK{…}.json`; `www.sec.gov/files/company_tickers.json`; submissions (SIC, 8-K items); full-text search | a descriptive User-Agent (403 without it) | `oneil_c`, `oneil_a`, shares for `oneil_s`, `sic`, 8-K events, `news` | ten requests a second; the five EDGAR traps ([ONEIL.md](../06-research-worker/ONEIL.md)); filings land weeks after the quarter's end |
 | **sec_13f** | the SEC's quarterly Form 13F datasets | User-Agent | `oneil_i` | quarterly, 45 days after the quarter's end; managers over $100M only |
 | **polygon** | grouped daily (the whole market); aggregates | key | `bars_universe`, bars | the free plan is end of day: no bars for today |
 | **finnhub** | `finnhub.io/api/v1/company-news` | key | `news` | — |
 | **google_news** | `news.google.com/rss/search` | none | `news` | asked only when the others return fewer than 2 items |
 | **openfda**, **usaspending** | drug and device approvals; contract awards | none | N events (planned) | — |
-| **broker_files** | uploaded TradingView, TTP and DXtrade files | — | journal fills | one parser per format, each with a sample file ([IMPORT.md](../journal/IMPORT.md)) |
+| **broker_files** | uploaded TradingView, TTP and DXtrade files | — | journal fills | one parser per format, each with a sample file ([IMPORT.md](../07-journal/IMPORT.md)) |
 
 ### 3.3 Fallback orders
 
@@ -135,7 +135,7 @@ pays ([SHARED-RECORD.md](SHARED-RECORD.md)).
 | `reg_sho` | Nasdaq + NYSE | both are asked; either listing counts |
 | `news` | TradingView, Alpaca, Yahoo, EDGAR and Finnhub in parallel; Google when fewer than 2 items | the failing ones are named; the others still count |
 | outcome bars | Yahoo → Alpaca | per ticker |
-| chart bars | the chosen feed | never silently replaced ([FEEDS.md](../quant/FEEDS.md)) |
+| chart bars | the chosen feed | never silently replaced ([FEEDS.md](../05-qp/FEEDS.md)) |
 | index bars (M) | Yahoo | — |
 | whole-market bars (RS) | Polygon | — |
 
@@ -159,9 +159,9 @@ high, low, close and volume.
 
 **Where the feed detail lives:**
 - choosing the feed, warm-up and the bar cache with its limits:
-  [FEEDS.md](../quant/FEEDS.md);
+  [FEEDS.md](../05-qp/FEEDS.md);
 - outcome bars, stored once per ticker per day and shared by every tool:
-  [REGISTERS.md](../desk/tool/REGISTERS.md).
+  [REGISTERS.md](../03-desk/tool/REGISTERS.md).
 
 ### 3.5 Health checks
 
@@ -171,7 +171,7 @@ pressed. In the design the same checks run **on a schedule**:
 - each adapter at its own cadence;
 - all of them before the day's first scan, at 03:45 New York.
 
-They feed the health page ([ALERTS.md](ALERTS.md)).
+They feed the health page ([ALERTS.md](../11-alerts/ALERTS.md)).
 
 | Check | Down | Degraded |
 |---|---|---|
@@ -184,7 +184,7 @@ They feed the health page ([ALERTS.md](ALERTS.md)).
 | RS universe | no sessions; under 1,000 symbols | under 253 sessions |
 | research facts | a required field missing | older than their clock allows, counted in trading sessions (M and groups: not from the last completed session; SIC: 14 days). The old check used 36 hours by the clock, which read every weekend as stale |
 | EDGAR | the ticker map under 5,000; no quarters for a known filer; 403 | — |
-| sector map | — | a card sector with no ETF mapping ([MARKET.md](../desk/MARKET.md)) |
+| sector map | — | a card sector with no ETF mapping ([MARKET.md](../03-desk/MARKET.md)) |
 
 **How checks are reported and run:**
 - Each failing check carries its **fix**.
@@ -203,7 +203,7 @@ They feed the health page ([ALERTS.md](ALERTS.md)).
 | the EDGAR User-Agent | `edgar`, `sec_13f` |
 
 **Where keys live, and what happens without one:**
-- All keys are in the secret files ([BOX.md](../box/BOX.md) §4.3).
+- All keys are in the secret files ([BOX.md](../01-box/BOX.md) §4.3).
 - A missing key makes its adapter `unavailable` with the reason "key not set",
   and the health page names it.
 - Settings can set and test keys. The old Settings page had no inputs for them
@@ -217,7 +217,7 @@ They feed the health page ([ALERTS.md](ALERTS.md)).
 |---|---|
 | `source_calls`: requests, calls, failures, last error, per family and day | the shared record |
 | `health_checks`: each check's result over time (to build) | the shared record |
-| the bar cache | qp's caches on disk ([FEEDS.md](../quant/FEEDS.md)) |
+| the bar cache | qp's caches on disk ([FEEDS.md](../05-qp/FEEDS.md)) |
 
 **What it serves.** Facts to the desk, the research worker, qp and the journal,
 through one interface:

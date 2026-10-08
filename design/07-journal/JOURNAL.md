@@ -3,13 +3,13 @@
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.6.
 
 **Talks to:**
-- the [front door](../front-door/FRONT-DOOR.md) (`/journal/`);
-- the [desk](../desk/DESK.md), whose scheduler starts each account's sync;
-- the [data sources](../outside/SOURCES.md): Alpaca fills and orders, and bars;
-- the [shared record](../outside/SHARED-RECORD.md): the facts, the market state
+- the [front door](../02-front-door/FRONT-DOOR.md) (`/journal/`);
+- the [desk](../03-desk/DESK.md), whose scheduler starts each account's sync;
+- the [data sources](../08-data-sources/DATA-SOURCES.md): Alpaca fills and orders, and bars;
+- the [shared record](../09-shared-record/SHARED-RECORD.md): the facts, the market state
   and the R1 row known at a trade's entry;
-- [qp](../quant/QUANT.md): the chart of a trade;
-- its own [file](../files/FILES.md).
+- [qp](../05-qp/QP.md): the chart of a trade;
+- its own [file](../04-files/FILES.md).
 
 ---
 
@@ -97,7 +97,7 @@ the front door at `/journal/`.
 **It owns the journal's file, `data/journal/journal.db`.** The target tables
 are below. Today the trades live in `journal_trades`, with the setups, day
 notes and fee profiles; the old app's leftover tables are not carried
-([FILES.md](../files/FILES.md) §3.5).
+([FILES.md](../04-files/FILES.md) §3.5).
 
 | Table | Key |
 |---|---|
@@ -112,7 +112,7 @@ notes and fee profiles; the old app's leftover tables are not carried
 | It reads | From |
 |---|---|
 | account activities (fills) and orders | Alpaca, per account |
-| 1-minute and daily bars | the bar sources ([SOURCES.md](../outside/SOURCES.md)) |
+| 1-minute and daily bars | the bar sources ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | facts, the market state and the R1 row, as of the entry | the shared record |
 
 | Routes, behind `/journal/` | Do |

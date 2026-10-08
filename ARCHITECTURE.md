@@ -162,19 +162,19 @@ and the backup copies the shared record as well as the files.
 
 | Block | What it does | Its document |
 |---|---|---|
-| **the box** | the one server everything runs on | [design/box/BOX.md](design/box/BOX.md) |
-| **front door** | the one address and the one login | [design/front-door/FRONT-DOOR.md](design/front-door/FRONT-DOOR.md) |
-| **desk** | one program that runs every tool | [design/desk/DESK.md](design/desk/DESK.md) |
-| **files on the box** | where each program keeps what it records | [design/files/FILES.md](design/files/FILES.md) |
-| **qp** | charts, strategies, backtests, signal alerts | [design/quant/QUANT.md](design/quant/QUANT.md) |
-| **research worker** | the slow, heavy research: the O'Neil method | [design/research/RESEARCH-WORKER.md](design/research/RESEARCH-WORKER.md) |
-| **journal** | the trader's real trades, after the fact | [design/journal/JOURNAL.md](design/journal/JOURNAL.md) |
-| **data sources** | everything the desk reads from outside | [design/outside/SOURCES.md](design/outside/SOURCES.md) |
-| **shared record** | the facts and copies more than one program needs | [design/outside/SHARED-RECORD.md](design/outside/SHARED-RECORD.md) |
-| **backups** | a copy of everything, off the box, every night | [design/outside/BACKUPS.md](design/outside/BACKUPS.md) |
-| **alerts** | what reaches the phone, and the health page | [design/outside/ALERTS.md](design/outside/ALERTS.md) |
+| **the box** | the one server everything runs on | [design/01-box/BOX.md](design/01-box/BOX.md) |
+| **front door** | the one address and the one login | [design/02-front-door/FRONT-DOOR.md](design/02-front-door/FRONT-DOOR.md) |
+| **desk** | one program that runs every tool | [design/03-desk/DESK.md](design/03-desk/DESK.md) |
+| **files on the box** | where each program keeps what it records | [design/04-files/FILES.md](design/04-files/FILES.md) |
+| **qp** | charts, strategies, backtests, signal alerts | [design/05-qp/QP.md](design/05-qp/QP.md) |
+| **research worker** | the slow, heavy research: the O'Neil method | [design/06-research-worker/RESEARCH-WORKER.md](design/06-research-worker/RESEARCH-WORKER.md) |
+| **journal** | the trader's real trades, after the fact | [design/07-journal/JOURNAL.md](design/07-journal/JOURNAL.md) |
+| **data sources** | everything the desk reads from outside | [design/08-data-sources/DATA-SOURCES.md](design/08-data-sources/DATA-SOURCES.md) |
+| **shared record** | the facts and copies more than one program needs | [design/09-shared-record/SHARED-RECORD.md](design/09-shared-record/SHARED-RECORD.md) |
+| **backups** | a copy of everything, off the box, every night | [design/10-backups/BACKUPS.md](design/10-backups/BACKUPS.md) |
+| **alerts** | what reaches the phone, and the health page | [design/11-alerts/ALERTS.md](design/11-alerts/ALERTS.md) |
 
-How today's desk becomes this one: [design/MIGRATION.md](design/MIGRATION.md).
+How today's desk becomes this one: [design/12-migration/MIGRATION.md](design/12-migration/MIGRATION.md).
 
 ---
 
@@ -325,7 +325,7 @@ flowchart LR
 | all day | the trader's real trades come in from the broker | the scheduler, the journal |
 
 The exact times of every job: the desk's scheduler
-([design/desk/DESK.md](design/desk/DESK.md)).
+([design/03-desk/DESK.md](design/03-desk/DESK.md)).
 
 ### 6.1 When something goes wrong
 
@@ -382,8 +382,8 @@ the first failure.
 command puts a night back, and a monthly rehearsal proves it works. Keys are
 never in a backup: the trader keeps their own copy.
 
-Detail: [design/box/BOX.md](design/box/BOX.md) and
-[design/outside/BACKUPS.md](design/outside/BACKUPS.md).
+Detail: [design/01-box/BOX.md](design/01-box/BOX.md) and
+[design/10-backups/BACKUPS.md](design/10-backups/BACKUPS.md).
 
 ---
 
@@ -419,7 +419,7 @@ compared with what it replaces, and can be undone.
 | **E** | the health page, scorecards, live pages, phone-first pages |
 | **F** | a model to rank each tool's stocks, when the trader chooses one |
 
-Detail, with each step's check and undo: [design/MIGRATION.md](design/MIGRATION.md).
+Detail, with each step's check and undo: [design/12-migration/MIGRATION.md](design/12-migration/MIGRATION.md).
 
 ---
 
@@ -427,7 +427,7 @@ Detail, with each step's check and undo: [design/MIGRATION.md](design/MIGRATION.
 
 | Decision | Decided |
 |---|---|
-| **how the tools run** | **one program for every tool** (by the trader, 2026-10-08). The earlier plan, two programs (one for the pages, one for the jobs), would have had to copy everything a page shows between them all day, and would have loaded the code twice. Why in full: [design/desk/DESK.md](design/desk/DESK.md) |
+| **how the tools run** | **one program for every tool** (by the trader, 2026-10-08). The earlier plan, two programs (one for the pages, one for the jobs), would have had to copy everything a page shows between them all day, and would have loaded the code twice. Why in full: [design/03-desk/DESK.md](design/03-desk/DESK.md) |
 | **where a tool's results are kept** | in the tool's own file on the box, with a copy in the shared record. A record kept only in a remote database would make every scan and every page depend on the network |
 | **the database** | Postgres, for the shared record |
 | **where the shared record lives** | **open**: on Railway for now. It could move onto the box or to AWS; moving is one restore. The trader decides |
@@ -460,43 +460,43 @@ Read from the top. Each document names the one above it in its first line, and
 has its own diagram.
 
 ```
-ARCHITECTURE.md ........................ the whole desk (this document)
+ARCHITECTURE.md ................................... the whole desk (this document)
 │
-├── design/box/BOX.md ................... the box: memory, supervisor, deploy, secrets
-├── design/front-door/FRONT-DOOR.md ..... the address, the login, routing
-├── design/desk/DESK.md ................. the desk: one program, each tool kept apart
-│   ├── design/desk/WEB.md .............. how a page reaches its tool
-│   ├── design/desk/HOME.md ............. the landing page, the lists across tools, Manage tools
-│   ├── design/desk/TOOL.md ............. one running tool, end to end
-│   │   ├── design/desk/tool/SCREENERS.md   its screeners and how it finds stocks
-│   │   ├── design/desk/tool/CARD.md ....... the card: every field and its source
-│   │   ├── design/desk/tool/REGISTERS.md .. its daily record and the outcomes
-│   │   ├── design/desk/tool/LEARNING.md ... the score and the scorecard
-│   │   └── design/desk/tool/PAGES.md ...... its pages
-│   ├── design/desk/STOPPED-TOOLS.md .... a stopped tool's history
-│   ├── design/desk/MARKET.md ........... the market read
-│   └── design/desk/JOBS.md ............. the scheduler, job by job
-├── design/files/FILES.md ............... every file on the box and its writer
-├── design/quant/QUANT.md ............... qp
-│   ├── design/quant/CHART.md ........... the page and the print sheets
-│   ├── design/quant/LIBRARY.md ......... the checked indicators
-│   ├── design/quant/STRATEGIES.md ...... trading rules and how they become trades
-│   ├── design/quant/BACKTEST.md ........ the backtest
-│   ├── design/quant/SIGNAL-ALERTS.md ... signal alerts
-│   └── design/quant/FEEDS.md ........... price bars
-├── design/research/RESEARCH-WORKER.md .. the research worker
-│   └── design/research/ONEIL.md ........ the O'Neil method, letter by letter
-├── design/journal/JOURNAL.md ........... the journal
-│   ├── design/journal/IMPORT.md ........ how trades come in
-│   └── design/journal/REVIEW.md ........ the page and the analysis
-├── design/outside/SOURCES.md ........... every outside source
-├── design/outside/SHARED-RECORD.md ..... the shared record
-├── design/outside/BACKUPS.md ........... backup and restore
-├── design/outside/ALERTS.md ............ alerts and the health page
-└── design/MIGRATION.md ................. from today's desk to this one
+├── design/01-box/BOX.md .......................... the box: memory, supervisor, deploy, secrets
+├── design/02-front-door/FRONT-DOOR.md ............ the address, the login, routing
+├── design/03-desk/DESK.md ........................ the desk: one program, each tool kept apart
+│   ├── design/03-desk/WEB.md ..................... how a page reaches its tool
+│   ├── design/03-desk/HOME.md .................... the landing page, the lists across tools, Manage tools
+│   ├── design/03-desk/TOOL.md .................... one running tool, end to end
+│   │   ├── design/03-desk/tool/SCREENERS.md ...... its screeners and how it finds stocks
+│   │   ├── design/03-desk/tool/CARD.md ........... the card: every field and its source
+│   │   ├── design/03-desk/tool/REGISTERS.md ...... its daily record and the outcomes
+│   │   ├── design/03-desk/tool/LEARNING.md ....... the score and the scorecard
+│   │   └── design/03-desk/tool/PAGES.md .......... its pages
+│   ├── design/03-desk/STOPPED-TOOLS.md ........... a stopped tool's history
+│   ├── design/03-desk/MARKET.md .................. the market read
+│   └── design/03-desk/JOBS.md .................... the scheduler, job by job
+├── design/04-files/FILES.md ...................... every file on the box and its writer
+├── design/05-qp/QP.md ............................ qp
+│   ├── design/05-qp/CHART.md ..................... the page and the print sheets
+│   ├── design/05-qp/LIBRARY.md ................... the checked indicators
+│   ├── design/05-qp/STRATEGIES.md ................ trading rules and how they become trades
+│   ├── design/05-qp/BACKTEST.md .................. the backtest
+│   ├── design/05-qp/SIGNAL-ALERTS.md ............. signal alerts
+│   └── design/05-qp/FEEDS.md ..................... price bars
+├── design/06-research-worker/RESEARCH-WORKER.md .. the research worker
+│   └── design/06-research-worker/ONEIL.md ........ the O'Neil method, letter by letter
+├── design/07-journal/JOURNAL.md .................. the journal
+│   ├── design/07-journal/IMPORT.md ............... how trades come in
+│   └── design/07-journal/REVIEW.md ............... the page and the analysis
+├── design/08-data-sources/DATA-SOURCES.md ........ every outside source
+├── design/09-shared-record/SHARED-RECORD.md ...... the shared record
+├── design/10-backups/BACKUPS.md .................. backup and restore
+├── design/11-alerts/ALERTS.md .................... alerts and the health page
+└── design/12-migration/MIGRATION.md .............. from today's desk to this one
 ```
 
-**Where to read them.** Each document has a PDF in [pdf/](pdf/), in the same
+**Where to read them.** Each document has a PDF in [pdf/](pdf), in the same
 tree, and [pdf/DESIGN.pdf](pdf/DESIGN.pdf) holds them all in this order. The
 index, with what is written so far: [design/README.md](design/README.md).
 
@@ -505,7 +505,7 @@ diagram; its parts; what it owns and reads; what happens when it fails; what
 it is built on; and its status.
 
 **What the design is built on.** The desk that runs today, documented from its
-code under [legacy/](legacy/): every card field and its source, every
+code under [legacy/](legacy): every card field and its source, every
 calculation, the research method, the O'Neil method and the journal. Each block
 document names the faults of the old desk that its design prevents. The first
 design, which this tree replaces, is kept in

@@ -1,55 +1,56 @@
 # The design tree
 
-The design of the Trade Desk, read from the top down. The trunk,
+The design of the Trade Desk, read from the top down. The top document,
 [ARCHITECTURE.md](../ARCHITECTURE.md), draws the whole desk in one picture. Each
-block of that picture has a document here, and each part of a block has a
-document below it. Every level gives what the level below needs, and no more.
+block of that picture has a numbered folder here, in the order of the picture,
+holding the block's document and the documents of its parts. Every level gives
+what the level below needs, and no more.
 
-**PDFs:** every document has one in [pdf/](../pdf/), in the same tree;
+**PDFs:** every document has one in [pdf/](../pdf), under the same names;
 [pdf/DESIGN.pdf](../pdf/DESIGN.pdf) holds all of them, in this order.
 
 ---
 
 ## The tree
 
-| | Document | PDF | What it covers | State |
+| Level | Document | PDF | What it covers | State |
 |---|---|---|---|---|
-| **0** | [ARCHITECTURE.md](../ARCHITECTURE.md) | [PDF](../pdf/ARCHITECTURE.pdf) | the whole desk: its blocks, how they share data, a trading day, the rules, the box, status, decisions, risks | written |
-| **1** | [box/BOX.md](box/BOX.md) | [PDF](../pdf/design/box/BOX.pdf) | the machine, its memory, the supervisor, the deploy, the secrets | written |
-| 1 | [front-door/FRONT-DOOR.md](front-door/FRONT-DOOR.md) | [PDF](../pdf/design/front-door/FRONT-DOOR.pdf) | the address, TLS, routing by path, the one login | written |
-| 1 | [desk/DESK.md](desk/DESK.md) | [PDF](../pdf/design/desk/DESK.pdf) | the desk: one program for every tool, a context per tool | written |
-| 2 | desk/WEB.md | | how a page or an API call reaches its tool | to write |
-| 2 | desk/HOME.md | | the landing page, the lists across tools, Manage tools | to write |
-| 2 | desk/TOOL.md | | one running tool, end to end | to write |
-| 3 | desk/tool/SCREENERS.md | | screeners, windows, versions, discovery | to write |
-| 3 | desk/tool/CARD.md | | the card: fact families, fields, the pipeline | to write |
-| 3 | desk/tool/REGISTERS.md | | R0–R4, the shortlist, the photo | to write |
-| 3 | desk/tool/LEARNING.md | | the score and the scorecard | to write |
-| 3 | desk/tool/PAGES.md | | the tool's pages and its API | to write |
-| 2 | desk/STOPPED-TOOLS.md | | a stopped tool's history, read-only | to write |
-| 2 | desk/MARKET.md | | the market read: regime, sectors, hot sectors | to write |
-| 2 | desk/JOBS.md | | the scheduler and the desk jobs | to write |
-| 1 | [files/FILES.md](files/FILES.md) | [PDF](../pdf/design/files/FILES.pdf) | every file on the box, its tables, its one writer | written |
-| 1 | [quant/QUANT.md](quant/QUANT.md) | [PDF](../pdf/design/quant/QUANT.pdf) | qp: charts, strategies, backtests, signal alerts | written |
-| 2 | quant/CHART.md | | the page and the print sheets | to write |
-| 2 | quant/LIBRARY.md | | the verified indicators | to write |
-| 2 | quant/STRATEGIES.md | | the strategy engine: rules, fills, the order | to write |
-| 2 | quant/BACKTEST.md | | the backtest: universes, honesty, the report | to write |
-| 2 | quant/SIGNAL-ALERTS.md | | live signal alerts | to write |
-| 2 | quant/FEEDS.md | | bars: feeds, warm-up, the cache | to write |
-| 1 | [research/RESEARCH-WORKER.md](research/RESEARCH-WORKER.md) | [PDF](../pdf/design/research/RESEARCH-WORKER.pdf) | the research worker: the O'Neil facts, with their dates | written |
-| 2 | research/ONEIL.md | | the O'Neil method, letter by letter | to write |
-| 1 | [journal/JOURNAL.md](journal/JOURNAL.md) | [PDF](../pdf/design/journal/JOURNAL.pdf) | the journal: every real trade, after the fact | written |
-| 2 | journal/IMPORT.md | | fills, files, the pairing engine | to write |
-| 2 | journal/REVIEW.md | | the page, the analysis, the entry snapshot | to write |
-| 1 | [outside/SOURCES.md](outside/SOURCES.md) | [PDF](../pdf/design/outside/SOURCES.pdf) | every outside source and its adapter | written |
-| 1 | [outside/SHARED-RECORD.md](outside/SHARED-RECORD.md) | [PDF](../pdf/design/outside/SHARED-RECORD.pdf) | the shared record: every table | written |
-| 1 | [outside/BACKUPS.md](outside/BACKUPS.md) | [PDF](../pdf/design/outside/BACKUPS.pdf) | backup, restore, rehearsal | written |
-| 1 | [outside/ALERTS.md](outside/ALERTS.md) | [PDF](../pdf/design/outside/ALERTS.pdf) | alerts to the phone, and the health page | written |
-| 1 | [MIGRATION.md](MIGRATION.md) | [PDF](../pdf/design/MIGRATION.pdf) | from today's desk to the design, step by step | written |
+| **0** | [ARCHITECTURE.md](../ARCHITECTURE.md) | [PDF](../pdf/ARCHITECTURE.pdf) | the whole desk: what it is, the one picture, each block in a few lines, a trading day, the rules, status, decisions, risks | written |
+| **1** | [01-box/BOX.md](01-box/BOX.md) | [PDF](../pdf/design/01-box/BOX.pdf) | the server, its memory, the supervisor, the deploy, the secrets | written |
+| **1** | [02-front-door/FRONT-DOOR.md](02-front-door/FRONT-DOOR.md) | [PDF](../pdf/design/02-front-door/FRONT-DOOR.pdf) | the one address, the one login, routing to each program | written |
+| **1** | [03-desk/DESK.md](03-desk/DESK.md) | [PDF](../pdf/design/03-desk/DESK.pdf) | the one program for every tool: its parts, how a tool's record is taken and measured, the day's clock | written |
+| 2 | 03-desk/WEB.md | | how a page or an API call reaches its tool | to write |
+| 2 | 03-desk/HOME.md | | the landing page, the lists across tools, Manage tools | to write |
+| 2 | 03-desk/TOOL.md | | one running tool, end to end | to write |
+| 3 | 03-desk/tool/SCREENERS.md | | its screeners and how it finds stocks | to write |
+| 3 | 03-desk/tool/CARD.md | | the card: every field and its source | to write |
+| 3 | 03-desk/tool/REGISTERS.md | | its daily record and the outcomes | to write |
+| 3 | 03-desk/tool/LEARNING.md | | the score and the scorecard | to write |
+| 3 | 03-desk/tool/PAGES.md | | its pages | to write |
+| 2 | 03-desk/STOPPED-TOOLS.md | | a stopped tool's history | to write |
+| 2 | 03-desk/MARKET.md | | the market read | to write |
+| 2 | 03-desk/JOBS.md | | the scheduler, job by job | to write |
+| **1** | [04-files/FILES.md](04-files/FILES.md) | [PDF](../pdf/design/04-files/FILES.pdf) | every file on the server, what it holds, its one writer | written |
+| **1** | [05-qp/QP.md](05-qp/QP.md) | [PDF](../pdf/design/05-qp/QP.pdf) | qp: charts, strategies, backtests, signal alerts | written |
+| 2 | 05-qp/CHART.md | | the page and the print sheets | to write |
+| 2 | 05-qp/LIBRARY.md | | the checked indicators | to write |
+| 2 | 05-qp/STRATEGIES.md | | trading rules and how they become trades | to write |
+| 2 | 05-qp/BACKTEST.md | | the backtest | to write |
+| 2 | 05-qp/SIGNAL-ALERTS.md | | signal alerts | to write |
+| 2 | 05-qp/FEEDS.md | | price bars | to write |
+| **1** | [06-research-worker/RESEARCH-WORKER.md](06-research-worker/RESEARCH-WORKER.md) | [PDF](../pdf/design/06-research-worker/RESEARCH-WORKER.pdf) | the O'Neil research job: what it works out, when it runs, who reads it | written |
+| 2 | 06-research-worker/ONEIL.md | | the O'Neil method, letter by letter | to write |
+| **1** | [07-journal/JOURNAL.md](07-journal/JOURNAL.md) | [PDF](../pdf/design/07-journal/JOURNAL.pdf) | the trader's real trades, after the fact | written |
+| 2 | 07-journal/IMPORT.md | | how trades come in | to write |
+| 2 | 07-journal/REVIEW.md | | the page and the analysis | to write |
+| **1** | [08-data-sources/DATA-SOURCES.md](08-data-sources/DATA-SOURCES.md) | [PDF](../pdf/design/08-data-sources/DATA-SOURCES.pdf) | every outside source, its limits, its fallbacks, its health checks | written |
+| **1** | [09-shared-record/SHARED-RECORD.md](09-shared-record/SHARED-RECORD.md) | [PDF](../pdf/design/09-shared-record/SHARED-RECORD.pdf) | the shared database: what it holds, its switches, where it lives | written |
+| **1** | [10-backups/BACKUPS.md](10-backups/BACKUPS.md) | [PDF](../pdf/design/10-backups/BACKUPS.pdf) | the nightly backup, its check, the restore, the monthly rehearsal | written |
+| **1** | [11-alerts/ALERTS.md](11-alerts/ALERTS.md) | [PDF](../pdf/design/11-alerts/ALERTS.pdf) | what reaches the phone, the health page, the outside check | written |
+| **1** | [12-migration/MIGRATION.md](12-migration/MIGRATION.md) | [PDF](../pdf/design/12-migration/MIGRATION.pdf) | from today's desk to the design, step by step | written |
 
-**Where it stands:** the trunk and layer 1 are written and under the trader's
-review. Layers 2 and 3 are written after it.
+**Where it stands:** the top document and the block documents (levels 0 and 1)
+are written and under the trader's review. Levels 2 and 3 are written after it.
 
 ---
 
@@ -61,14 +62,18 @@ Every document has the same parts, in the same order
 2. **what it is:** its job, what it owns, what it never does;
 3. **its diagram;**
 4. **its parts,** each with the document below it where there is one;
-5. **its contracts:** files, tables, fact families, routes;
+5. **its contracts:** files, tables, routes;
 6. **when it fails;**
 7. **built on:** what the old desk did and what failed there;
 8. **status:** what is built, and the migration step that builds the rest.
+
+**Names.** One folder per block, numbered in the order of the picture. The
+block's document carries the block's name; its parts sit beside it, and a part
+with parts of its own gets a folder of its own (`03-desk/tool/`).
 
 ## Around the tree
 
 | Folder | Holds |
 |---|---|
-| [legacy/](../legacy/) | the desk as it runs today, documented from its code: the evidence the design is built on |
-| [archive/design-v1/](../archive/design-v1/README.md) | the first design, superseded on 2026-10-08; kept until layers 2 and 3 carry everything in it |
+| [legacy/](../legacy) | the desk as it runs today, documented from its code: the evidence the design is built on |
+| [archive/design-v1/](../archive/design-v1/README.md) | the first design, superseded on 2026-10-08; kept until levels 2 and 3 carry everything in it |

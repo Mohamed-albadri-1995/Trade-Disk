@@ -4,16 +4,16 @@
 desk learns) and §6 (a trading day).
 
 **Talks to:**
-- the [front door](../front-door/FRONT-DOOR.md), which brings it every page and
+- the [front door](../02-front-door/FRONT-DOOR.md), which brings it every page and
   API call;
-- the [files on the box](../files/FILES.md): it is the only writer of each
+- the [files on the box](../04-files/FILES.md): it is the only writer of each
   tool's file;
-- the [data sources](../outside/SOURCES.md) and the
-  [shared record](../outside/SHARED-RECORD.md);
-- the [research worker](../research/RESEARCH-WORKER.md),
-  [qp](../quant/QUANT.md) and the [journal](../journal/JOURNAL.md), whose timed
+- the [data sources](../08-data-sources/DATA-SOURCES.md) and the
+  [shared record](../09-shared-record/SHARED-RECORD.md);
+- the [research worker](../06-research-worker/RESEARCH-WORKER.md),
+  [qp](../05-qp/QP.md) and the [journal](../07-journal/JOURNAL.md), whose timed
   work it starts;
-- the [backups](../outside/BACKUPS.md) and the [alerts](../outside/ALERTS.md).
+- the [backups](../10-backups/BACKUPS.md) and the [alerts](../11-alerts/ALERTS.md).
 
 ---
 
@@ -132,7 +132,7 @@ runs as its own program. A copy:
 - is compared with the tool's own photo every day.
 
 This is how each tool proves it takes the same photo in the desk before it moves
-([MIGRATION.md](../MIGRATION.md) step B).
+([MIGRATION.md](../12-migration/MIGRATION.md) step B).
 
 Built: `src/toolContext.js` (migration step 15a). The copy and its daily
 comparison: `src/worker/` (step 15b).
@@ -148,7 +148,7 @@ comparison: `src/worker/` (step 15b).
 | **running tools** | one tool end to end: its screeners and discovery, the card, the live list, the shortlist, the photo, the outcomes, the score, its pages and API | [TOOL.md](TOOL.md) |
 | **stopped tools** | a stopped tool's stored registers and history, read-only, on its own address | [STOPPED-TOOLS.md](STOPPED-TOOLS.md) |
 | **market reader** | the indexes, the regime, the short-, mid- and long-term reads, the 15 sectors and hot sectors: read once per scan for every tool, stamped on every card, kept with its history in the desk's own file (R2 is that history at fixed minutes) | [MARKET.md](MARKET.md) |
-| **scheduler and desk jobs** | the only scheduler: every tool's jobs in its context, and the desk jobs (research runs, the night, the restore test, schedule changes, journal sync, qp's alert cycles with their signals pushed to the phone, the health checks, the heartbeat); every run recorded; failed, missed and hung runs alerted ([ALERTS.md](../outside/ALERTS.md)) | [JOBS.md](JOBS.md) |
+| **scheduler and desk jobs** | the only scheduler: every tool's jobs in its context, and the desk jobs (research runs, the night, the restore test, schedule changes, journal sync, qp's alert cycles with their signals pushed to the phone, the health checks, the heartbeat); every run recorded; failed, missed and hung runs alerted ([ALERTS.md](../11-alerts/ALERTS.md)) | [JOBS.md](JOBS.md) |
 
 ### 4.1 Start-up
 
@@ -163,7 +163,7 @@ and none of them waits on the network.
      4. bring back today's live list from the file;
      5. register its jobs.
    - For each **stopped tool**: open its file **read-only**.
-   - **During the move** ([MIGRATION.md](../MIGRATION.md) steps A and B), the
+   - **During the move** ([MIGRATION.md](../12-migration/MIGRATION.md) steps A and B), the
      running tools are those listed in `deskTools`, and each tool listed in
      `workerShadow` opens as a copy.
 2. **Open the desk's own context.** Register the desk jobs.
@@ -259,17 +259,17 @@ New York time, on trading days. Each job and its settings:
 
 | It owns | Form |
 |---|---|
-| each tool's own file | SQLite, one per tool; the only writer ([FILES.md](../files/FILES.md)) |
-| the desk's own file | SQLite: the desk jobs, their runs, the desk's alert state; the market history; the desk's settings ([FILES.md](../files/FILES.md) §3.2) |
+| each tool's own file | SQLite, one per tool; the only writer ([FILES.md](../04-files/FILES.md)) |
+| the desk's own file | SQLite: the desk jobs, their runs, the desk's alert state; the market history; the desk's settings ([FILES.md](../04-files/FILES.md) §3.2) |
 | the live state of every tool | memory, saved to each tool's file after every change |
 | the routes of every tool and of home | [PAGES.md](tool/PAGES.md), [HOME.md](HOME.md), [WEB.md](WEB.md) |
 
 | It reads | From |
 |---|---|
-| the tool registry | `tools.config.json` and `data/tools.local.json` ([FILES.md](../files/FILES.md)) |
-| facts, O'Neil facts, market states | the shared record ([SHARED-RECORD.md](../outside/SHARED-RECORD.md)) |
-| candidates, quotes, news, short interest, borrow, bars | the data sources, through their adapters ([SOURCES.md](../outside/SOURCES.md)) |
-| the secrets | the secret files ([BOX.md](../box/BOX.md) §4.3) |
+| the tool registry | `tools.config.json` and `data/tools.local.json` ([FILES.md](../04-files/FILES.md)) |
+| facts, O'Neil facts, market states | the shared record ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md)) |
+| candidates, quotes, news, short interest, borrow, bars | the data sources, through their adapters ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
+| the secrets | the secret files ([BOX.md](../01-box/BOX.md) §4.3) |
 
 | It starts | When |
 |---|---|
@@ -288,10 +288,10 @@ New York time, on trading days. Each job and its settings:
 | a tool's job throws | recorded in that tool's run history with its stack; alerts if it is a job that alerts; the other tools are unaffected |
 | it passes its memory limit | pm2 restarts it, as a crash |
 | the shared record is down | each tool works from its own file and fetches its facts itself; the copies wait; the health page says so |
-| a data source fails | that source's facts show `unavailable` with the reason; the cards still build ([SOURCES.md](../outside/SOURCES.md)) |
+| a data source fails | that source's facts show `unavailable` with the reason; the cards still build ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | the front door is down | the desk keeps scanning and photographing; only the pages are out of reach |
 | a scan outlasts its slot | the next slot is skipped and recorded; two scans of one tool never run at once |
-| TradingView changes or drops a column | its adapter refuses the answer, and the scan report says why; no card gets shifted values ([SOURCES.md](../outside/SOURCES.md)) |
+| TradingView changes or drops a column | its adapter refuses the answer, and the scan report says why; no card gets shifted values ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 
 ---
 

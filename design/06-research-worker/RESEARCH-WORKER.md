@@ -3,12 +3,12 @@
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.5.
 
 **Talks to:**
-- the [desk](../desk/DESK.md), whose scheduler starts every run
-  ([JOBS.md](../desk/JOBS.md));
-- the [data sources](../outside/SOURCES.md): SEC EDGAR, Form 13F, Polygon,
+- the [desk](../03-desk/DESK.md), whose scheduler starts every run
+  ([JOBS.md](../03-desk/JOBS.md));
+- the [data sources](../08-data-sources/DATA-SOURCES.md): SEC EDGAR, Form 13F, Polygon,
   Yahoo;
-- the [shared record](../outside/SHARED-RECORD.md), where it writes its facts;
-- the tools' [files](../files/FILES.md), which it reads, read-only, to train
+- the [shared record](../09-shared-record/SHARED-RECORD.md), where it writes its facts;
+- the tools' [files](../04-files/FILES.md), which it reads, read-only, to train
   models.
 
 ---
@@ -88,10 +88,10 @@ flowchart LR
 
 | Run | When (New York, trading days) | Steps |
 |---|---|---|
-| **the night** | 18:30, once the day's whole-market bars are published | every step, then the backup ([BACKUPS.md](../outside/BACKUPS.md)) |
+| **the night** | 18:30, once the day's whole-market bars are published | every step, then the backup ([BACKUPS.md](../10-backups/BACKUPS.md)) |
 | **new tickers** | every 5 minutes, 04:00–16:00, while any ticker carded today has no company facts and no attempt today | the per-company steps, for those tickers only |
 | **provisional M** | every 30 minutes in the session | the market model on today's index bars so far, written as **provisional**; the night's run replaces it |
-| **training** | after the outcomes (about 16:20), when a model is chosen | one model per tool, from that tool's own history only ([LEARNING.md](../desk/tool/LEARNING.md)) |
+| **training** | after the outcomes (about 16:20), when a model is chosen | one model per tool, from that tool's own history only ([LEARNING.md](../03-desk/tool/LEARNING.md)) |
 | **by hand** | a button, or a command | any step. It asks the scheduler to start the job; no page waits |
 
 **New tickers the same morning.**
@@ -159,10 +159,10 @@ decision bar, and a photo records exactly the reading of its minute.
 
 | Reader | Reads | Never |
 |---|---|---|
-| the desk's card pipeline | the O'Neil facts of the card's ticker ([CARD.md](../desk/tool/CARD.md)) | computes any of them |
-| the desk's market reader | the latest `oneil_m`, final or provisional, and `group_ranking` ([MARKET.md](../desk/MARKET.md)) | computes any part of them |
-| qp | any of them, as of a day ([BACKTEST.md](../quant/BACKTEST.md)) | writes them |
-| the journal | the facts known at a trade's entry ([REVIEW.md](../journal/REVIEW.md)) | writes them |
+| the desk's card pipeline | the O'Neil facts of the card's ticker ([CARD.md](../03-desk/tool/CARD.md)) | computes any of them |
+| the desk's market reader | the latest `oneil_m`, final or provisional, and `group_ranking` ([MARKET.md](../03-desk/MARKET.md)) | computes any part of them |
+| qp | any of them, as of a day ([BACKTEST.md](../05-qp/BACKTEST.md)) | writes them |
+| the journal | the facts known at a trade's entry ([REVIEW.md](../07-journal/REVIEW.md)) | writes them |
 | pages | through the card and the market state | trigger a build |
 
 ### 3.5 Its switch
@@ -187,7 +187,7 @@ decision bar, and a photo records exactly the reading of its minute.
 
 | It reads | From |
 |---|---|
-| EDGAR (company facts, the ticker map, 8-K items, SIC), Form 13F datasets, Polygon grouped daily, Yahoo index and stock bars | the data sources ([SOURCES.md](../outside/SOURCES.md)) |
+| EDGAR (company facts, the ticker map, 8-K items, SIC), Form 13F datasets, Polygon grouped daily, Yahoo index and stock bars | the data sources ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | the tickers to cover | `research_wanted`, written by the desk |
 | R1 and R3 of a tool, to train its model | that tool's file, read-only |
 
@@ -206,7 +206,7 @@ alerts. For example: earnings not refreshed in 8 days.
 | a step fails | the other steps run. The failure is recorded with its reason, and the facts keep their old dates, so cards say "last run DATE" |
 | a run does not happen, or hangs | the scheduler records it as missed or hung, and alerts |
 | a source is slow or limited (EDGAR: ten requests a second) | the step works within its budget and carries the rest to the next night |
-| it runs out of memory at night | the run fails and alerts. The night's run happens at 18:30, when no scan is due, with swap behind it ([BOX.md](../box/BOX.md)) |
+| it runs out of memory at night | the run fails and alerts. The night's run happens at 18:30, when no scan is due, with swap behind it ([BOX.md](../01-box/BOX.md)) |
 | the shared record is down | nothing can be written, so the run fails and alerts. Nothing is written anywhere else |
 
 ---
@@ -245,4 +245,4 @@ O'Neil code, which was checked rule by rule: `relstrength.py`, `oneil.py`,
 | its runs started by the desk | **partly**: the new-ticker and provisional-M runs are started by T1's scheduler; the night's run is the last step of qp's own nightly job, on its systemd timer |
 | the whole chain inside the worker (steps 1–12), started by the desk's night job | **to build** (step C): today the chain's computations run in qp's nightly job and the worker publishes their results |
 | `rs_line`, `oneil_s`, `oneil_n_events`, `sic` as facts; the ratings beyond RS, group and A/D | **to build** ([ONEIL.md](ONEIL.md) §6) |
-| training models | **prepared, no model** (by the trader's choice; [LEARNING.md](../desk/tool/LEARNING.md)) |
+| training models | **prepared, no model** (by the trader's choice; [LEARNING.md](../03-desk/tool/LEARNING.md)) |

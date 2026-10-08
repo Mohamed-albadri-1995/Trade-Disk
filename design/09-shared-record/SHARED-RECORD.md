@@ -7,12 +7,12 @@
 
 | Program | What it does here |
 |---|---|
-| the [desk](../desk/DESK.md) | writes the facts it fetches, and the copies of the registers and of the market history |
-| the [research worker](../research/RESEARCH-WORKER.md) | writes the O'Neil facts |
-| [qp](../quant/QUANT.md) | reads registers, market states and facts, as of a day |
-| the [journal](../journal/JOURNAL.md) | reads what was known at a trade's entry |
+| the [desk](../03-desk/DESK.md) | writes the facts it fetches, and the copies of the registers and of the market history |
+| the [research worker](../06-research-worker/RESEARCH-WORKER.md) | writes the O'Neil facts |
+| [qp](../05-qp/QP.md) | reads registers, market states and facts, as of a day |
+| the [journal](../07-journal/JOURNAL.md) | reads what was known at a trade's entry |
 
-The [backups](BACKUPS.md) dump and verify it every night.
+The [backups](../10-backups/BACKUPS.md) dump and verify it every night.
 
 ---
 
@@ -29,7 +29,7 @@ tool, needs:
 | **a copy of every tool's records**: what it found each morning (R1), how those stocks moved (R3), its shortlist, its screeners and their versions | the copy keeps the research record safe if the box is lost between two nightly backups, and lets qp read any tool's history as of any day |
 
 **It is not the record of a tool's results.** Each tool's own file on the box
-is ([FILES.md](../files/FILES.md)). So the desk keeps working when the shared
+is ([FILES.md](../04-files/FILES.md)). So the desk keeps working when the shared
 record is down: the tools work from their own files and fetch their own facts,
 and the copies catch up.
 
@@ -89,14 +89,14 @@ So the history stays small. Every photo holds its whole card anyway, and the
 market history is kept on its own.
 
 **The families, their writers and their clocks:**
-- the card's families: [CARD.md](../desk/tool/CARD.md);
+- the card's families: [CARD.md](../03-desk/tool/CARD.md);
 - the O'Neil families:
-  [RESEARCH-WORKER.md](../research/RESEARCH-WORKER.md).
+  [RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md).
 
 ### 3.2 The copy of the market history
 
 The desk keeps the market history in its own file
-([MARKET.md](../desk/MARKET.md)). These are its copies, written at the same
+([MARKET.md](../03-desk/MARKET.md)). These are its copies, written at the same
 moment and compared every day, plus the comparison of the shadow weeks.
 
 | Table | Key | Holds |
@@ -105,7 +105,7 @@ moment and compared every day, plus the comparison of the shadow weeks.
 | `hot_sector_days` | sector, day | each sector's best score of the day, its counts toward hot and toward cooling, hot or not, hot since |
 | `market_parity` | tool, `at` | while the market reader is in shadow: each tool's own read against the shared one |
 
-Detail: [MARKET.md](../desk/MARKET.md).
+Detail: [MARKET.md](../03-desk/MARKET.md).
 
 ### 3.3 Research
 
@@ -131,7 +131,7 @@ Detail: [MARKET.md](../desk/MARKET.md).
 - The two are compared every day.
 - The old history of all eleven tools was imported once, with 0 differences.
 
-qp reads them as of a day ([BACKTEST.md](../quant/BACKTEST.md)).
+qp reads them as of a day ([BACKTEST.md](../05-qp/BACKTEST.md)).
 
 ### 3.5 Run records
 
@@ -162,7 +162,7 @@ Each area has a switch in `data/keys.json`:
 
 A family or an area is switched **on** only when its comparison is clean.
 - **For a fact family**, also when its call counts show the tools share enough
-  tickers for sharing to pay ([MIGRATION.md](../MIGRATION.md) step D).
+  tickers for sharing to pay ([MIGRATION.md](../12-migration/MIGRATION.md) step D).
 - **The register copies have no "on".** They stay copies, and each tool's own
   file stays the record ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
   What is switched on is qp reading them (`quantRegistersMode`).
@@ -217,7 +217,7 @@ lock so that two programs starting together cannot both migrate. Today they are
 | it is unreachable | every program stays off it for a minute, then tries again. Tools work from their own files and fetch their own facts. The copies and the shared facts wait, and the gap is shown on the health page |
 | a write fails | the tool's own file already holds the row, so nothing is lost; the daily comparison finds the gap and the copy is written again |
 | it is lost | restore last night's dump. The register copies can also be rebuilt from the tools' files (`scripts/import-registers.js`), with 0 differences proven once, and the market history from the desk's file |
-| the address saved is wrong | refused before saving, with the reason ([BOX.md](../box/BOX.md) §4.3) |
+| the address saved is wrong | refused before saving, with the reason ([BOX.md](../01-box/BOX.md) §4.3) |
 
 ---
 

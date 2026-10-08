@@ -4,14 +4,14 @@
 §8 (running it).
 
 **Talks to:**
-- the [desk's jobs](../desk/JOBS.md): the night job starts the backup after the
+- the [desk's jobs](../03-desk/JOBS.md): the night job starts the backup after the
   night's research run, and the monthly job starts the rehearsal;
-- the [deploy](../box/BOX.md) (§4.2), which backs up before it restarts
+- the [deploy](../01-box/BOX.md) (§4.2), which backs up before it restarts
   anything;
-- every [file](../files/FILES.md) on the box, which it reads;
-- the [shared record](SHARED-RECORD.md), which it dumps;
+- every [file](../04-files/FILES.md) on the box, which it reads;
+- the [shared record](../09-shared-record/SHARED-RECORD.md), which it dumps;
 - Cloudflare R2, where everything goes;
-- the [alerts](ALERTS.md), for a night that is not clean.
+- the [alerts](../11-alerts/ALERTS.md), for a night that is not clean.
 
 ---
 
@@ -37,7 +37,7 @@ file per day, which analysis tools such as DuckDB or pandas read in place.
 **Why it matters.** The box is one machine with no second copy. Each tool's
 file is the record of its research, and a lost file is a lost history. The
 shared record's copy of the tools' records covers the hours since the last night
-([SHARED-RECORD.md](SHARED-RECORD.md)); the backup covers everything else.
+([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md)); the backup covers everything else.
 
 ---
 
@@ -104,7 +104,7 @@ flowchart LR
 | every SQLite file in `data/`: each tool's file, running or stopped (T1's is `tradedesk.db`), and the desk's own file | `data/<same>.db.gz` |
 | the journal's file, `data/journal/journal.db` | `data/journal/journal.db.gz` |
 | qp's file, `~/.qp/platform.db` | `qp/platform.db.gz` |
-| the shared JSON files in `data/` (the tool registry, and the files being retired, [FILES.md](../files/FILES.md)), but no secret file | `data/<same>.json.gz` |
+| the shared JSON files in `data/` (the tool registry, and the files being retired, [FILES.md](../04-files/FILES.md)), but no secret file | `data/<same>.json.gz` |
 | every table of the shared record, read in **one snapshot** | `pg/<table>.jsonl.gz`, JSON lines; no `pg_dump` is needed on the box |
 
 **Consistent copies.** Each SQLite file is copied with SQLite's online backup
@@ -126,14 +126,14 @@ collected.
 
 **A backup must not be the place a key leaks from** (S-2). The trader keeps
 their own copy of the secrets, and a restore puts them back from it
-([BOX.md](../box/BOX.md) §4.3).
+([BOX.md](../01-box/BOX.md) §4.3).
 
 **Not copied, because they rebuild themselves:**
 
 | What | How it comes back |
 |---|---|
 | the bar caches (`~/.qp-cache/`) | fetched again on demand |
-| trained score models (`src/scoring/outputs*`) | trained again from the registers. When a model is chosen, models become rows in the shared record, and the dump carries them ([LEARNING.md](../desk/tool/LEARNING.md)) |
+| trained score models (`src/scoring/outputs*`) | trained again from the registers. When a model is chosen, models become rows in the shared record, and the dump carries them ([LEARNING.md](../03-desk/tool/LEARNING.md)) |
 | the comparison copy's file (`data/worker/`) | disposable: it is rebuilt from the tool's file |
 | logs, qp's operations log | logs, not records |
 | the code | the repository |
@@ -176,7 +176,7 @@ the month is never marked kept with a file missing.
 ### 3.5 The analysis files
 
 Each tool's registers for the day, one file per tool, register and day,
-written as the registers are defined in [REGISTERS.md](../desk/tool/REGISTERS.md).
+written as the registers are defined in [REGISTERS.md](../03-desk/tool/REGISTERS.md).
 - **Format:** Parquet, so the columns keep their types and DuckDB and pandas
   read them in place. Today they are gzipped CSV, nested values as JSON in the
   cell.
@@ -223,7 +223,7 @@ SQLite file's integrity. A failure is a red alert. By hand:
 ### 3.8 A new box
 
 1. Make the box and deploy: `./deploy-tools.sh` starts empty
-   ([BOX.md](../box/BOX.md)).
+   ([BOX.md](../01-box/BOX.md)).
 2. Put the secrets back from the trader's copy: `scripts/set-r2-keys.sh`, the
    shared record's address, `scripts/set-password.sh`.
 3. `node scripts/desk.js restore <day> --yes`.
@@ -257,7 +257,7 @@ tests the keys with a read-only request.
 | a kept night or month | `restore/<day>/`; with `--yes`, the live files and the shared record, after setting the old ones aside |
 
 **Its run record.** The night job and the monthly job record each run in the
-desk's job history ([JOBS.md](../desk/JOBS.md)): the files and bytes copied,
+desk's job history ([JOBS.md](../03-desk/JOBS.md)): the files and bytes copied,
 the register files, the check's result, the failures. A night that is not clean
 fails the job, and the job alerts.
 

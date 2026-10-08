@@ -1,6 +1,6 @@
 # From today's desk to the design
 
-**Above:** [ARCHITECTURE.md](../ARCHITECTURE.md) §9 (where the build stands,
+**Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §9 (where the build stands,
 and the way there).
 
 **Talks to:** every block's document. Each step below names the blocks it
@@ -108,9 +108,9 @@ deployed to the box on 2026-10-08.
 | 6 | one market read per scan; hot sectors kept | **in shadow** | switched on (D) |
 | 7 | the research worker: O'Neil facts with their dates; new tickers within minutes | **in shadow** | the whole chain in the worker (C); switched on (D) |
 | 8 | run history; alerts on failed, missed, hung runs; the night | **partly** | one scheduler (B, C) |
-| 9 | the registers copied to the shared record, all eleven tools imported with 0 differences; the discovery engine | **done**; the engine **off** | the engine retires with B ([ARCHITECTURE §10](../ARCHITECTURE.md#10-decisions)) |
+| 9 | the registers copied to the shared record, all eleven tools imported with 0 differences; the discovery engine | **done**; the engine **off** | the engine retires with B ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)) |
 | 10 | the scorecard, the training set, an empty model slot | **prepared** | the scorecard page (E); the model (F) |
-| 11 | the journal: one pairing engine for every source | **done, in part** | stops, the entry snapshot (D), the tables ([JOURNAL.md](journal/JOURNAL.md)) |
+| 11 | the journal: one pairing engine for every source | **done, in part** | stops, the entry snapshot (D), the tables ([JOURNAL.md](../07-journal/JOURNAL.md)) |
 | 12 | qp: alerts on the strategy's own fill model, alert history; registers from the shared record (off) | **partly** | alert cycles from the desk (C); reads as of a day (D) |
 | 13 | the verified backup, one-command restore, monthly rehearsal | **done** | the backup before every deploy (C); the analysis files as Parquet |
 | 14 | one origin through the gateway | **partly** | phone first, ⓘ on every label (E) |
@@ -121,14 +121,14 @@ deployed to the box on 2026-10-08.
 
 **Changes:**
 - the **desk program** (`desk` under pm2): the web layer, the contexts, the
-  desk's own port ([DESK.md](desk/DESK.md));
+  desk's own port ([DESK.md](../03-desk/DESK.md));
 - each **stopped tool** opened read-only in its own context, its pages and its
   read routes served as the archive serves them today; a write is refused with
-  the reason ([STOPPED-TOOLS.md](desk/STOPPED-TOOLS.md));
+  the reason ([STOPPED-TOOLS.md](../03-desk/STOPPED-TOOLS.md));
 - the **photo-window guard** on the deploy, before the desk holds a running
-  tool ([BOX.md](box/BOX.md) §4.2);
+  tool ([BOX.md](../01-box/BOX.md) §4.2);
 - the backup's **analysis files** read through the desk, each file opened
-  read-only ([BACKUPS.md](outside/BACKUPS.md)).
+  read-only ([BACKUPS.md](../10-backups/BACKUPS.md)).
 
 **The check.** While the archive still runs, the desk serves each stopped tool
 under `/tools/T<n>/` on its own port. Every read route of every stopped tool is
@@ -147,7 +147,7 @@ ports, so every old address keeps working, and the gateway sends
 **One tool at a time:** T2, then T7, T11, T6, and **T1 last**. For each tool:
 
 1. **Copy.** The tool is listed in `workerShadow`. The desk opens a **copy**
-   context ([DESK.md](desk/DESK.md) §3):
+   context ([DESK.md](../03-desk/DESK.md) §3):
    - it follows the tool's screeners, settings, stars and today's shortlist,
      read-only from the tool's file every minute, and its schedules;
    - it starts from the tool's checkpoint when it starts mid-day;
@@ -192,13 +192,13 @@ is lost, because the file is the same file.
 
 **T1, last, takes three things with it:**
 - **home:** the landing page, the lists across all tools and Manage tools move
-  into the desk's own context ([HOME.md](desk/HOME.md));
+  into the desk's own context ([HOME.md](../03-desk/HOME.md));
 - **the desk jobs** move into the desk's own context and its own file,
-  `data/desk.db` ([JOBS.md](desk/JOBS.md)). Their past runs stay in T1's file,
+  `data/desk.db` ([JOBS.md](../03-desk/JOBS.md)). Their past runs stay in T1's file,
   as history;
 - **T1 becomes a tool like the others,** so it can be stopped. Home keeps
   port 3000, where the landing page has always been, and T1 takes port 3090
-  ([WEB.md](desk/WEB.md) §3.1).
+  ([WEB.md](../03-desk/WEB.md) §3.1).
 
 **After the last tool:**
 - `deskTools` and `workerShadow` retire: the desk runs every running tool;
@@ -214,29 +214,29 @@ T1 can be stopped; the benchmark is back.
 
 | Change | The check | Undo |
 |---|---|---|
-| **The night.** `scripts/retire-old-schedulers.sh` removes qp's systemd timer and the pm2 backup cron; the desk's night job runs the research, then the backup ([JOBS.md](desk/JOBS.md)) | the first week's nights recorded, each step ok, each backup clean | re-enable the timer and the cron |
-| **The whole O'Neil chain in the research worker** (its steps 1–12); qp's nightly job no longer computes it ([RESEARCH-WORKER.md](research/RESEARCH-WORKER.md)) | for a week the night runs both, one after the other: the worker's facts must equal qp's outputs | qp's nightly chain again |
-| **qp's alert cycles started by the desk** (`POST /api/alerts/cycle`), each minute 09:25–16:05 while alerts are on; qp's watcher thread not started ([SIGNAL-ALERTS.md](quant/SIGNAL-ALERTS.md)) | for a week the desk's cycles run beside the thread without writing history or notifying; their signals, per strategy, symbol and bar, must equal the thread's | qp's thread again |
-| **Signals on the phone,** on their own topic ([ALERTS.md](outside/ALERTS.md) §3.6) | a test signal reaches the phone | the page only |
-| **The journal's sync started by the desk** (`POST /api/journal/sync`); the journal's own timer off ([JOURNAL.md](journal/JOURNAL.md)) | for a week both run; fills are keyed by their broker id, so the same fills arrive once | the journal's timer again |
-| **Every job alerts**, frequent jobs after three failed runs in a row ([ALERTS.md](outside/ALERTS.md) §3.1) | each kind of job made to fail once, on purpose, and seen to alert | — |
-| **The deploy backs up first** ([BACKUPS.md](outside/BACKUPS.md)) | a deploy's backup in the bucket, before its restarts | — |
+| **The night.** `scripts/retire-old-schedulers.sh` removes qp's systemd timer and the pm2 backup cron; the desk's night job runs the research, then the backup ([JOBS.md](../03-desk/JOBS.md)) | the first week's nights recorded, each step ok, each backup clean | re-enable the timer and the cron |
+| **The whole O'Neil chain in the research worker** (its steps 1–12); qp's nightly job no longer computes it ([RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)) | for a week the night runs both, one after the other: the worker's facts must equal qp's outputs | qp's nightly chain again |
+| **qp's alert cycles started by the desk** (`POST /api/alerts/cycle`), each minute 09:25–16:05 while alerts are on; qp's watcher thread not started ([SIGNAL-ALERTS.md](../05-qp/SIGNAL-ALERTS.md)) | for a week the desk's cycles run beside the thread without writing history or notifying; their signals, per strategy, symbol and bar, must equal the thread's | qp's thread again |
+| **Signals on the phone,** on their own topic ([ALERTS.md](../11-alerts/ALERTS.md) §3.6) | a test signal reaches the phone | the page only |
+| **The journal's sync started by the desk** (`POST /api/journal/sync`); the journal's own timer off ([JOURNAL.md](../07-journal/JOURNAL.md)) | for a week both run; fills are keyed by their broker id, so the same fills arrive once | the journal's timer again |
+| **Every job alerts**, frequent jobs after three failed runs in a row ([ALERTS.md](../11-alerts/ALERTS.md) §3.1) | each kind of job made to fail once, on purpose, and seen to alert | — |
+| **The deploy backs up first** ([BACKUPS.md](../10-backups/BACKUPS.md)) | a deploy's backup in the bucket, before its restarts | — |
 
 **Seen:** qp's signals on the phone; one place for every job's runs.
 
 ### 3.7 Step D: switched on
 
 Each switch alone, each when its check is clean, each undone by setting it
-back to shadow ([SHARED-RECORD.md](outside/SHARED-RECORD.md) §3.6).
+back to shadow ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md) §3.6).
 
 | Switch | The check before | Then |
 |---|---|---|
-| `marketMode on` | a week of each tool's own read equal to the one read (`market_parity`); each tool's own hot-sector and bias thresholds equal to the desk's, or listed | every card is stamped from the one read; the R2 jobs retire, and R2 is read from the market history; then the corrections of [MARKET.md](desk/MARKET.md) |
+| `marketMode on` | a week of each tool's own read equal to the one read (`market_parity`); each tool's own hot-sector and bias thresholds equal to the desk's, or listed | every card is stamped from the one read; the R2 jobs retire, and R2 is read from the market history; then the corrections of [MARKET.md](../03-desk/MARKET.md) |
 | `factsMode on`, family by family | `fact_parity` clean for a week, and `source_calls` showing the tools share enough tickers for sharing to pay | the family is read from the store |
 | `researchMode on` | the worker's facts equal qp's values, field by field, for a week; with qp stopped, the cards and the Market tab unchanged | the cards read the worker's facts; qp's O'Neil routes retire |
 | `quantRegistersMode on` | past backtests re-run against the shared record give identical trades | qp reads every tool's registers from the shared record |
-| qp reads facts and market states as of a day (to build) | the old days imported (§3.11); a sample of backtests with the CANSLIM gate compared | the CANSLIM control on qp's page ([BACKTEST.md](quant/BACKTEST.md)) |
-| the journal's entry snapshot (to build) | facts as of a day available | each trade's snapshot ([REVIEW.md](journal/REVIEW.md)) |
+| qp reads facts and market states as of a day (to build) | the old days imported (§3.11); a sample of backtests with the CANSLIM gate compared | the CANSLIM control on qp's page ([BACKTEST.md](../05-qp/BACKTEST.md)) |
+| the journal's entry snapshot (to build) | facts as of a day available | each trade's snapshot ([REVIEW.md](../07-journal/REVIEW.md)) |
 
 **Seen:** fewer source calls; backtests gated on the market and CANSLIM for any
 day; each trade's snapshot.
@@ -245,18 +245,18 @@ day; each trade's snapshot.
 
 | Change | The check |
 |---|---|
-| the health page, `/api/status`, and its checks: sources, fact freshness, programs, the box, sign-ins ([ALERTS.md](outside/ALERTS.md)) | each check made to fail once, on purpose (a wrong key, a stopped program), and seen on the page and the phone |
+| the health page, `/api/status`, and its checks: sources, fact freshness, programs, the box, sign-ins ([ALERTS.md](../11-alerts/ALERTS.md)) | each check made to fail once, on purpose (a wrong key, a stopped program), and seen on the page and the phone |
 | the outside heartbeat | the desk stopped for 20 minutes outside the session: the alert arrives |
-| the scorecard page per tool and screener ([LEARNING.md](desk/tool/LEARNING.md)) | each number against its API |
-| live updates on open pages ([PAGES.md](desk/tool/PAGES.md)) | a page left open follows the scans without a reload |
+| the scorecard page per tool and screener ([LEARNING.md](../03-desk/tool/LEARNING.md)) | each number against its API |
+| live updates on open pages ([PAGES.md](../03-desk/tool/PAGES.md)) | a page left open follows the scans without a reload |
 | phone first: every page readable at 430 px wide | every page at 430 px |
-| ⓘ on every label, by tap ([CARD.md](desk/tool/CARD.md)) | every label has one |
+| ⓘ on every label, by tap ([CARD.md](../03-desk/tool/CARD.md)) | every label has one |
 
 **Undo.** All of it is additive.
 
 ### 3.9 Step F: the model
 
-When the trader chooses one ([LEARNING.md](desk/tool/LEARNING.md)):
+When the trader chooses one ([LEARNING.md](../03-desk/tool/LEARNING.md)):
 - trained by the research worker, one per tool, from that tool's own history;
 - **the check:** a walk-forward Brier score better than the tool's base rate;
 - **undo:** the empty slot again.
@@ -264,7 +264,7 @@ When the trader chooses one ([LEARNING.md](desk/tool/LEARNING.md)):
 ### 3.10 Any time: the front door goes live
 
 1. Fix `scripts/setup-domain.sh` for the box's system: it uses `apt-get`, and
-   the box runs Amazon Linux 2023 ([FRONT-DOOR.md](front-door/FRONT-DOOR.md)).
+   the box runs Amazon Linux 2023 ([FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md)).
 2. The trader makes a free DuckDNS name and runs the script; Caddy takes a
    certificate.
 3. In AWS, open 80 and 443, and close 3000–3120, 8765 and 8080 to the internet.
@@ -303,9 +303,9 @@ marked **unknown**, never guessed.
 
 | Decision | Needed by | Where |
 |---|---|---|
-| where the shared record lives: Railway, the box or AWS RDS | before D; to be taken up again on 2026-10-22 | [SHARED-RECORD.md](outside/SHARED-RECORD.md) §3.7 |
-| T6's photo (D-S9): after 11:30 with its entries, or its window opened earlier | any time; it does not block T6's move, which changes nothing T6 does | [SCREENERS.md](desk/tool/SCREENERS.md) |
-| the model | F | [LEARNING.md](desk/tool/LEARNING.md) |
+| where the shared record lives: Railway, the box or AWS RDS | before D; to be taken up again on 2026-10-22 | [SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md) §3.7 |
+| T6's photo (D-S9): after 11:30 with its entries, or its window opened earlier | any time; it does not block T6's move, which changes nothing T6 does | [SCREENERS.md](../03-desk/tool/SCREENERS.md) |
+| the model | F | [LEARNING.md](../03-desk/tool/LEARNING.md) |
 
 ---
 
@@ -315,7 +315,7 @@ marked **unknown**, never guessed.
 |---|---|---|
 | `workerShadow` | B | the tools run as comparison copies |
 | `deskTools` (to build) | B | the tools the desk runs for real. The deploy starts no program of their own, and the gateway sends them to the desk. Retired after B |
-| `factsMode`, `marketMode`, `researchMode`, `quantRegistersMode` | D | off, shadow or on, per area ([SHARED-RECORD.md](outside/SHARED-RECORD.md) §3.6) |
+| `factsMode`, `marketMode`, `researchMode`, `quantRegistersMode` | D | off, shadow or on, per area ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md) §3.6) |
 | `discoveryMode` | — | off; retired in B |
 
 | Comparison record | Where | Step |
@@ -343,11 +343,11 @@ marked **unknown**, never guessed.
 - the first migration plan, steps 1–20, which this replaces from step 15 on:
   its steps 15 and 16 (two programs, desk-worker and desk-web) became A and B
   (one program), its 17 became D, its 18 and 19 became E, its 20 became F;
-- [the earlier rebuild draft](../legacy/architecture/REBUILD-ARCHITECTURE.md);
+- [the earlier rebuild draft](../../legacy/architecture/REBUILD-ARCHITECTURE.md);
 - the known issues of the old desk:
-  [screeners](../legacy/screeners/KNOWN-ISSUES.md),
-  [qp](../legacy/qp/KNOWN-ISSUES.md),
-  [journal](../legacy/journal/KNOWN-ISSUES.md);
+  [screeners](../../legacy/screeners/KNOWN-ISSUES.md),
+  [qp](../../legacy/qp/KNOWN-ISSUES.md),
+  [journal](../../legacy/journal/KNOWN-ISSUES.md);
 - the code repository's `docs/WORKER.md` (the comparison copy) and
   `docs/SETUP-NOW.md` (the commands on the box).
 
@@ -362,7 +362,7 @@ marked **unknown**, never guessed.
    each step of the program half ends with something visible.
 4. **Two programs were the hardest part of the earlier plan.** Everything a
    page shows from the scans would have had to be copied into the database all
-   day. One program removes that ([DESK.md](desk/DESK.md#why-one-program-not-two)).
+   day. One program removes that ([DESK.md](../03-desk/DESK.md#why-one-program-not-two)).
 
 ---
 
