@@ -134,7 +134,7 @@ flowchart TB
       TOOLS["<b>running tools</b><br/>T1 · T2 · T6 · T7 · T11<br/>each: pages + API + scans<br/><i>each kept apart in its own context</i>"]
       STOP["<b>stopped tools</b><br/>T3 T4 T5 T8 T9 T10<br/>read-only"]
       MKT["<b>market reader</b><br/>one read per scan<br/>for every tool"]
-      JOBS["<b>scheduler and desk jobs</b><br/>every tool's jobs · research runs · the night<br/>journal sync · qp's alert cycles · restore test"]
+      JOBS["<b>scheduler and desk jobs</b><br/>every tool's jobs · research runs · the night<br/>journal sync · qp's alert cycles<br/>restore test · health checks"]
     end
     FILES[("<b>files on the box</b><br/>each tool's own file · qp's file<br/>the journal's file · registry · secrets")]
     QP["<b>qp</b> · Python<br/>charts · strategies · backtests<br/>signal alerts · print sheets"]
@@ -185,6 +185,9 @@ Not every line is drawn, so that the picture stays readable:
 - The research worker, qp and the journal call data sources of their own:
   EDGAR, 13F filings and bars; bars; Alpaca fills and bars.
 - The nightly backup copies every file on the box as well as the shared record.
+- The tools shown running and stopped are today's. The benchmark, T9, runs
+  again once the move into the desk frees the memory
+  ([MIGRATION.md](design/MIGRATION.md) step B).
 
 The table maps every block to its document. The sections after it walk through
 each block.
@@ -263,7 +266,8 @@ costs a few megabytes, not a process.
     - the monthly restore test;
     - tool schedule changes;
     - the journal's sync;
-    - qp's alert cycles.
+    - qp's alert cycles;
+    - the health checks and the heartbeat.
   - Every run is recorded, and a failed, missed or hung run reaches the phone.
 
 **How a request reaches its tool.** Every page and API call goes through the
@@ -336,6 +340,7 @@ exactly one writer:
 | File | Holds | Its only writer |
 |---|---|---|
 | each tool's own file | the tool's screeners, settings and saved live list; its registers (R1, R2, R3, the shortlist); its jobs and their runs | the desk |
+| the desk's own file | the desk jobs, their runs, the desk's alert state | the desk |
 | qp's file | strategies, backtests, alert history | qp |
 | the journal's file | accounts, fills, trades, notes | the journal |
 | the tool registry, the secrets | which tools exist and how they are set up; the keys | Manage tools; the trader |
@@ -354,7 +359,8 @@ because it is the best-built part of the desk:
 - the strategy builder;
 - the backtest of a rule on the stocks the tools found, on the days they found
   them;
-- live signal alerts on today's lists;
+- live signal alerts on today's lists, on its page and, through the desk, on
+  the phone;
 - print sheets.
 
 **What changes.**
@@ -362,7 +368,8 @@ because it is the best-built part of the desk:
   the shared record, instead of asking each tool's port.
 - **One evaluator and one fill model.** Preview, backtest and alerts use the
   same ones.
-- **No timer of its own.** Each alert cycle is started by the desk's scheduler.
+- **No timer of its own.** Each alert cycle is started by the desk's scheduler,
+  which pushes the cycle's new signals to the phone.
 - **No O'Neil chain.** It no longer hosts the chain; the research worker does.
 
 **Detail:** [design/quant/QUANT.md](design/quant/QUANT.md).
@@ -406,8 +413,8 @@ It is the only writer of those facts. No page ever waits for it.
 |---|---|---|
 | **data sources** | TradingView's scanner and news; Yahoo; Alpaca; FINRA, Nasdaq and NYSE; SEC EDGAR; Polygon; Finnhub; Google News. Each is called only through its **adapter**, which states its facts, freshness, limits, fallbacks and health, and says "unavailable, because …" rather than guessing | [design/outside/SOURCES.md](design/outside/SOURCES.md) |
 | **shared record** | Postgres. It holds what more than one program or tool needs (below) | [design/outside/SHARED-RECORD.md](design/outside/SHARED-RECORD.md) |
-| **backups** | every night, after the night's research run, every file on the box and a dump of the shared record go to Cloudflare R2, and the dump is verified by restoring it. One command puts a night back; a monthly rehearsal proves it | [design/outside/BACKUPS.md](design/outside/BACKUPS.md) |
-| **alerts** | ntfy delivers to the phone: a failed, missed or hung job; a sick source; a backup that did not verify; a recovery. One alert per cause, never repeated while it stands | [design/outside/ALERTS.md](design/outside/ALERTS.md) |
+| **backups** | every night, after the night's research run, and before every deploy, every file on the box and a dump of the shared record go to Cloudflare R2, and the dump is verified by restoring it. One command puts a night back; a monthly rehearsal proves it | [design/outside/BACKUPS.md](design/outside/BACKUPS.md) |
+| **alerts** | ntfy delivers to the phone: a failed, missed or hung job; a sick source; a backup that did not verify; a recovery. One alert per cause, never repeated while it stands. qp's signals go to their own topic. The desk sends every alert, and an outside heartbeat check alerts when the desk itself stops. One health page shows every signal with its fix | [design/outside/ALERTS.md](design/outside/ALERTS.md) |
 
 **What the shared record holds:**
 - facts about the world, each with its time and source;
@@ -517,6 +524,7 @@ sequenceDiagram
   D->>TV: re-quote every card of today
   Note over D,Q: every minute in the session, while alerts are on
   D->>Q: one alert cycle
+  Q-->>D: its new signals, which the desk pushes to the phone
   Note over D: one minute before each tool's photo
   D->>D: shortlist auto-rule
   Note over D: each tool's capture minute
@@ -559,13 +567,13 @@ sequenceDiagram
 |---|---|
 | a source fails or answers nonsense | its families show `unavailable` with the reason, and the cards still build. Health turns amber or red, and an alert names the source and the fix |
 | TradingView changes or drops a column | the alignment check refuses the batch, and the scan report says why. Health goes red. No card gets shifted values |
-| the desk crashes | the supervisor restarts it in seconds. Every tool's list comes back from its file, and every job's history is in its file. A slot that passed while it was down is recorded as missed, with an alert |
+| the desk crashes | the supervisor restarts it in seconds. Every tool's list comes back from its file, and every job's history is in its file. A slot that passed while it was down is recorded as missed, with an alert. If it does not come back, the outside heartbeat check alerts within 15 minutes |
 | a photo's minute passes with the desk down | the photo is recorded as missed. It is never taken later as if on time |
 | a scan outlasts its slot | the next slot is skipped and recorded; two scans of one tool never run at once |
 | the research worker fails or does not run | each step reports on its own. Facts keep their dates, so cards say "last run DATE". An alert is sent |
 | the shared record is down | each tool keeps working from its own file and fetches its facts itself. The copies and the shared facts wait, and the gap is said on the health page |
 | qp or the journal is down | the desk is unaffected. The scheduler records the failed cycle or sync, and alerts |
-| the box is lost | a new box: install, restore the secrets, then `desk restore <date>`. The shared record still holds the copy of every photo taken since the last backup |
+| the box is lost | the outside heartbeat check alerts within 15 minutes. A new box: install, restore the secrets, then `desk restore <date>`. The shared record still holds the copy of every photo taken since the last backup |
 
 ---
 
@@ -622,7 +630,9 @@ system:
 | operating system | — | about 150 MB |
 
 That is about 500–650 MB of programs and system, against about 724 MB of
-programs alone today.
+programs alone today, before the gateway (deployed since) added its share. The
+box has almost nothing to spare, and that sets the order of the move
+([MIGRATION.md](design/MIGRATION.md) §3.2).
 - **The night's run** happens at 18:30, when no scan is due. It may lean on swap.
 - **A 2 GB box** removes the squeeze.
 
@@ -631,8 +641,9 @@ Nothing runs under systemd as well. The nightly timer of the old chain is
 retired when the desk's night job takes over.
 
 **Deploy.** One command, `./deploy-tools.sh`:
-- pulls, checks and restarts in order: the desk, qp, the journal, the front
-  door;
+- pulls and checks, then backs up every file and the shared record (to
+  build), because a restart is when migrations run;
+- restarts in order: the desk, qp, the journal, the front door;
 - checks each program's health page;
 - stops at the first failure and says why;
 - refuses to run within 15 minutes of a tool's photo unless forced (to
@@ -641,7 +652,7 @@ retired when the desk's night job takes over.
 CI runs every test on every pull request, and red blocks the merge.
 
 **Backup and restore.**
-- **Backup:** every night, after the night's run:
+- **Backup:** every night, after the night's run, and before every deploy:
   - every file on the box;
   - a dump of the shared record;
   - the register exports.
@@ -686,19 +697,22 @@ Keys are restored from the trader's own copy, never from the backup.
 | journal | **partly** | one pairing engine for every source. Stops and the entry snapshot from the shared record are not built |
 | data sources | **partly** | short interest, borrow and news go through the fact store, in shadow; the other sources are called from inside the pipeline's stages |
 | shared record | **built, in shadow** | Postgres on Railway: facts, market states, all eleven tools' registers (imported, 0 differences), discovery scans, research runs |
-| backups | **built** | a nightly backup with a verified dump, a one-command restore and a monthly rehearsal. Parquet exports are not built |
-| alerts | **built** | ntfy reaches the phone (tested on 2026-10-08). The health page is not built |
+| backups | **built** | a nightly backup with a verified dump, a one-command restore and a monthly rehearsal. Not built: the backup before every deploy; the analysis files as Parquet |
+| alerts | **partly** | ntfy reaches the phone (tested on 2026-10-08) for the photo, the outcomes, the night and the rehearsal. Not built: the other jobs' alerts, the source and freshness checks, the health page, the heartbeat, signals on the phone |
 
 **The way there.** Each step ships on its own, keeps the desk working, is
-compared with what it replaces, and can be undone.
+compared with what it replaces, and can be undone. The desk starts with the
+stopped tools because the box has no memory to spare: the desk replaces the
+archive, each comparison copy is then a context of tens of megabytes rather
+than a program, and each tool that moves frees its own program.
 
 | Step | What | Undo |
 |---|---|---|
-| A | **The desk takes the tools, one at a time.** Its copy of the tool must take the same photo as the tool's own program for a week. Then that tool's own program stops and the desk runs it: pages, API and scans. T1 moves last, with home and the desk jobs | start the tool's own program again |
-| B | **Stopped tools are served by the desk;** the archive program stops | start the archive again |
-| C | **One scheduler.** qp's alert cycles and the journal's sync are started by the desk; the old nightly timer is retired | each program's own timer again |
+| A | **The desk program starts, with the stopped tools.** It serves every stopped tool's history read-only, each route compared with the archive's answer; then the archive program stops | start the archive again |
+| B | **The desk takes the running tools, one at a time.** Each first runs in the desk as a comparison copy, which must take the same photo as the tool's own program for a week. Then that tool's own program stops and the desk runs it: pages, API and scans. T1 moves last, with home and the desk jobs. Then the benchmark, T9, stopped for lack of memory, runs again | start the tool's own program again |
+| C | **One scheduler.** qp's alert cycles (with their signals pushed to the phone) and the journal's sync are started by the desk; the old nightly timer and backup cron are retired; every job alerts; the deploy backs up first | each program's own timer again |
 | D | **Shared facts and the market read are switched on,** each family when its comparison is clean; qp reads registers and facts as of a day | back to shadow |
-| E | **Pages that use it:** a health page, scorecards, live updates, phone first, ⓘ on every label | additive |
+| E | **Pages and checks that use it:** the health page with its checks (sources, fact freshness, programs, the box, sign-ins) and the outside heartbeat; scorecards; live updates; phone first; ⓘ on every label | additive |
 | F | **The model,** when the trader chooses one | the empty slot again |
 
 Detail, with each step's check:
@@ -716,7 +730,8 @@ Detail, with each step's check:
 | Where the shared record lives | Railway; on the box; AWS RDS | **open**: Railway for now, to be decided by the trader. Moving is one restore. On the box it costs 60–100 MB of memory |
 | Where it runs | the t3.micro; a 2 GB instance | the t3.micro; one program frees most of the memory |
 | A domain name | needed for one HTTPS address | a free DuckDNS name with Caddy; the script is ready, not yet run |
-| Push alerts | ntfy, Pushover, Telegram | ntfy, working |
+| Push alerts | ntfy, Pushover, Telegram | ntfy, working. Faults and qp's signals on two topics |
+| Who watches the desk itself | nothing; a script on the box; an outside heartbeat check | **an outside heartbeat check** (healthchecks.io, free): only a watcher off the box sees the box itself stop |
 | The language | JavaScript; a rewrite in TypeScript | JavaScript, with the shared definitions in one module. A rewrite adds risk without a trading gain |
 | The discovery engine | merge identical scans across tools | **off, and retired with the move**: with every tool's screeners different, it saves no request |
 | T6's photo (D-S9) | move it after 11:30 with its entries; or open the window earlier | **open**: it decides what T6 measures |
@@ -764,10 +779,11 @@ ARCHITECTURE.md ........................ the whole desk (this document)
 │   └── design/desk/JOBS.md ............. the scheduler and the desk jobs
 ├── design/files/FILES.md ............... every file on the box, its tables, its writer
 ├── design/quant/QUANT.md ............... qp
-│   ├── design/quant/CHART.md ........... the page
+│   ├── design/quant/CHART.md ........... the page and the print sheets
 │   ├── design/quant/LIBRARY.md ......... the verified indicators
-│   ├── design/quant/STRATEGIES.md ...... strategies, fills, the backtest
-│   ├── design/quant/SIGNAL-ALERTS.md ... live signal alerts and print sheets
+│   ├── design/quant/STRATEGIES.md ...... the strategy engine: rules, fills, the order
+│   ├── design/quant/BACKTEST.md ........ the backtest: universes, honesty, the report
+│   ├── design/quant/SIGNAL-ALERTS.md ... live signal alerts
 │   └── design/quant/FEEDS.md ........... bars: feeds, warm-up, the cache
 ├── design/research/RESEARCH-WORKER.md .. the research worker
 │   └── design/research/ONEIL.md ........ the O'Neil method, letter by letter
