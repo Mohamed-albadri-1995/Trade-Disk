@@ -19,12 +19,12 @@ Every real trade, after the fact: what was bought and sold, at what prices, in
 what size, against what stop, under what market, for what result. Then the
 patterns across trades: by hour, weekday, price, size, side and setup.
 
-It answers the question the registers do not: **how do my actual trades go?**
-The registers measure what the screeners find; the journal measures what the
-trader did with it.
+It answers the question the tools' records do not: **how do my actual trades
+go?** The tools' records measure what the screeners find; the journal measures
+what the trader did with it.
 
-It is its own Node program (`journal/server.js`, port 3100) with its own file,
-because it shares nothing live with the tools.
+It is its own program, with its own file, because it shares nothing live with
+the tools.
 
 **What it owns:**
 - the accounts;
@@ -90,6 +90,9 @@ flowchart TB
 ---
 
 ## 4. Contracts
+
+**The program:** Node, `journal/server.js`, on port 3100 of the box, behind
+the front door at `/journal/`.
 
 **It owns the journal's file, `data/journal/journal.db`.** The target tables
 are below. Today the trades live in `journal_trades`, with the setups, day

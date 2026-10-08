@@ -15,15 +15,24 @@
 
 ## 1. What it is
 
-A **Python job**, `quant-platform/research/worker.py`.
-- It reuses qp's verified O'Neil code: `relstrength.py`, `oneil.py`, `groups.py`,
-  `edgar.py`, `f13.py`, `base.py`, `ratings.py`, `sic.py`.
-- The desk's scheduler starts it. It runs its steps, writes facts with their
-  dates into the shared record, records its run, and **exits**.
+**The O'Neil research, done in one place.** For every stock the tools find,
+and for the market as a whole, it works out what William O'Neil's method
+(CANSLIM) asks:
+- how fast the company's earnings are growing (C and A);
+- whether the stock leads: its strength against the whole market (RS), and its
+  industry group's rank (L);
+- whether it is breaking out of a sound base, or has something new (N);
+- the supply of its shares (S), and whether big funds are buying (I);
+- whether the market itself is in a confirmed uptrend (M).
 
-**It owns, as the only writer:**
-- every O'Neil fact: M, RS, L, C, A, N, S, I, the ratings;
-- the SIC industry map;
+It is a **job, not a program that stays up.** The desk's scheduler starts it;
+it works through its steps, writes each result with its date into the shared
+record, records its run, and **exits**.
+
+**It is the only writer of:**
+- every O'Neil fact: the letters above, and the ratings;
+- the industry map: which industry each company belongs to, from its SEC
+  filings (its SIC code);
 - when a model is chosen, the tools' models.
 
 **What it never does:**
@@ -32,12 +41,11 @@ A **Python job**, `quant-platform/research/worker.py`.
 - make a page wait;
 - write a tool's file.
 
-**Why it is separate.** Today the O'Neil chain lives inside qp, and each tool
-asks qp for its new tickers' values:
-- a ticker first seen while qp is down or restarting gets a blank CANSLIM
-  reading;
-- a photo taken then freezes the blanks into R1;
-- five tools ask for the same tickers.
+**Why it is separate.** Today the O'Neil research lives inside qp, the chart
+program, and each tool asks qp about each new stock:
+- a stock first seen while qp is down or restarting gets a blank reading;
+- a tool's morning record taken then keeps those blanks for good;
+- five tools ask about the same stocks.
 
 O'Neil results are card fields and Market-tab sections, so their writer must
 not depend on the chart program being up.
@@ -204,6 +212,10 @@ alerts. For example: earnings not refreshed in 8 days.
 ---
 
 ## 6. Built on
+
+**The code it runs:** `quant-platform/research/worker.py`, reusing qp's
+O'Neil code, which was checked rule by rule: `relstrength.py`, `oneil.py`,
+`groups.py`, `edgar.py`, `f13.py`, `base.py`, `ratings.py`, `sic.py`.
 
 **The old desk:**
 - the O'Neil chain as built inside qp:

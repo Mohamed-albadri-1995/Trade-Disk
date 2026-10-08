@@ -30,8 +30,8 @@
   reporting, because a desk that is down cannot say so.
 
 **It also carries qp's signal alerts to the phone:** a saved strategy firing on
-one of today's lists. Those are trading signals, not faults, so they go to their
-own topic.
+one of today's stocks. Those are trading signals, not faults, so they arrive on
+their own channel.
 
 **What it never does:**
 - repeats an alert while its cause stands;

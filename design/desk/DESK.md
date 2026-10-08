@@ -19,13 +19,14 @@ desk learns) and §6 (a trading day).
 
 ## 1. What it is
 
-**One Node program that runs every tool.** For each running tool it does what a
+**One program that runs every tool.** For each running tool it does what a
 tool's own program does today:
 - serves its pages and its API;
 - runs its screeners on schedule;
 - builds and refreshes its cards;
 - keeps its live list and its shortlist;
-- takes its photo and measures its outcomes;
+- records what the tool found each morning (its photo) and how those stocks
+  moved (§4.5);
 - scores its cards.
 
 For each stopped tool it serves the history, read-only. It is also the desk's

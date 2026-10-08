@@ -19,7 +19,7 @@ The one address the trader uses, on a phone or a laptop:
 **What it owns:**
 - the domain and its certificate;
 - the routing rules;
-- the login file (`data/auth.json`).
+- the login's password file.
 
 **What it never does:**
 - hold state;

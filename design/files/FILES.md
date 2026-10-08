@@ -14,7 +14,8 @@
 
 ## 1. What it is
 
-Every file the desk keeps on the box, what it holds, and its **one writer**.
+Every file the desk keeps on the box: what each one holds, and the **one
+program that writes it**.
 
 **Each tool's own file is the record of that tool's results.**
 - It works without the network.
@@ -25,10 +26,10 @@ Every file the desk keeps on the box, what it holds, and its **one writer**.
 
 **The rules for every file:**
 - **one writer;**
-- written in transactions;
-- in WAL mode, so readers never block the writer;
-- changed only by numbered migrations, recorded in the file;
-- secrets are never kept in a data file.
+- each change is saved whole, or not at all;
+- reading never blocks writing (SQLite's WAL mode);
+- its layout changes only through numbered steps, each recorded in the file;
+- no secret is ever kept in a data file.
 
 ---
 

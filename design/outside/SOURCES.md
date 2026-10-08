@@ -18,9 +18,9 @@ through adapters:
 
 Every outside source the desk uses, and the **adapter** in front of each one.
 
-**An adapter is the only code that talks to one endpoint family.** A provider
-with several endpoints, such as Yahoo or Alpaca, has one adapter per endpoint
-family. Each adapter keeps in one place everything about its source:
+**An adapter is the only code that talks to one source.** A provider that
+offers several kinds of data, such as Yahoo (quotes, charts) or Alpaca (bars,
+borrow), has one adapter for each kind. Each adapter keeps in one place everything about its source:
 - how to ask;
 - how fast it may be asked;
 - how fresh its answers stay;

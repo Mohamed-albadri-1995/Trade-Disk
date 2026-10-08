@@ -9,9 +9,12 @@ is its only open port; the [backups](../outside/BACKUPS.md) carry its files off 
 
 ## 1. What it is
 
-The one server the desk runs on.
+**The one server everything runs on, and how it is run.** It is a small cloud
+server with 1 GB of memory. One supervisor keeps every program running inside
+its own memory budget, one command deploys new code, and the keys live in
+protected files that never leave it.
 
-| | |
+| The machine | |
 |---|---|
 | Machine | AWS EC2 **t3.micro**: 2 vCPU, **912 MiB** of memory |
 | Swap | a **2 GB swap file**, made once by `deploy/add-swap.sh`; the deploy requires it |
@@ -19,10 +22,11 @@ The one server the desk runs on.
 | User and folder | `ec2-user`, `~/Tade-desk-server` (one checkout of the code repository) |
 
 **What it does:**
-- runs every program of the desk under **one supervisor**, pm2, each program
-  with a memory limit;
+- runs every program of the desk under **one supervisor** (pm2), each with a
+  memory limit;
 - deploys the code with **one command**;
-- keeps the secrets in files of mode 0600 that never leave the box.
+- keeps the secrets in files only its owner can read, which never leave the
+  box.
 
 **What it never does:**
 - run a program under two supervisors;

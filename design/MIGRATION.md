@@ -16,9 +16,9 @@ without stopping the desk.**
 
 It has two halves:
 - **The data half, steps 1–15, is done.** It gave the desk its shared record,
-  the research worker, run history and alerts, the backups, the gateway, the
-  tool context and the comparison copy. Most of it runs in shadow: written and
-  compared, not yet used.
+  the research worker, run history and alerts, the backups, the one address,
+  the way one program holds many tools, and the side-by-side comparison of a
+  tool. Most of it runs in shadow: written and compared, not yet used.
 - **The program half, steps A–F, is next.** It moves every tool into the one
   desk program, gives the desk the only scheduler, switches on what the
   comparisons have earned, and adds the pages.

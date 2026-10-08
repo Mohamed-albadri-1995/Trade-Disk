@@ -20,14 +20,14 @@
 **A copy of everything the desk records, off the box, every trading night,
 proven restorable.**
 - **The backup** copies every file on the box and every table of the shared
-  record to a Cloudflare R2 bucket. It then proves the copy of the shared record
-  by restoring it into a scratch schema and counting the rows.
+  record to cloud storage (a Cloudflare R2 bucket). It then proves the copy of
+  the shared record by restoring it into a scratch area and counting the rows.
 - **The restore** puts any kept night back with one command.
 - **The rehearsal** restores the newest night every month, so the restore is
   known to work before it is needed.
 
-It also leaves **analysis files** in the bucket: each tool's registers as one
-file per day, which DuckDB or pandas read in place.
+It also leaves **analysis files** in the bucket: each tool's records as one
+file per day, which analysis tools such as DuckDB or pandas read in place.
 
 **What it never does:**
 - copies a secret;
@@ -36,7 +36,7 @@ file per day, which DuckDB or pandas read in place.
 
 **Why it matters.** The box is one machine with no second copy. Each tool's
 file is the record of its research, and a lost file is a lost history. The
-shared record's copy of the registers covers the hours since the last night
+shared record's copy of the tools' records covers the hours since the last night
 ([SHARED-RECORD.md](SHARED-RECORD.md)); the backup covers everything else.
 
 ---

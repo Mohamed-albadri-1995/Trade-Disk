@@ -16,8 +16,7 @@
 
 ## 1. What it is
 
-qp is the chart and backtest program of the desk, written in Python (FastAPI,
-`quant-platform/chart/server.py`, port 8765). It is the best-built part of the
+qp is the desk's chart and backtest program. It is the best-built part of the
 old desk, and its library, engine and backtest carry over almost unchanged.
 
 | Job | The question it answers |
@@ -112,6 +111,9 @@ Plot it, test it, then compose it.
 ---
 
 ## 5. Contracts
+
+**The program:** Python (FastAPI), `quant-platform/chart/server.py`, on port 8765
+of the box, behind the front door at `/quant/`.
 
 | It owns (qp's file, `~/.qp/platform.db`) | Key |
 |---|---|

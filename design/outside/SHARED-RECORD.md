@@ -18,7 +18,7 @@ The [backups](BACKUPS.md) dump and verify it every night.
 
 ## 1. What it is
 
-**One Postgres database** for what more than one program, or more than one
+**One database** (Postgres) for what more than one program, or more than one
 tool, needs:
 
 | It holds | Why it is shared |
@@ -26,7 +26,7 @@ tool, needs:
 | **facts about the world**, each with its time and source | short interest, news, the CANSLIM letters and the rest are the same whichever tool asks. Stored once, with the instant they became known, they give every reader the same answer "as of" any instant |
 | **a copy of the market history**: the market states and the hot sectors | the desk keeps the history in its own file; the copy lets qp read the market as of any day |
 | **the O'Neil facts** | written by the research worker, read by the desk, qp and the journal |
-| **a copy of every register** (R1, R3, the shortlist) and of the tools and screener versions | the copy keeps the research record safe if the box is lost between two nightly backups, and lets qp read any tool's history as of any day |
+| **a copy of every tool's records**: what it found each morning (R1), how those stocks moved (R3), its shortlist, its screeners and their versions | the copy keeps the research record safe if the box is lost between two nightly backups, and lets qp read any tool's history as of any day |
 
 **It is not the record of a tool's results.** Each tool's own file on the box
 is ([FILES.md](../files/FILES.md)). So the desk keeps working when the shared
