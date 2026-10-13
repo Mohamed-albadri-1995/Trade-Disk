@@ -19,17 +19,17 @@ what the level below needs, and no more.
 | **1** | [01-box/BOX.md](01-box/BOX.md) | [PDF](../pdf/design/01-box/BOX.pdf) | the server, its memory, the supervisor, the deploy, the secrets | written |
 | **1** | [02-front-door/FRONT-DOOR.md](02-front-door/FRONT-DOOR.md) | [PDF](../pdf/design/02-front-door/FRONT-DOOR.pdf) | the one address, the one login, routing to each program | written |
 | **1** | [03-desk/DESK.md](03-desk/DESK.md) | [PDF](../pdf/design/03-desk/DESK.pdf) | the one program for every tool: its parts, how a tool's record is taken and measured, the day's clock | written |
-| 2 | 03-desk/WEB.md | | how a page or an API call reaches its tool | to write |
-| 2 | 03-desk/HOME.md | | the landing page, the lists across tools, Manage tools | to write |
-| 2 | 03-desk/TOOL.md | | one running tool, end to end | to write |
+| 2 | [03-desk/WEB.md](03-desk/WEB.md) | pending | how a page or an API call reaches its tool | written |
+| 2 | [03-desk/HOME.md](03-desk/HOME.md) | pending | the landing page, the lists across tools, Manage tools | written |
+| 2 | [03-desk/TOOL.md](03-desk/TOOL.md) | pending | one running tool, end to end | written |
 | 3 | 03-desk/tool/SCREENERS.md | | its screeners and how it finds stocks | to write |
 | 3 | 03-desk/tool/CARD.md | | the card: every field and its source | to write |
 | 3 | 03-desk/tool/REGISTERS.md | | its daily record and the outcomes | to write |
 | 3 | 03-desk/tool/LEARNING.md | | the score and the scorecard | to write |
 | 3 | 03-desk/tool/PAGES.md | | its pages | to write |
-| 2 | 03-desk/STOPPED-TOOLS.md | | a stopped tool's history | to write |
-| 2 | 03-desk/MARKET.md | | the market read | to write |
-| 2 | 03-desk/JOBS.md | | the scheduler, job by job | to write |
+| 2 | [03-desk/STOPPED-TOOLS.md](03-desk/STOPPED-TOOLS.md) | pending | a stopped tool's history | written |
+| 2 | [03-desk/MARKET.md](03-desk/MARKET.md) | pending | the market read | written |
+| 2 | [03-desk/JOBS.md](03-desk/JOBS.md) | pending | the scheduler, job by job | written |
 | **1** | [04-files/FILES.md](04-files/FILES.md) | [PDF](../pdf/design/04-files/FILES.pdf) | every file on the server, what it holds, its one writer | written |
 | **1** | [05-qp/QP.md](05-qp/QP.md) | [PDF](../pdf/design/05-qp/QP.pdf) | qp: charts, strategies, backtests, signal alerts | written |
 | 2 | [05-qp/CHART.md](05-qp/CHART.md) | pending | the page and the print sheets | written |
@@ -50,7 +50,9 @@ what the level below needs, and no more.
 | **1** | [12-migration/MIGRATION.md](12-migration/MIGRATION.md) | [PDF](../pdf/design/12-migration/MIGRATION.pdf) | from today's desk to the design, step by step | written |
 
 **Where it stands:** the top document and the block documents (levels 0 and 1)
-are written and under the trader's review. Levels 2 and 3 are written after it.
+are written and under the trader's review, and the **level-2 part documents are
+now written** (their PDFs are marked *pending* until the next rebuild). Level 3
+— the documents under `03-desk/tool/` — is written after it.
 
 ---
 
