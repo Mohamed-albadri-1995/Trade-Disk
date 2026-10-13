@@ -39,7 +39,7 @@ what the level below needs, and no more.
 | 2 | [05-qp/SIGNAL-ALERTS.md](05-qp/SIGNAL-ALERTS.md) | pending | signal alerts | written |
 | 2 | [05-qp/FEEDS.md](05-qp/FEEDS.md) | pending | price bars | written |
 | **1** | [06-research-worker/RESEARCH-WORKER.md](06-research-worker/RESEARCH-WORKER.md) | [PDF](../pdf/design/06-research-worker/RESEARCH-WORKER.pdf) | the O'Neil research job: what it works out, when it runs, who reads it | written |
-| 2 | 06-research-worker/ONEIL.md | | the O'Neil method, letter by letter | to write |
+| 2 | [06-research-worker/ONEIL.md](06-research-worker/ONEIL.md) | pending | the O'Neil method, letter by letter | written |
 | **1** | [07-journal/JOURNAL.md](07-journal/JOURNAL.md) | [PDF](../pdf/design/07-journal/JOURNAL.pdf) | the trader's real trades, after the fact | written |
 | 2 | [07-journal/IMPORT.md](07-journal/IMPORT.md) | pending | how trades come in | written |
 | 2 | [07-journal/REVIEW.md](07-journal/REVIEW.md) | pending | the page and the analysis | written |
