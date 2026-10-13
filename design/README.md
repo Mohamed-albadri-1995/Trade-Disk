@@ -22,11 +22,11 @@ what the level below needs, and no more.
 | 2 | [03-desk/WEB.md](03-desk/WEB.md) | pending | how a page or an API call reaches its tool | written |
 | 2 | [03-desk/HOME.md](03-desk/HOME.md) | pending | the landing page, the lists across tools, Manage tools | written |
 | 2 | [03-desk/TOOL.md](03-desk/TOOL.md) | pending | one running tool, end to end | written |
-| 3 | 03-desk/tool/SCREENERS.md | | its screeners and how it finds stocks | to write |
-| 3 | 03-desk/tool/CARD.md | | the card: every field and its source | to write |
-| 3 | 03-desk/tool/REGISTERS.md | | its daily record and the outcomes | to write |
-| 3 | 03-desk/tool/LEARNING.md | | the score and the scorecard | to write |
-| 3 | 03-desk/tool/PAGES.md | | its pages | to write |
+| 3 | [03-desk/tool/SCREENERS.md](03-desk/tool/SCREENERS.md) | pending | its screeners and how it finds stocks | written |
+| 3 | [03-desk/tool/CARD.md](03-desk/tool/CARD.md) | pending | the card: every field and its source | written |
+| 3 | [03-desk/tool/REGISTERS.md](03-desk/tool/REGISTERS.md) | pending | its daily record and the outcomes | written |
+| 3 | [03-desk/tool/LEARNING.md](03-desk/tool/LEARNING.md) | pending | the score and the scorecard | written |
+| 3 | [03-desk/tool/PAGES.md](03-desk/tool/PAGES.md) | pending | its pages | written |
 | 2 | [03-desk/STOPPED-TOOLS.md](03-desk/STOPPED-TOOLS.md) | pending | a stopped tool's history | written |
 | 2 | [03-desk/MARKET.md](03-desk/MARKET.md) | pending | the market read | written |
 | 2 | [03-desk/JOBS.md](03-desk/JOBS.md) | pending | the scheduler, job by job | written |
@@ -49,10 +49,12 @@ what the level below needs, and no more.
 | **1** | [11-alerts/ALERTS.md](11-alerts/ALERTS.md) | [PDF](../pdf/design/11-alerts/ALERTS.pdf) | what reaches the phone, the health page, the outside check | written |
 | **1** | [12-migration/MIGRATION.md](12-migration/MIGRATION.md) | [PDF](../pdf/design/12-migration/MIGRATION.pdf) | from today's desk to the design, step by step | written |
 
-**Where it stands:** the top document and the block documents (levels 0 and 1)
-are written and under the trader's review, and the **level-2 part documents are
-now written** (their PDFs are marked *pending* until the next rebuild). Level 3
-— the documents under `03-desk/tool/` — is written after it.
+**Where it stands:** **every document in the tree is now written** — level 0 (the
+trunk), level 1 (the blocks), level 2 (the parts) and level 3 (the documents
+under `03-desk/tool/`). The level-0 and level-1 documents are under the trader's
+review; levels 2 and 3 follow the same eight-part plan and carry the full detail
+from `legacy/` and `archive/design-v1/`. Their PDFs are marked *pending* until
+the next rebuild.
 
 ---
 

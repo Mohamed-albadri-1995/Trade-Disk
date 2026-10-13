@@ -17,7 +17,7 @@ order.
 | Folder | Holds | State |
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | the top document | written |
-| [design/](design/README.md) | one numbered folder per block of the picture, in its order: the block's document, then the documents of its parts. Its README lists every document, its PDF and its state | blocks and level-2 parts written; level 3 to write |
+| [design/](design/README.md) | one numbered folder per block of the picture, in its order: the block's document, then the documents of its parts. Its README lists every document, its PDF and its state | complete (every level written; PDFs pending rebuild) |
 | [pdf/](pdf) | a PDF of every design document, under the same names, and `DESIGN.pdf` with all of them | generated from the documents |
 | [legacy/](legacy) | the desk as it runs today, documented from its code: the evidence the design is built on | complete |
 | [archive/design-v1/](archive/design-v1/README.md) | the first design, replaced on 2026-10-08 | kept until the new design carries everything in it |
