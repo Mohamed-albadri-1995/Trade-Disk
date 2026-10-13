@@ -41,8 +41,8 @@ what the level below needs, and no more.
 | **1** | [06-research-worker/RESEARCH-WORKER.md](06-research-worker/RESEARCH-WORKER.md) | [PDF](../pdf/design/06-research-worker/RESEARCH-WORKER.pdf) | the O'Neil research job: what it works out, when it runs, who reads it | written |
 | 2 | 06-research-worker/ONEIL.md | | the O'Neil method, letter by letter | to write |
 | **1** | [07-journal/JOURNAL.md](07-journal/JOURNAL.md) | [PDF](../pdf/design/07-journal/JOURNAL.pdf) | the trader's real trades, after the fact | written |
-| 2 | 07-journal/IMPORT.md | | how trades come in | to write |
-| 2 | 07-journal/REVIEW.md | | the page and the analysis | to write |
+| 2 | [07-journal/IMPORT.md](07-journal/IMPORT.md) | pending | how trades come in | written |
+| 2 | [07-journal/REVIEW.md](07-journal/REVIEW.md) | pending | the page and the analysis | written |
 | **1** | [08-data-sources/DATA-SOURCES.md](08-data-sources/DATA-SOURCES.md) | [PDF](../pdf/design/08-data-sources/DATA-SOURCES.pdf) | every outside source, its limits, its fallbacks, its health checks | written |
 | **1** | [09-shared-record/SHARED-RECORD.md](09-shared-record/SHARED-RECORD.md) | [PDF](../pdf/design/09-shared-record/SHARED-RECORD.pdf) | the shared database: what it holds, its switches, where it lives | written |
 | **1** | [10-backups/BACKUPS.md](10-backups/BACKUPS.md) | [PDF](../pdf/design/10-backups/BACKUPS.pdf) | the nightly backup, its check, the restore, the monthly rehearsal | written |
