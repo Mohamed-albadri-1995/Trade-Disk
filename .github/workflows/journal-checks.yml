@@ -1,0 +1,31 @@
+name: Journal frontend checks
+on:
+  push:
+    branches:
+      - feature/journal-cloudflare-build
+  pull_request:
+    paths:
+      - 'journal/**'
+      - '.github/workflows/journal-checks.yml'
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check inline JavaScript syntax
+        run: |
+          node -e "const fs=require('fs');const html=fs.readFileSync('journal/index.html','utf8');const scripts=[...html.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi)];if(!scripts.length)throw Error('No inline script found');scripts.forEach((m,i)=>fs.writeFileSync('/tmp/journal-'+i+'.js',m[1]));console.log('Extracted '+scripts.length+' script block(s)')"
+          for file in /tmp/journal-*.js; do node --check "$file"; done
+      - name: Check expected frontend shell and pages
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('journal/index.html','utf8');
+          for(const item of ['id="content"','id="mobileNav"','function overview()','function calendarPage()','function tradesPage()','function analyticsPage()','function setupsPage()','function notesPage()','function reportsPage()','function settingsPage()','persistTrades()']){
+            if(!html.includes(item)) throw new Error('Missing required frontend element: '+item);
+          }
+          console.log('Journal shell, primary pages, and local trade persistence are present.');
+          NODE
