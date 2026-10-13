@@ -19,30 +19,30 @@ what the level below needs, and no more.
 | **1** | [01-box/BOX.md](01-box/BOX.md) | [PDF](../pdf/design/01-box/BOX.pdf) | the server, its memory, the supervisor, the deploy, the secrets | written |
 | **1** | [02-front-door/FRONT-DOOR.md](02-front-door/FRONT-DOOR.md) | [PDF](../pdf/design/02-front-door/FRONT-DOOR.pdf) | the one address, the one login, routing to each program | written |
 | **1** | [03-desk/DESK.md](03-desk/DESK.md) | [PDF](../pdf/design/03-desk/DESK.pdf) | the one program for every tool: its parts, how a tool's record is taken and measured, the day's clock | written |
-| 2 | [03-desk/WEB.md](03-desk/WEB.md) | pending | how a page or an API call reaches its tool | written |
-| 2 | [03-desk/HOME.md](03-desk/HOME.md) | pending | the landing page, the lists across tools, Manage tools | written |
-| 2 | [03-desk/TOOL.md](03-desk/TOOL.md) | pending | one running tool, end to end | written |
-| 3 | [03-desk/tool/SCREENERS.md](03-desk/tool/SCREENERS.md) | pending | its screeners and how it finds stocks | written |
-| 3 | [03-desk/tool/CARD.md](03-desk/tool/CARD.md) | pending | the card: every field and its source | written |
-| 3 | [03-desk/tool/REGISTERS.md](03-desk/tool/REGISTERS.md) | pending | its daily record and the outcomes | written |
-| 3 | [03-desk/tool/LEARNING.md](03-desk/tool/LEARNING.md) | pending | the score and the scorecard | written |
-| 3 | [03-desk/tool/PAGES.md](03-desk/tool/PAGES.md) | pending | its pages | written |
-| 2 | [03-desk/STOPPED-TOOLS.md](03-desk/STOPPED-TOOLS.md) | pending | a stopped tool's history | written |
-| 2 | [03-desk/MARKET.md](03-desk/MARKET.md) | pending | the market read | written |
-| 2 | [03-desk/JOBS.md](03-desk/JOBS.md) | pending | the scheduler, job by job | written |
+| 2 | [03-desk/WEB.md](03-desk/WEB.md) | [PDF](../pdf/design/03-desk/WEB.pdf) | how a page or an API call reaches its tool | written |
+| 2 | [03-desk/HOME.md](03-desk/HOME.md) | [PDF](../pdf/design/03-desk/HOME.pdf) | the landing page, the lists across tools, Manage tools | written |
+| 2 | [03-desk/TOOL.md](03-desk/TOOL.md) | [PDF](../pdf/design/03-desk/TOOL.pdf) | one running tool, end to end | written |
+| 3 | [03-desk/tool/SCREENERS.md](03-desk/tool/SCREENERS.md) | [PDF](../pdf/design/03-desk/tool/SCREENERS.pdf) | its screeners and how it finds stocks | written |
+| 3 | [03-desk/tool/CARD.md](03-desk/tool/CARD.md) | [PDF](../pdf/design/03-desk/tool/CARD.pdf) | the card: every field and its source | written |
+| 3 | [03-desk/tool/REGISTERS.md](03-desk/tool/REGISTERS.md) | [PDF](../pdf/design/03-desk/tool/REGISTERS.pdf) | its daily record and the outcomes | written |
+| 3 | [03-desk/tool/LEARNING.md](03-desk/tool/LEARNING.md) | [PDF](../pdf/design/03-desk/tool/LEARNING.pdf) | the score and the scorecard | written |
+| 3 | [03-desk/tool/PAGES.md](03-desk/tool/PAGES.md) | [PDF](../pdf/design/03-desk/tool/PAGES.pdf) | its pages | written |
+| 2 | [03-desk/STOPPED-TOOLS.md](03-desk/STOPPED-TOOLS.md) | [PDF](../pdf/design/03-desk/STOPPED-TOOLS.pdf) | a stopped tool's history | written |
+| 2 | [03-desk/MARKET.md](03-desk/MARKET.md) | [PDF](../pdf/design/03-desk/MARKET.pdf) | the market read | written |
+| 2 | [03-desk/JOBS.md](03-desk/JOBS.md) | [PDF](../pdf/design/03-desk/JOBS.pdf) | the scheduler, job by job | written |
 | **1** | [04-files/FILES.md](04-files/FILES.md) | [PDF](../pdf/design/04-files/FILES.pdf) | every file on the server, what it holds, its one writer | written |
 | **1** | [05-qp/QP.md](05-qp/QP.md) | [PDF](../pdf/design/05-qp/QP.pdf) | qp: charts, strategies, backtests, signal alerts | written |
-| 2 | [05-qp/CHART.md](05-qp/CHART.md) | pending | the page and the print sheets | written |
-| 2 | [05-qp/LIBRARY.md](05-qp/LIBRARY.md) | pending | the checked indicators | written |
-| 2 | [05-qp/STRATEGIES.md](05-qp/STRATEGIES.md) | pending | trading rules and how they become trades | written |
-| 2 | [05-qp/BACKTEST.md](05-qp/BACKTEST.md) | pending | the backtest | written |
-| 2 | [05-qp/SIGNAL-ALERTS.md](05-qp/SIGNAL-ALERTS.md) | pending | signal alerts | written |
-| 2 | [05-qp/FEEDS.md](05-qp/FEEDS.md) | pending | price bars | written |
+| 2 | [05-qp/CHART.md](05-qp/CHART.md) | [PDF](../pdf/design/05-qp/CHART.pdf) | the page and the print sheets | written |
+| 2 | [05-qp/LIBRARY.md](05-qp/LIBRARY.md) | [PDF](../pdf/design/05-qp/LIBRARY.pdf) | the checked indicators | written |
+| 2 | [05-qp/STRATEGIES.md](05-qp/STRATEGIES.md) | [PDF](../pdf/design/05-qp/STRATEGIES.pdf) | trading rules and how they become trades | written |
+| 2 | [05-qp/BACKTEST.md](05-qp/BACKTEST.md) | [PDF](../pdf/design/05-qp/BACKTEST.pdf) | the backtest | written |
+| 2 | [05-qp/SIGNAL-ALERTS.md](05-qp/SIGNAL-ALERTS.md) | [PDF](../pdf/design/05-qp/SIGNAL-ALERTS.pdf) | signal alerts | written |
+| 2 | [05-qp/FEEDS.md](05-qp/FEEDS.md) | [PDF](../pdf/design/05-qp/FEEDS.pdf) | price bars | written |
 | **1** | [06-research-worker/RESEARCH-WORKER.md](06-research-worker/RESEARCH-WORKER.md) | [PDF](../pdf/design/06-research-worker/RESEARCH-WORKER.pdf) | the O'Neil research job: what it works out, when it runs, who reads it | written |
-| 2 | [06-research-worker/ONEIL.md](06-research-worker/ONEIL.md) | pending | the O'Neil method, letter by letter | written |
+| 2 | [06-research-worker/ONEIL.md](06-research-worker/ONEIL.md) | [PDF](../pdf/design/06-research-worker/ONEIL.pdf) | the O'Neil method, letter by letter | written |
 | **1** | [07-journal/JOURNAL.md](07-journal/JOURNAL.md) | [PDF](../pdf/design/07-journal/JOURNAL.pdf) | the trader's real trades, after the fact | written |
-| 2 | [07-journal/IMPORT.md](07-journal/IMPORT.md) | pending | how trades come in | written |
-| 2 | [07-journal/REVIEW.md](07-journal/REVIEW.md) | pending | the page and the analysis | written |
+| 2 | [07-journal/IMPORT.md](07-journal/IMPORT.md) | [PDF](../pdf/design/07-journal/IMPORT.pdf) | how trades come in | written |
+| 2 | [07-journal/REVIEW.md](07-journal/REVIEW.md) | [PDF](../pdf/design/07-journal/REVIEW.pdf) | the page and the analysis | written |
 | **1** | [08-data-sources/DATA-SOURCES.md](08-data-sources/DATA-SOURCES.md) | [PDF](../pdf/design/08-data-sources/DATA-SOURCES.pdf) | every outside source, its limits, its fallbacks, its health checks | written |
 | **1** | [09-shared-record/SHARED-RECORD.md](09-shared-record/SHARED-RECORD.md) | [PDF](../pdf/design/09-shared-record/SHARED-RECORD.pdf) | the shared database: what it holds, its switches, where it lives | written |
 | **1** | [10-backups/BACKUPS.md](10-backups/BACKUPS.md) | [PDF](../pdf/design/10-backups/BACKUPS.pdf) | the nightly backup, its check, the restore, the monthly rehearsal | written |
@@ -53,8 +53,9 @@ what the level below needs, and no more.
 trunk), level 1 (the blocks), level 2 (the parts) and level 3 (the documents
 under `03-desk/tool/`). The level-0 and level-1 documents are under the trader's
 review; levels 2 and 3 follow the same eight-part plan and carry the full detail
-from `legacy/` and `archive/design-v1/`. Their PDFs are marked *pending* until
-the next rebuild.
+from `legacy/` and `archive/design-v1/`. Every document has a PDF in
+[pdf/](../pdf), and [pdf/DESIGN.pdf](../pdf/DESIGN.pdf) holds them all in reading
+order.
 
 ---
 
