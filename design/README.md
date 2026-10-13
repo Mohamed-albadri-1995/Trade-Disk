@@ -32,12 +32,12 @@ what the level below needs, and no more.
 | 2 | 03-desk/JOBS.md | | the scheduler, job by job | to write |
 | **1** | [04-files/FILES.md](04-files/FILES.md) | [PDF](../pdf/design/04-files/FILES.pdf) | every file on the server, what it holds, its one writer | written |
 | **1** | [05-qp/QP.md](05-qp/QP.md) | [PDF](../pdf/design/05-qp/QP.pdf) | qp: charts, strategies, backtests, signal alerts | written |
-| 2 | 05-qp/CHART.md | | the page and the print sheets | to write |
-| 2 | 05-qp/LIBRARY.md | | the checked indicators | to write |
-| 2 | 05-qp/STRATEGIES.md | | trading rules and how they become trades | to write |
-| 2 | 05-qp/BACKTEST.md | | the backtest | to write |
-| 2 | 05-qp/SIGNAL-ALERTS.md | | signal alerts | to write |
-| 2 | 05-qp/FEEDS.md | | price bars | to write |
+| 2 | [05-qp/CHART.md](05-qp/CHART.md) | pending | the page and the print sheets | written |
+| 2 | [05-qp/LIBRARY.md](05-qp/LIBRARY.md) | pending | the checked indicators | written |
+| 2 | [05-qp/STRATEGIES.md](05-qp/STRATEGIES.md) | pending | trading rules and how they become trades | written |
+| 2 | [05-qp/BACKTEST.md](05-qp/BACKTEST.md) | pending | the backtest | written |
+| 2 | [05-qp/SIGNAL-ALERTS.md](05-qp/SIGNAL-ALERTS.md) | pending | signal alerts | written |
+| 2 | [05-qp/FEEDS.md](05-qp/FEEDS.md) | pending | price bars | written |
 | **1** | [06-research-worker/RESEARCH-WORKER.md](06-research-worker/RESEARCH-WORKER.md) | [PDF](../pdf/design/06-research-worker/RESEARCH-WORKER.pdf) | the O'Neil research job: what it works out, when it runs, who reads it | written |
 | 2 | 06-research-worker/ONEIL.md | | the O'Neil method, letter by letter | to write |
 | **1** | [07-journal/JOURNAL.md](07-journal/JOURNAL.md) | [PDF](../pdf/design/07-journal/JOURNAL.pdf) | the trader's real trades, after the fact | written |
