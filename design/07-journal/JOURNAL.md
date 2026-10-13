@@ -2,179 +2,99 @@
 
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.6.
 
+**Detailed product requirements:** [REVIEW.md](REVIEW.md).  
+**Trade capture requirements:** [IMPORT.md](IMPORT.md).
+
 **Talks to:**
 - the [front door](../02-front-door/FRONT-DOOR.md) (`/journal/`);
-- the [desk](../03-desk/DESK.md), whose scheduler starts each account's sync;
-- the [data sources](../08-data-sources/DATA-SOURCES.md): Alpaca fills and orders, and bars;
-- the [shared record](../09-shared-record/SHARED-RECORD.md): the facts, the market state
-  and the R1 row known at a trade's entry;
-- [qp](../05-qp/QP.md): the chart of a trade;
+- the [desk](../03-desk/DESK.md), whose scheduler starts scheduled account syncs;
+- the [data sources](../08-data-sources/DATA-SOURCES.md): connected-account fills and price bars, where available;
+- the [shared record](../09-shared-record/SHARED-RECORD.md): entry-time facts and market context, when available and time-valid;
+- [qp / TradeLab](../05-qp/QP.md): the chart of a trade;
 - its own [file](../04-files/FILES.md).
 
 ---
 
 ## 1. What it is
 
-Every real trade, after the fact: what was bought and sold, at what prices, in
-what size, against what stop, under what market, for what result. Then the
-patterns across trades: by hour, weekday, price, size, side and setup.
+The Trading Journal is an independent product in the Trade-Disk Trading Station. It records a trader's real trades and helps answer: **How do my actual trades perform, where is my risk, and what can I learn from my own history?**
 
-It answers the question the tools' records do not: **how do my actual trades
-go?** The tools' records measure what the screeners find; the journal measures
-what the trader did with it.
+It is sold independently and is also accessible from the complete Trading Station. It must work as a responsive website and an Android experience, with the same underlying records and calculation rules.
 
-It is its own program, with its own file, because it shares nothing live with
-the tools.
+The journal is an analysis and record-keeping tool. It does not place orders or size trades for execution.
 
-**What it owns:**
-- the accounts;
-- the fills;
-- the trades, with their fills, stops, fees, setups and notes;
-- each trade's snapshot at its entry;
-- the day notes.
+## 2. What it owns
 
-**What it never does:**
-- place an order: the desk places none;
-- grade or size a trade for execution;
-- keep a timer of its own: each sync is started by the desk.
+- Accounts and connection metadata; credentials remain protected server-side.
+- Source records and fills, with stable source identifiers.
+- Canonical trades and their allocated fills.
+- Entry/exit timestamps, quantity, prices, side, fees, stop, target and initial risk when known.
+- Setups, tags, notes and daily trading plans.
+- Technical snapshots captured as of entry, with the snapshot time and data provenance.
+- MAE/MFE, R-multiples and exit-efficiency metrics where the required data exists.
+- User preferences and calculation/data-quality status.
 
----
+## 3. Main product areas
 
-## 2. The diagram
+The complete screen-by-screen specification and analytics inventory are in [REVIEW.md](REVIEW.md).
 
-```mermaid
-flowchart TB
-  FD["front door · /journal/"] --> PAGE
-  JOBS["desk scheduler"] -->|"starts each account's sync"| SYNC
-  subgraph JR["journal · Node · port 3100"]
-    subgraph IN["trades in"]
-      SYNC["<b>Alpaca accounts</b><br/>fills on each account's schedule"]
-      FILES["<b>broker files</b><br/>TradingView · TTP · DXtrade · paper log"]
-      HAND["<b>hand entry</b>"]
-    end
-    PAIR["<b>one pairing engine</b><br/>fills → round trips<br/>running position · weighted prices · reversals split"]
-    SNAP["<b>the entry snapshot</b><br/>what was known at the entry, nothing later"]
-    PAGE["<b>the page</b><br/>8 tabs · filters · formulas computed once<br/>trade cards · setups · import report"]
-  end
-  SYNC -->|"fills"| PAIR
-  FILES -->|"fills"| PAIR
-  HAND --> PAIR
-  PAIR --> SNAP
-  PAIR --> PAGE
-  SNAP --> PAGE
-  SYNC -->|"account activities · orders"| SRC["Alpaca"]
-  SNAP -->|"1-minute and daily bars"| BARS["bar sources"]
-  SNAP -->|"facts · market state · R1 row, as of the entry"| PG[("shared record")]
-  PAGE -->|"📈 the trade's real instants"| QP["qp"]
-  JR ==>|"only writer"| JF[("the journal's file")]
-  classDef prog fill:#dbeafe,stroke:#1d4ed8,color:#111;
-  classDef store fill:#f3f4f6,stroke:#6b7280,color:#111;
-  classDef ext fill:#ffffff,stroke:#9ca3af,stroke-dasharray: 5 5,color:#111;
-  class SYNC,FILES,HAND,PAIR,SNAP,PAGE prog;
-  class PG,JF store;
-  class FD,JOBS,SRC,BARS,QP ext;
-```
+1. **Overview:** performance summary, equity curve, drawdown and evidence-based insights.
+2. **Calendar:** daily results, trade count and daily notes.
+3. **Trades:** searchable list, filters, open/closed state and complete trade detail.
+4. **Analytics:** performance, risk, time, symbols, setups, costs and behavioral/process review.
+5. **Setups:** create and maintain setups; compare results and entry-time conditions.
+6. **Notes / Trading plan:** daily planning and review.
+7. **Accounts & capture:** redesigned acquisition methods, connection status and review reports.
+8. **Settings:** timezone, display, data and privacy preferences.
 
----
+## 4. Trade capture
 
-## 3. Its parts
+Capture methods are deliberately being redesigned; the old format-specific importer UI is not a requirement. The new experience must make capture easy while preserving correct pairing, stable identifiers, duplicate prevention, transparent errors, open positions, partial fills, reversals and accurate fees. See [IMPORT.md](IMPORT.md).
 
-| Part | Job | Detail |
-|---|---|---|
-| **trades in** | the three ways a trade arrives: Alpaca accounts synced on a schedule; broker files uploaded by the trader; hand entry. Each produces **fills** | [IMPORT.md](IMPORT.md) |
-| **the pairing engine** | one engine, for every source, turns fills into round trips. It handles scale-ins, scale-outs, reversals and open positions once, with stable ids, so a second import updates and never duplicates | [IMPORT.md](IMPORT.md) |
-| **stops and fees** | the stop from the broker's stop order, the strategy's exit plan, or the trader; fees from the broker, or from the account's fee rule (labelled estimated) | [IMPORT.md](IMPORT.md) |
-| **the entry snapshot** | the price structure from bars up to the entry minute; the facts, the market state and the R1 row as known at the entry; MAE and MFE between the entry and the exit | [REVIEW.md](REVIEW.md) |
-| **the page** | eight tabs (Overview, Calendar, Time, Risk, Stats, Setups, Trades, Import) and three filters; every number computed in one place; the trade cards; the setup statistics; the 📈 chart link | [REVIEW.md](REVIEW.md) |
+All acquisition methods feed one canonical validation and pairing engine. They must not each calculate trades differently.
 
----
+## 5. Analysis contract
 
-## 4. Contracts
+The journal uses one shared calculation layer for all pages and exports. Its detailed metrics, formulas, visualizations, sample thresholds and additional analysis methods are specified in [REVIEW.md](REVIEW.md).
 
-**The program:** Node, `journal/server.js`, on port 3100 of the box, behind
-the front door at `/journal/`.
+Important invariants:
+- Net P&L includes applicable fees; gross and fees remain separately visible.
+- Open/unrealized results are distinct from closed/realized results.
+- R requires valid initial risk; no stop or risk is fabricated.
+- Missing data is “unknown/unavailable,” not silently zero or misaligned.
+- Entry snapshots use only information available at the entry; no future bars or future market context.
+- Every analysis displays its eligible sample count and defines which trades are included.
+- The same filter and trade set must produce the same number everywhere.
 
-**It owns the journal's file, `data/journal/journal.db`.** The target tables
-are below. Today the trades live in `journal_trades`, with the setups, day
-notes and fee profiles; the old app's leftover tables are not carried
-([FILES.md](../04-files/FILES.md) §3.5).
+## 6. Integration boundaries
 
-| Table | Key |
-|---|---|
-| `accounts` (keys in the secret file `data/journal/journal-accounts.json`) | id |
-| `fills` | account, external id |
-| `trades` | id (stable) |
-| `trade_fills` | trade, fill, portion |
-| `setups` | id |
-| `trade_snapshots` | trade |
-| `day_notes` | day |
+- TradeLab can display the relevant symbol/timeframe chart with correctly placed entry and exit marks when its data and route are available.
+- Radar or screener results may provide contextual references, but the journal remains the source of truth for actual trades.
+- The shared market record may enrich a trade only with a timestamped, entry-valid snapshot. Missing context must remain missing.
+- The journal does not depend on Radar or TradeLab being available to record, edit or analyze the basic trade history.
+- Future TradePilot integration must not silently mix simulated, algorithmic and manually executed trades; source and execution mode must be explicit.
 
-| It reads | From |
-|---|---|
-| account activities (fills) and orders | Alpaca, per account |
-| 1-minute and daily bars | the bar sources ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
-| facts, the market state and the R1 row, as of the entry | the shared record |
+## 7. Reliability and data integrity
 
-| Routes, behind `/journal/` | Do |
-|---|---|
-| `GET /api/journal/trades` (filters); `GET /api/journal/trades/:id` | trades; one trade with its fills and its snapshot |
-| `PATCH /api/journal/trades/:id`; `POST /api/journal/trades` | stop, target, fees, setup, notes, tags; hand entry |
-| `POST /api/journal/import` | a file in, an import report back |
-| `GET/POST/DELETE /api/journal/accounts…`, `…/test`, `…/fetch` | accounts; no secret is ever returned |
-| `POST /api/journal/sync` (to build) | one sync of the due accounts, started by the desk's scheduler |
-| `GET/POST/PATCH /api/journal/setups` | setups |
-| `GET /api/journal/stats` (filters) | every number of the page, computed in one place |
+- Repeated capture of the same source record must not create duplicates.
+- Scale-ins, scale-outs, partial exits, reversals and open positions must be represented correctly.
+- Overnight trades use full entry and exit timestamps, not a single date plus two clock times.
+- Failed syncs and incomplete capture runs must be visible with reasons.
+- A missing price bar or unavailable shared record must not block basic trade recording.
+- A calculation failure must be visible and retryable; it must not leave stale output marked current.
+- Credentials must never be returned to the client or written to logs.
+- Backups and restores must cover journal records and document how connected accounts are re-authorized.
 
----
+## 8. Delivery order
 
-## 5. When it fails
+1. Finalize the journal product and capture documents before UI implementation.
+2. Build the responsive design system and navigation for web and Android.
+3. Implement the core data model, capture/pairing, timestamp, fee and data-quality correctness.
+4. Implement Overview, Calendar, Trades and Trade detail.
+5. Implement Performance, Risk, Time, Symbol and Setup analytics.
+6. Implement notes, setup/condition management, exports and deeper review tools.
+7. Validate every displayed metric against documented test cases and the same sample of trades.
 
-| Event | What happens |
-|---|---|
-| an account's fetch fails | recorded with its reason; the account waits for its next turn; the sync's run record says which account failed |
-| the journal is down | the desk is unaffected; the scheduler records the failed sync and alerts |
-| a file has rows the parser cannot read | the import report lists every skipped row with its reason; nothing is dropped silently |
-| the shared record is down | the snapshot waits and says so; trades still import |
+## 9. Status
 
----
-
-## 6. Built on
-
-**The old desk.** [legacy/journal/](../../legacy/journal/README.md), documented
-from the code with every import format run on a scratch database:
-- [PAGE](../../legacy/journal/PAGE.md): every tab and formula;
-- [ACCOUNTS](../../legacy/journal/ACCOUNTS.md): the Alpaca accounts and their
-  pairing;
-- [IMPORT](../../legacy/journal/IMPORT.md): the file formats, and what was
-  tested;
-- [ANALYSIS](../../legacy/journal/ANALYSIS.md): the technical snapshot,
-  conditions, grading;
-- [DATA-MODEL](../../legacy/journal/DATA-MODEL.md);
-- [OPERATIONS](../../legacy/journal/OPERATIONS.md): start-up, the fetch timer,
-  the tests;
-- [KNOWN-ISSUES](../../legacy/journal/KNOWN-ISSUES.md): D-J1 to D-J20.
-
-**What failed there:**
-- **File imports mispaired scale-ins and scale-outs, lost TradingView shorts,
-  and duplicated on re-import** (D-J1 to D-J7). Fixed by one engine (step 11).
-- **No trade has a stop,** so every R is empty (D-J9).
-- **Times were clock strings,** with a fixed −05:00 offset and one date per
-  trade (D-J8, D-J10, D-J12). Fixed by real instants (step 4).
-- **The snapshot and the grading half never worked** (D-J13, D-J14).
-- **No fees for most sources** (D-J15).
-- **The server's numbers differed from the page's** (D-J17).
-- **None of the 84 journal tests covered the file importer.**
-
----
-
-## 7. Status
-
-| Part | Status |
-|---|---|
-| the page and its formulas; Alpaca accounts on a schedule | **built** (legacy, kept) |
-| real New York instants | **built** (step 4) |
-| every broker file read as fills and paired by the one engine, with fees and a report of every row not read | **built** (step 11; D-J1 to D-J7) |
-| stops; the entry snapshot from the shared record; MAE and MFE | **to build** |
-| `accounts`, `fills`, `trade_fills` as tables; stable ids for files | **to build** |
-| the sync started by the desk's scheduler | **to build** (step C). Today the journal runs its own minute timer |
-| one condition system over the snapshot; setup statistics | **to build** ([REVIEW.md](REVIEW.md)) |
+This document describes the intended product, not a claim that every item is already built. The legacy implementation is documented under [legacy/journal/](../../legacy/journal/); known gaps and defects are retained as evidence for the rebuild. The redesigned acquisition methods remain open decisions until reviewed.
