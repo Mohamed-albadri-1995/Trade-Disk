@@ -95,6 +95,15 @@ Important invariants:
 6. Implement notes, setup/condition management, exports and deeper review tools.
 7. Validate every displayed metric against documented test cases and the same sample of trades.
 
-## 9. Status
+
+## 10. Front door and responsive acceptance
+
+The Journal is a tool inside Trade-Disk, not the Trade-Disk home page. The deployed experience must include a clear route back to the Trading Station home/front door and a dedicated Journal landing/overview route. A Journal-only overview must never masquerade as the whole product home.
+
+At phone widths (320–640 CSS px), the layout must use the full viewport width, hide desktop-only side navigation, avoid fixed/minimum widths that create a large empty right-hand area, and keep cards, filters, tables, charts, and the bottom navigation within the viewport. Wide tables may scroll inside their own panel; the page itself must not overflow horizontally. At desktop widths, the sidebar and multi-column layouts may be used.
+
+Acceptance checks: verify at 360px, 390px, 640px, 1024px and 1440px; confirm visible home/front-door navigation; confirm all Journal pages remain reachable; confirm no clipped content or page-level horizontal scroll on mobile; confirm the first screen communicates product identity and the user's next actions.
+
+## 11. Status
 
 This document describes the intended product, not a claim that every item is already built. The legacy implementation is documented under [legacy/journal/](../../legacy/journal/); known gaps and defects are retained as evidence for the rebuild. The redesigned acquisition methods remain open decisions until reviewed.
