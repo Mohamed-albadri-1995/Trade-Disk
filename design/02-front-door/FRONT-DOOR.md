@@ -1,6 +1,7 @@
 # The front door
 
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.1.
+**Front-end design:** [FRONT-END-DESIGN.md](FRONT-END-DESIGN.md) specifies the Trading Station home and its route into the Journal.
 **Talks to:**
 - the trader's phone and laptop;
 - the [desk](../03-desk/DESK.md), [qp](../05-qp/QP.md) and the
