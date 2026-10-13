@@ -27,9 +27,9 @@ It is its own program, with its own file, because it shares nothing live with
 the tools.
 
 **What it owns:**
-- the accounts;
-- the fills;
-- the trades, with their fills, stops, fees, setups and notes;
+- the accounts and their broker connectors;
+- the instruments, and the executions;
+- the trades, with their executions, stops, fees, setups and notes;
 - each trade's snapshot at its entry;
 - the day notes.
 
@@ -47,22 +47,22 @@ flowchart TB
   FD["front door · /journal/"] --> PAGE
   JOBS["desk scheduler"] -->|"starts each account's sync"| SYNC
   subgraph JR["journal · Node · port 3100"]
-    subgraph IN["trades in"]
-      SYNC["<b>Alpaca accounts</b><br/>fills on each account's schedule"]
-      FILES["<b>broker files</b><br/>TradingView · TTP · DXtrade · paper log"]
-      HAND["<b>hand entry</b>"]
+    subgraph IN["three doors in"]
+      SYNC["<b>broker connectors</b><br/>read-only · one per broker"]
+      FILES["<b>file upload</b><br/>presets + column-mapping"]
+      HAND["<b>manual entry</b>"]
     end
-    PAIR["<b>one pairing engine</b><br/>fills → round trips<br/>running position · weighted prices · reversals split"]
+    PAIR["<b>one pairing engine</b><br/>executions → round trips<br/>flat-to-flat FIFO · de-dup · reversals split"]
     SNAP["<b>the entry snapshot</b><br/>what was known at the entry, nothing later"]
     PAGE["<b>the page</b><br/>8 tabs · filters · formulas computed once<br/>trade cards · setups · import report"]
   end
-  SYNC -->|"fills"| PAIR
-  FILES -->|"fills"| PAIR
+  SYNC -->|"executions"| PAIR
+  FILES -->|"executions"| PAIR
   HAND --> PAIR
   PAIR --> SNAP
   PAIR --> PAGE
   SNAP --> PAGE
-  SYNC -->|"account activities · orders"| SRC["Alpaca"]
+  SYNC -->|"read-only"| SRC["each broker"]
   SNAP -->|"1-minute and daily bars"| BARS["bar sources"]
   SNAP -->|"facts · market state · R1 row, as of the entry"| PG[("shared record")]
   PAGE -->|"📈 the trade's real instants"| QP["qp"]
@@ -81,9 +81,9 @@ flowchart TB
 
 | Part | Job | Detail |
 |---|---|---|
-| **trades in** | the three ways a trade arrives: Alpaca accounts synced on a schedule; broker files uploaded by the trader; hand entry. Each produces **fills** | [IMPORT.md](IMPORT.md) |
-| **the pairing engine** | one engine, for every source, turns fills into round trips. It handles scale-ins, scale-outs, reversals and open positions once, with stable ids, so a second import updates and never duplicates | [IMPORT.md](IMPORT.md) |
-| **stops and fees** | the stop from the broker's stop order, the strategy's exit plan, or the trader; fees from the broker, or from the account's fee rule (labelled estimated) | [IMPORT.md](IMPORT.md) |
+| **trades in** | the three doors a trade arrives through: read-only broker connectors synced on a schedule; file upload (per-broker presets or a generic column-mapping wizard); manual entry. Each produces **executions**, covering stocks, options, futures, forex and crypto | [IMPORT.md](IMPORT.md) |
+| **the pairing engine** | one engine, for every door, turns executions into round trips — flat-to-flat, FIFO, reversals split — once; a de-dup key hierarchy and a split/merge override mean a re-import updates and never duplicates | [IMPORT.md](IMPORT.md) |
+| **stops and fees** | the stop from the broker's stop order, the strategy's exit plan, or the trader; fees per execution, from the broker or the account's fee rule (labelled estimated) | [IMPORT.md](IMPORT.md) |
 | **the entry snapshot** | the price structure from bars up to the entry minute; the facts, the market state and the R1 row as known at the entry; MAE and MFE between the entry and the exit | [REVIEW.md](REVIEW.md) |
 | **the page** | eight tabs (Overview, Calendar, Time, Risk, Stats, Setups, Trades, Import) and three filters; every number computed in one place; the trade cards; the setup statistics; the 📈 chart link | [REVIEW.md](REVIEW.md) |
 
@@ -101,29 +101,31 @@ notes and fee profiles; the old app's leftover tables are not carried
 
 | Table | Key |
 |---|---|
-| `accounts` (keys in the secret file `data/journal/journal-accounts.json`) | id |
-| `fills` | account, external id |
+| `accounts`, `connectors` (keys in the secret file `data/journal/journal-accounts.json`) | id; account |
+| `instruments` (type + per-class metadata) | id |
+| `executions` | account, external id |
 | `trades` | id (stable) |
-| `trade_fills` | trade, fill, portion |
+| `trade_executions` | trade, execution |
+| `import_batches` (for undo) | id |
 | `setups` | id |
 | `trade_snapshots` | trade |
 | `day_notes` | day |
 
 | It reads | From |
 |---|---|
-| account activities (fills) and orders | Alpaca, per account |
+| executions (activities, orders, Flex reports, statements) | each broker, through its connector, read-only ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | 1-minute and daily bars | the bar sources ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) |
 | facts, the market state and the R1 row, as of the entry | the shared record |
 
 | Routes, behind `/journal/` | Do |
 |---|---|
-| `GET /api/journal/trades` (filters); `GET /api/journal/trades/:id` | trades; one trade with its fills and its snapshot |
-| `PATCH /api/journal/trades/:id`; `POST /api/journal/trades` | stop, target, fees, setup, notes, tags; hand entry |
-| `POST /api/journal/import` | a file in, an import report back |
-| `GET/POST/DELETE /api/journal/accounts…`, `…/test`, `…/fetch` | accounts; no secret is ever returned |
-| `POST /api/journal/sync` (to build) | one sync of the due accounts, started by the desk's scheduler |
-| `GET/POST/PATCH /api/journal/setups` | setups |
-| `GET /api/journal/stats` (filters) | every number of the page, computed in one place |
+| `GET /api/journal/trades` (filters); `GET /api/journal/trades/:id` | trades; one trade with its executions and its snapshot |
+| `PATCH /api/journal/trades/:id`; `POST /api/journal/trades` | stop, target, fees, setup, notes, tags; manual entry |
+| `POST /api/journal/trades/:id/split`, `…/merge` | the manual pairing override |
+| `POST /api/journal/import`; `…/import/mapping`; `DELETE …/imports/:id` | a file in (preview, then report); save a column mapping; undo one batch |
+| `GET/POST/DELETE /api/journal/accounts…`, `…/connectors…`, `…/test` | accounts and connectors; no secret is ever returned |
+| `POST /api/journal/sync` | one sync of the due connectors, started by the desk's scheduler |
+| `GET/POST/PATCH /api/journal/setups`; `GET /api/journal/stats` (filters) | setups; every number of the page, computed in one place |
 
 ---
 
@@ -165,6 +167,13 @@ from the code with every import format run on a scratch database:
 - **The server's numbers differed from the page's** (D-J17).
 - **None of the 84 journal tests covered the file importer.**
 
+**The import, redesigned.** The old three methods (an Alpaca-only sync, four
+hard-coded file parsers, API-only hand entry) are replaced with the de-facto
+trading-journal standard — read-only broker connectors, file upload with a
+column-mapping wizard, manual entry on the page, and one FIFO pairing engine with
+a de-dup key hierarchy, split/merge and import-undo, across every asset class
+([IMPORT.md](IMPORT.md)).
+
 ---
 
 ## 7. Status
@@ -173,8 +182,8 @@ from the code with every import format run on a scratch database:
 |---|---|
 | the page and its formulas; Alpaca accounts on a schedule | **built** (legacy, kept) |
 | real New York instants | **built** (step 4) |
-| every broker file read as fills and paired by the one engine, with fees and a report of every row not read | **built** (step 11; D-J1 to D-J7) |
+| the running-position pairing kernel; the Alpaca connector | **built** (legacy), now the base of the connector model |
 | stops; the entry snapshot from the shared record; MAE and MFE | **to build** |
-| `accounts`, `fills`, `trade_fills` as tables; stable ids for files | **to build** |
+| the import redesign — more connectors (IBKR, Tastytrade, MetaTrader, futures-file), file upload with column-mapping, manual entry on the page, FIFO, the de-dup key hierarchy, split/merge, undo, per-asset-class P&L | **to build** ([IMPORT.md](IMPORT.md)) |
 | the sync started by the desk's scheduler | **to build** (step C). Today the journal runs its own minute timer |
 | one condition system over the snapshot; setup statistics | **to build** ([REVIEW.md](REVIEW.md)) |

@@ -168,7 +168,7 @@ replacement in the design:
 | `data/keys.json` | shared keys and the desk's switches: the shared record's address, the ntfy topics, the heartbeat address, the area modes, `workerShadow`, `deskTools` |
 | `data/auth.json` | the password hash and the cookie's signing secret |
 | `data/r2.json` | the backup bucket's keys |
-| `data/journal/journal-accounts.json` | the journal's Alpaca accounts |
+| `data/journal/journal-accounts.json` | the journal's broker-connector credentials |
 | `quant-platform/.env` | qp's feed keys, copied from the desk's by the deploy |
 
 **The rules:**

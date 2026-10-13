@@ -110,7 +110,7 @@ disagree (D-J17):
 | **Risk** | the risk snapshot, the R-multiple distribution, and the P&L distribution |
 | **Stats** | performance, trade, time, cost and volume groups, and the symbols with the largest net P&L |
 | **Setups** | one row per setup with at least three closed trades: trades, win rate, $/trade, profit factor, total, average R, a small equity curve (§3.3) |
-| **Trades** | per day, one card per trade (§3.5); the Alpaca accounts panel sits above the list ([IMPORT.md](IMPORT.md)) |
+| **Trades** | per day, one card per trade (§3.5); the accounts and connectors panel sits above the list ([IMPORT.md](IMPORT.md)) |
 | **Import** | the file import and its report ([IMPORT.md](IMPORT.md)) |
 
 The numbers follow the old desk's definitions: a trade at exactly 0 is neither a
@@ -146,7 +146,7 @@ sheet of that stock and day with the entry and exit drawn — at the trade's
 
 | Routes, behind `/journal/` | Do |
 |---|---|
-| `GET /api/journal/trades` (filters); `GET /api/journal/trades/:id` | trades; one trade with its fills and its snapshot |
+| `GET /api/journal/trades` (filters); `GET /api/journal/trades/:id` | trades; one trade with its executions and its snapshot |
 | `PATCH /api/journal/trades/:id` | stop, target, fees, setup, notes, tags |
 | `GET/POST/PATCH /api/journal/setups` | the setups the page edits |
 | `GET /api/journal/stats` (filters) | every number of the page, computed in one place |
