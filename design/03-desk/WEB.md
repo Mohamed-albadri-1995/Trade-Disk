@@ -94,6 +94,23 @@ page showing numbers as old as the last load (D-S15). The channel is per tool, s
 a page only ever sees its own tool's updates. qp's chart has its own live tail
 ([FEEDS.md](../05-qp/FEEDS.md)); this is the desk's.
 
+### 3.6 Hosted mode: the account-scoped API
+
+Everything above is solo mode — one program, one listener per tool port, one
+login. In hosted mode the web layer is the **API behind the front door**
+([FRONT-DOOR.md §3.2](../02-front-door/FRONT-DOOR.md)):
+
+- the **context is the account first**, then the tool: the login check becomes an
+  account/session check ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)), and a request
+  runs scoped to that account, reaching only that account's rows (row-level
+  security, [DATA-MODEL.md](../DATA-MODEL.md));
+- the **tool** is resolved from the request, not from a per-tool port — the three
+  front ends are served from a CDN and call one API;
+- the **live channel is per account and tool**, so a push never crosses accounts.
+
+The isolation rule is unchanged, only widened: solo keeps one tool's page out of
+another tool's file; hosted also keeps one account out of another's.
+
 ---
 
 ## 4. Contracts
@@ -150,3 +167,4 @@ address in [legacy/architecture/ARCHITECTURE.md](../../legacy/architecture/ARCHI
 | the login and the one address | **built**; the domain and closing the other ports are not done ([ARCHITECTURE §9](../../ARCHITECTURE.md#9-where-the-build-stands-and-the-way-there)) |
 | one listener per tool port, in one program | **to build** (step B): the way one program holds several tools is built; the tools still run as separate programs |
 | the live channel to open pages | **to build** (step E: live pages) |
+| hosted mode: the account-scoped API behind the door, front ends on a CDN, the live channel per account and tool | **designed** (§3.6, [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |

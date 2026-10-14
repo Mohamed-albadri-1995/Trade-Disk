@@ -136,3 +136,4 @@ and answered `/api/warehouse/*` on its port.
 |---|---|
 | stopped tools served by the old archive program | **built** (legacy) |
 | stopped tools served by the desk as read-only contexts | **to build** (migration step A): the desk's first job, in place of the archive |
+| hosted mode: a stopped tool's history is read-only and **scoped to its account** (one account's stopped tools, never another's); the copy qp/journal read is the account's rows in the managed Postgres | **designed** ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md), [DATA-MODEL.md](../DATA-MODEL.md)); **to build** in the hosted build |

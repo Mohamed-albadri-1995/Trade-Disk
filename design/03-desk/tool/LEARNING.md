@@ -257,3 +257,4 @@ stays off.
 | the direction-aware scorecard and the training set | **built** (prepared) |
 | the scorecard page | **to build** (step E) |
 | a trained, published model and the in-process score | **to build** (step F), when the trader chooses one |
+| hosted mode: per-account models and scorecards (each account learns only from its own R4); the scorecard/comparison is an operator/advanced view ([HOME.md §3.4](../HOME.md)) | **designed** ([ACCOUNTS.md](../../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |

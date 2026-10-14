@@ -144,6 +144,26 @@ A job whose name carries a tool's capture time (the photo, the shortlist rule)
 gets a new name when that time changes, so it returns to its default schedule —
 a change made cleanly through home's capture-time path ([HOME.md](HOME.md)).
 
+### 4.6 Hosted mode: one clock, many accounts
+
+The "one clock, nothing runs twice" invariant is what hosted mode most needs, and
+it carries over. In the commercial product the scheduler is a **multi-tenant
+service**:
+
+- the **shared** jobs run **once for everyone** — the source checks, the one
+  market read per scan, the O'Neil research, the night's work — because the
+  market and the research are global ([MARKET.md](MARKET.md),
+  [RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md));
+- the **per-account** jobs — each account's scans, photos, outcomes, shortlist
+  rule, scorer training and journal sync — run in that account's scope, still
+  with no two runs of one account's tool at once;
+- schedules, on/off state and run history live in the managed Postgres per
+  account ([DATA-MODEL.md](../DATA-MODEL.md)); the admin dashboard surfaces job
+  health across accounts ([ADMIN.md](../14-admin/ADMIN.md)).
+
+A single logical scheduler (horizontally scaled, with a run lock) keeps the
+no-overlap and no-double-start guarantees across the fleet.
+
 ---
 
 ## 5. Contracts
@@ -205,3 +225,4 @@ hand-installed systemd timer outside pm2.
 | run history and alerts for the most important jobs | **built** (step 12; [ALERTS.md](../11-alerts/ALERTS.md)) |
 | one scheduler for the whole desk, every tool's jobs in its context | **to build** (step C): one scheduler per tool until then |
 | the desk jobs (research runs, the night, the restore test, journal sync, qp's alert cycles) on the one scheduler | **partly**: the new-ticker and provisional-M runs are started by T1's scheduler; the night's run is still the last step of qp's own nightly job until step C ([RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)) |
+| hosted mode: the multi-tenant scheduler — shared jobs once for all, per-account jobs in account scope, one run lock across the fleet | **designed** (§4.6, [ADMIN.md](../14-admin/ADMIN.md)); **to build** in the hosted build |
