@@ -728,7 +728,7 @@ function homePage(){const s=stats(trades),a=advanced(trades);return `
     </div>
     <div class="st-trio">
       <div class="st-tool radar"><div class="ti">⌕</div><h3>Radar</h3><p>Find high-probability opportunities with powerful screening tools and watchlists.</p><span class="soon">Coming soon</span></div>
-      <div class="st-tool lab"><div class="ti">▥</div><h3>TradeLab</h3><p>Professional charting, indicators, strategy development and backtesting.</p><span class="soon">Coming soon</span></div>
+      <a class="st-tool lab" href="tradelab.html" style="display:block"><div class="ti">▥</div><h3>TradeLab</h3><p>Professional charting, indicators, strategy development and backtesting.</p><span class="soon" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 42%,var(--line))">Preview →</span></a>
       <div class="st-tool pilot"><div class="ti">✦</div><h3>TradePilot</h3><p>Algorithmic trading, strategy automation and execution controls.</p><span class="soon">Coming soon</span></div>
     </div>
   </section>
@@ -889,7 +889,7 @@ function tradeDetail(t){
 }
 function detailTabContent(t,tab){
   if(tab==='Overview')return '<div class="kv"><div><small>Opened (UTC)</small><b class="n">'+safe(t.createdAt)+'</b></div><div><small>Last updated (UTC)</small><b class="n">'+safe(t.updatedAt)+'</b></div><div><small>Side</small><b>'+t.side+'</b></div><div><small>Status</small><b>'+t.status+'</b></div><div><small>Stop loss</small><b class="n">'+(t.stop?'$'+fmt(t.stop,t.stop<10?4:2):'—')+'</b></div><div><small>Target</small><b class="n">'+(t.target?'$'+fmt(t.target,t.target<10?4:2):'—')+'</b></div><div><small>Planned reward:risk</small><b class="n">'+(t.plannedRR?t.plannedRR.toFixed(1)+':1':'—')+'</b></div><div><small>Fees</small><b class="n">'+money(t.fees)+'</b></div></div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><button class="btn ghost small" data-action="chart-trade">📈 Open chart in TradeLab</button><span class="roflag">TradeLab (qp) — coming soon</span></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><button class="btn ghost small" data-action="chart-trade">📈 Open chart in TradeLab</button><span class="roflag">Opens in TradeLab</span></div>'+
     '<div class="notice" style="margin-top:14px"><b>Data provenance:</b> synthetic demo record. The 📈 chart would open qp\'s print sheet of this stock and day at the trade\'s real instants; MAE/MFE and the entry snapshot are captured from verified bars in production, not inferred here.</div>';
   if(tab==='Edit')return '<p class="stat-f">Setup, stop, target, fees and notes are editable on the page.</p><div class="formgrid" style="margin-top:10px"><div class="field"><label>Setup</label><select id="eSetup">'+setups.map(s=>'<option '+(t.setup===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div class="field"><label>Rule adherence</label><select id="eAdh">'+['Good','Average','Poor','Unknown'].map(x=>'<option '+(t.adherence===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div><div class="field"><label>Stop</label><input id="eStop" type="number" step=".0001" value="'+(t.stop??'')+'"></div><div class="field"><label>Target</label><input id="eTarget" type="number" step=".0001" value="'+(t.target??'')+'"></div><div class="field"><label>Fees</label><input id="eFees" type="number" step=".01" value="'+fmt(t.fees,2)+'"></div><div class="field"><label>Emotional state</label><select id="eEmo">'+['Focused','Confident','Anxious','FOMO','Frustrated','Tired','Unknown'].map(x=>'<option '+(t.emotions===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div></div><div class="field full" style="margin-top:12px"><label>Notes</label><textarea id="eNotes">'+safe(t.notes)+'</textarea></div><button class="btn primary" style="margin-top:12px" data-action="save-trade-edit" data-id="'+t.id+'">Save changes</button>';
   if(tab==='Entry snapshot')return '<div class="empty"><b>No entry-time snapshot in demo</b>In production the snapshot stores the price structure up to the entry minute, plus the facts, market state and R1 row as known at the entry — read from the shared record, never look-ahead. MAE and MFE are measured between entry and exit.</div>';
@@ -1164,7 +1164,7 @@ document.addEventListener('click',e=>{
     case'close-modal':$('#modalroot').innerHTML='';break;
     case'export-csv':exportCSV();break;
     case'sync-now':toast('Demo: a real sync is started by the desk\'s scheduler.');break;
-    case'chart-trade':toast('Chart opens in TradeLab (qp) — coming soon.');break;
+    case'chart-trade':{const w=window.open('tradelab.html','_blank');if(!w)location.href='tradelab.html';break}
     case'connect-demo':toast('Prototype: connecting needs the production journal and a read-only credential.');break;
     case'month-prev':calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);render();break;
     case'month-next':calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);render();break;
