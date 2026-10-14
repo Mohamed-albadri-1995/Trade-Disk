@@ -263,3 +263,4 @@ The design that made it: [ARCHITECTURE](../../ARCHITECTURE.md) §3.
 | each area switched on | **to do**, area by area, when its comparison is clean (step D) |
 | `health_checks`, models | **to build** |
 | where it lives | **open**: the trader's decision |
+| hosted mode: the relational data model in a managed Postgres **is the record** (no box files), every row account-scoped under RLS (§3.7) | **designed** ([DATA-MODEL.md](../DATA-MODEL.md), [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |

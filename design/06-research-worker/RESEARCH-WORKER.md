@@ -174,6 +174,29 @@ decision bar, and a photo records exactly the reading of its minute.
   yet.
 - **off.**
 
+### 3.6 Hosted mode: one shared research service
+
+The O'Neil research is **global** — the same CANSLIM facts, RS ratings, groups and
+market model (M) describe the market for everyone — so in the commercial product
+the worker runs **once for the whole service, not per account**. Its outputs are
+**shared reference tables**, not account-scoped rows
+([DATA-MODEL.md](../DATA-MODEL.md), [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)):
+every account's cards and Market dashboard read the same facts, and no account's
+data trains or changes them.
+
+Two things move to the admin surface ([ADMIN.md](../14-admin/ADMIN.md)):
+
+- its **sources** follow the swappable-provider rule — EDGAR and the government
+  datasets are free and commercial-safe, but the **bar source** (Yahoo in solo
+  mode) is personal-use only and is replaced by the licensed provider in a
+  commercial deployment ([DATA-SOURCES.md §3.7](../08-data-sources/DATA-SOURCES.md));
+- its **switch** (`researchMode`, today in `data/keys.json`) becomes an admin flag.
+
+Everything else — the steps, the dated facts, the budgets, run-then-exit — is
+unchanged. (Per-account model **training**, run after the outcomes, is the one
+per-account job the worker does; those models are account-scoped,
+[LEARNING.md](../03-desk/tool/LEARNING.md).)
+
 ---
 
 ## 4. Contracts
@@ -246,3 +269,4 @@ O'Neil code, which was checked rule by rule: `relstrength.py`, `oneil.py`,
 | the whole chain inside the worker (steps 1–12), started by the desk's night job | **to build** (step C): today the chain's computations run in qp's nightly job and the worker publishes their results |
 | `rs_line`, `oneil_s`, `oneil_n_events`, `sic` as facts; the ratings beyond RS, group and A/D | **to build** ([ONEIL.md](ONEIL.md) §6) |
 | training models | **prepared, no model** (by the trader's choice; [LEARNING.md](../03-desk/tool/LEARNING.md)) |
+| hosted mode: one shared global research service (its facts serve all accounts); the bar source swapped to the licensed provider; the switch as an admin flag | **designed** (§3.6, [DATA-SOURCES.md §3.7](../08-data-sources/DATA-SOURCES.md), [ADMIN.md](../14-admin/ADMIN.md)); **to build** in the hosted build |

@@ -305,3 +305,4 @@ through one interface:
 | one adapter per source for every fetch, with fixtures | **partly**; the rest **to build** as each family moves (step D) |
 | the scheduled health checks and the health page | **to build** (step E) |
 | keys set and tested from Settings | **to build** |
+| hosted mode: the provider registry with commercial-use flags, the active-provider selection and the commercial-licensing guard, from the admin dashboard (§3.7) | **designed** ([ADMIN.md](../14-admin/ADMIN.md), [DATA-MODEL.md](../DATA-MODEL.md)); **to build** in the hosted build |
