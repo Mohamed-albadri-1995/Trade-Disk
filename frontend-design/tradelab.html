@@ -141,6 +141,13 @@ a{color:inherit;text-decoration:none}
 .rule .rt{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:3px 7px;font-size:var(--fs-xs);color:var(--muted)}
 .rule .rt:hover{color:var(--brand);border-color:var(--brand)}
 .rule.hit{border-color:var(--brand);box-shadow:inset 2px 0 var(--brand)}
+.rule2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.05fr) 22px;gap:5px;align-items:start;margin-bottom:6px}
+.rule2 select,.rule2 input{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 5px;font-size:var(--fs-xs);min-width:0;width:100%}
+.rule2 .ropts{display:grid;gap:4px}
+.rule2 .rnone{color:var(--muted);text-align:center;font-size:var(--fs-xs);padding-top:7px}
+.rule2 .rdel{border:0;background:none;color:var(--faint);font-size:15px;padding:2px;align-self:start}
+.rule2 .rdel:hover{color:var(--neg)}
+.logicsel{background:var(--brand-soft);color:var(--brand);border:1px solid var(--line-soft);border-radius:6px;padding:2px 6px;font-size:var(--fs-xs);font-weight:600;margin-left:8px}
 .logicpill{display:inline-block;font-family:var(--mono);font-size:var(--fs-xs);color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:2px 7px;margin-bottom:8px}
 
 /* funnel */
@@ -397,34 +404,70 @@ function drawCross(mx,my){
   octx.globalAlpha=1;octx.setLineDash([]);drawLegend(idx);
 }
 
-/* --------------------------------------------------- strategy (demo eval) */
-const DEMO_STRAT={name:'EMA-9 pullback + trend',side:'long',stage:'development',tools:['Radar'],
-  entry:['close cross_above EMA(9)','EMA(9) > EMA(21)','RVOL > 1.0'],
-  exit:['close cross_below EMA(9)','EMA(9) cross_below EMA(21)'],
-  risk:{sl:'1.5% (pct)',tp:'3.0% (2R)',fill:'desk',window:'09:35–15:50'}};
-function evalStrategy(bset){
-  const b=bset||bars;const close=SRC.close(b),e9=ema(close,9),e21=ema(close,21),vw=vwapSession(b),rv=rvol(b,20);
-  const trades=[];let pos=null;const slPct=0.015,tpPct=0.03;
-  const funnel=[0,0,0];
+/* --------------------------------------------- strategy builder + engine */
+const OPERANDS=[
+  {id:'close',label:'close',kind:'price',src:'close'},{id:'open',label:'open',kind:'price',src:'open'},
+  {id:'high',label:'high',kind:'price',src:'high'},{id:'low',label:'low',kind:'price',src:'low'},
+  {id:'volume',label:'volume',kind:'price',src:'volume'},
+  {id:'ema9',label:'EMA 9',kind:'ind',t:'ema',len:9},{id:'ema21',label:'EMA 21',kind:'ind',t:'ema',len:21},
+  {id:'ema50',label:'EMA 50',kind:'ind',t:'ema',len:50},{id:'sma20',label:'SMA 20',kind:'ind',t:'sma',len:20},
+  {id:'sma50',label:'SMA 50',kind:'ind',t:'sma',len:50},{id:'vwap',label:'VWAP',kind:'ind',t:'vwap'},
+  {id:'rsi14',label:'RSI 14',kind:'ind',t:'rsi',len:14},{id:'bbU',label:'BB upper',kind:'ind',t:'bbU'},
+  {id:'bbL',label:'BB lower',kind:'ind',t:'bbL'},{id:'rvol',label:'RVOL',kind:'ind',t:'rvol',len:20},
+  {id:'atr',label:'ATR 14',kind:'ind',t:'atr',len:14}];
+const OP_BY_ID={};OPERANDS.forEach(o=>OP_BY_ID[o.id]=o);
+const OPS=[['gt','>'],['lt','<'],['ge','≥'],['le','≤'],['cross_above','crosses above'],['cross_below','crosses below'],['rising','is rising'],['falling','is falling'],['eq','='],['neq','≠']];
+const OP_SYM=Object.fromEntries(OPS);
+const noRight=op=>op==='rising'||op==='falling';
+function opSeries(o,b){if(o.kind==='price')return SRC[o.src](b);const t=o.t;
+  if(t==='ema')return ema(SRC.close(b),o.len);if(t==='sma')return sma(SRC.close(b),o.len);
+  if(t==='vwap')return vwapSession(b);if(t==='rsi')return rsi(SRC.close(b),o.len);
+  if(t==='rvol')return rvol(b,o.len);if(t==='atr')return atr(b,o.len);
+  if(t==='bbU'||t==='bbL'){const r=bb(SRC.close(b),20,2);return t==='bbU'?r.up:r.lo}return null}
+function describeRule(r){const l=OP_BY_ID[r.left]?OP_BY_ID[r.left].label:r.left;if(noRight(r.op))return l+' '+OP_SYM[r.op];
+  const rt=r.right==='__value__'?(r.rval??'…'):(OP_BY_ID[r.right]?OP_BY_ID[r.right].label:r.right);return l+' '+OP_SYM[r.op]+' '+rt}
+
+let stratDef={name:'EMA-9 pullback + trend',side:'long',stage:'development',
+  entryLogic:'AND',entry:[{left:'close',op:'cross_above',right:'ema9'},{left:'ema9',op:'gt',right:'ema21'},{left:'rvol',op:'gt',right:'__value__',rval:1}],
+  exitLogic:'OR',exit:[{left:'close',op:'cross_below',right:'ema9'},{left:'ema9',op:'cross_below',right:'ema21'}],
+  slPct:1.5,tpPct:3,fill:'desk',window:'09:35–15:50'};
+let savedStrats=[];try{savedStrats=JSON.parse(localStorage.getItem('td-strats'))||[]}catch{}
+if(!Array.isArray(savedStrats))savedStrats=[];
+
+function evalUserStrategy(def,b){
+  const cache={},ser=id=>{if(id==='__value__')return null;if(!(id in cache))cache[id]=opSeries(OP_BY_ID[id],b);return cache[id]};
+  const val=(ref,i)=>{const s=ser(ref);return s?s[i]:NaN};
+  const ruleTrue=(r,i)=>{const L=val(r.left,i);
+    if(r.op==='rising'||r.op==='falling'){const Lp=val(r.left,i-12);if(!Number.isFinite(L)||!Number.isFinite(Lp))return false;return r.op==='rising'?L>Lp:L<Lp}
+    const R=r.right==='__value__'?Number(r.rval):val(r.right,i);if(!Number.isFinite(L)||!Number.isFinite(R))return false;
+    if(r.op==='cross_above'||r.op==='cross_below'){const Lp=val(r.left,i-1),Rp=r.right==='__value__'?Number(r.rval):val(r.right,i-1);if(!Number.isFinite(Lp)||!Number.isFinite(Rp))return false;return r.op==='cross_above'?(L>R&&Lp<=Rp):(L<R&&Lp>=Rp)}
+    switch(r.op){case'gt':return L>R;case'lt':return L<R;case'ge':return L>=R;case'le':return L<=R;case'eq':return Math.abs(L-R)<1e-9;case'neq':return Math.abs(L-R)>=1e-9}return false};
+  const grp=(logic,rules,i)=>{if(!rules.length)return false;const res=rules.map(r=>ruleTrue(r,i));return logic==='OR'?res.some(Boolean):logic==='ATLEAST'?res.filter(Boolean).length>=2:res.every(Boolean)};
+  const long=def.side!=='short',sl=(def.slPct||1.5)/100,tp=(def.tpPct||3)/100,funnel=def.entry.map(()=>0);
+  const trades=[];let pos=null;
   for(let i=1;i<b.length;i++){
-    const reclaim=Number.isFinite(e9[i])&&Number.isFinite(e9[i-1])&&b[i].c>e9[i]&&b[i-1].c<=e9[i-1];
-    const trend=Number.isFinite(e9[i])&&Number.isFinite(e21[i])&&e9[i]>e21[i];
-    const rvok=Number.isFinite(rv[i])&&rv[i]>1.0;
-    if(reclaim)funnel[0]++;if(trend)funnel[1]++;if(rvok)funnel[2]++;
-    if(!pos){
-      if(reclaim&&trend&&rvok&&i+1<b.length){const entry=b[i+1].o;pos={ei:i+1,entry,stop:entry*(1-slPct),target:entry*(1+tpPct)}}
-    } else {
-      const bar=b[i];let xr=null,xp=null;
-      if(bar.l<=pos.stop){xr='SL';xp=Math.min(pos.stop,bar.o)}
-      else if(bar.h>=pos.target){xr='TP';xp=Math.max(pos.target,bar.o)}
-      else if((Number.isFinite(e9[i])&&b[i].c<e9[i]&&b[i-1].c>=e9[i-1])||(e9[i]<e21[i]&&e9[i-1]>=e21[i-1])){xr='exit';xp=bar.c}
-      if(xr){const pnl=(xp-pos.entry)/pos.entry*100;trades.push({...pos,xi:i,exit:xp,reason:xr,pnl});pos=null}
-    }
+    def.entry.forEach((r,ri)=>{if(ruleTrue(r,i))funnel[ri]++});
+    const eNow=grp(def.entryLogic,def.entry,i),ePrev=grp(def.entryLogic,def.entry,i-1);
+    if(!pos){if(eNow&&!ePrev&&i+1<b.length){const e=b[i+1].o;pos={ei:i+1,entry:e,stop:long?e*(1-sl):e*(1+sl),target:long?e*(1+tp):e*(1-tp)}}}
+    else{const bar=b[i];let xr=null,xp=null;const hitS=long?bar.l<=pos.stop:bar.h>=pos.stop,hitT=long?bar.h>=pos.target:bar.l<=pos.target;
+      if(hitS){xr='SL';xp=pos.stop}else if(hitT){xr='TP';xp=pos.target}else if(grp(def.exitLogic,def.exit,i)){xr='exit';xp=bar.c}
+      if(xr){const pnl=(long?xp-pos.entry:pos.entry-xp)/pos.entry*100;trades.push({...pos,xi:i,exit:xp,reason:xr,pnl});pos=null}}
   }
-  if(pos){const last=b.length-1;const pnl=(b[last].c-pos.entry)/pos.entry*100;trades.push({...pos,xi:null,exit:b[last].c,reason:'open',pnl})}
+  if(pos){const last=b.length-1,pnl=(long?b[last].c-pos.entry:pos.entry-b[last].c)/pos.entry*100;trades.push({...pos,xi:null,exit:b[last].c,reason:'open',pnl})}
   return{trades,funnel,bars:b.length};
 }
+function evalStrategy(b){return evalUserStrategy(stratDef,b||bars)}
 function runStrategyOnChart(){strat=evalStrategy(bars);draw();openPanel('strategy')}
+/* builder UI helpers */
+function logicOpts(cur){return ['AND','OR','ATLEAST'].map(l=>'<option'+(cur===l?' selected':'')+'>'+l+'</option>').join('')}
+function operandOpts(sel,withValue){let h=OPERANDS.map(o=>'<option value="'+o.id+'"'+(sel===o.id?' selected':'')+'>'+o.label+'</option>').join('');if(withValue)h+='<option value="__value__"'+(sel==='__value__'?' selected':'')+'>value…</option>';return h}
+function ruleEditor(r,grp,i){const showVal=r.right==='__value__'&&!noRight(r.op);
+  const rightCell=noRight(r.op)?'<span class="rnone">—</span>':'<div class="ropts"><select data-rf="right">'+operandOpts(r.right,true)+'</select>'+(showVal?'<input class="num rvalin" data-rf="rval" value="'+(r.rval??'')+'" placeholder="value">':'')+'</div>';
+  return '<div class="rule2" data-grp="'+grp+'" data-ri="'+i+'"><select data-rf="left">'+operandOpts(r.left,false)+'</select><select data-rf="op">'+OPS.map(([v,l])=>'<option value="'+v+'"'+(r.op===v?' selected':'')+'>'+l+'</option>').join('')+'</select>'+rightCell+'<button class="rdel" data-delrule="'+grp+':'+i+'" aria-label="Remove rule">×</button></div>'}
+function stratResultHtml(){const c=strat.trades.filter(t=>t.reason!=='open'),w=c.filter(t=>t.pnl>0).length,mx=Math.max(...strat.funnel,1);
+  let h='<div class="secl">Signal funnel</div><div class="funnel">';
+  stratDef.entry.forEach((r,i)=>{const ct=strat.funnel[i]||0;h+='<div class="frow'+(ct===0?' zero':'')+'"><span>'+safe(describeRule(r))+'</span><span class="num">'+ct+'</span><div class="ft" style="grid-column:1/-1"><span style="width:'+(ct/mx*100)+'%"></span></div></div>'});
+  h+='</div><div class="secl">Result</div><div class="stats"><div class="st"><div class="k">Signals</div><div class="v">'+c.length+'</div></div><div class="st"><div class="k">Winners</div><div class="v positive">'+w+'</div></div></div><p class="note" style="margin:0">▲ entries and ▼ exits are on the chart, with the stop (red) and target (green).</p>';return h}
 
 /* ---------------------------------------------------------- backtest */
 function runBacktest(opts){
@@ -479,21 +522,25 @@ const PANELS={
     h+='<div class="secl">On the chart</div>';
     h+=active.length?active.map(a=>'<div class="indrow"><span class="sw" style="background:'+a.color+'"></span><div class="im"><b>'+IND_DEFS[a.type].label+(a.params.length?' '+a.params.length:'')+'</b><small>'+IND_DEFS[a.type].group+(a.params.source?' · '+a.params.source:'')+'</small></div><button class="x" data-rmind="'+a.id+'" aria-label="Remove">×</button></div>').join(''):'<div class="note">No indicators drawn. Add one above.</div>';
     return h},
-  strategy:()=>{const s=DEMO_STRAT;let h=head('Strategy','Build by rules, preview on the chart');
-    h+='<div class="note"><b>Prototype.</b> One demo strategy with the real indicator math. The full engine has 14 operators, groups (AND/OR/ATLEAST/THEN), a risk block and an exit plan. <b>It never places an order — it alerts only.</b></div>';
-    h+='<div class="field"><label>Name</label><input value="'+s.name+'"></div>';
-    h+='<div class="two"><div class="field"><label>Side</label><select><option>long</option><option>short</option></select></div><div class="field"><label>Stage</label><select><option>development</option><option>ready</option></select></div></div>';
-    h+='<div class="secl">Entry <span class="logicpill">AND</span></div>'+s.entry.map((r,i)=>rule(r,'e'+i)).join('');
-    h+='<div class="secl">Exit <span class="logicpill">OR</span></div>'+s.exit.map((r,i)=>rule(r,'x'+i)).join('');
-    h+='<div class="secl">Risk</div><div class="stats" style="grid-template-columns:1fr 1fr"><div class="st"><div class="k">Stop</div><div class="v" style="font-size:15px">'+s.risk.sl+'</div></div><div class="st"><div class="k">Target</div><div class="v" style="font-size:15px">'+s.risk.tp+'</div></div><div class="st"><div class="k">Fill model</div><div class="v" style="font-size:15px">'+s.risk.fill+'</div></div><div class="st"><div class="k">Window</div><div class="v" style="font-size:13px">'+s.risk.window+'</div></div></div>';
-    h+='<button class="btn primary" id="evalBtn" style="width:100%">▶ Evaluate on chart</button>';
-    if(strat){const c=strat.trades.filter(t=>t.reason!=='open'),w=c.filter(t=>t.pnl>0).length;
-      h+='<div class="secl">Signal funnel</div><div class="funnel">'+[['close reclaims EMA 9',strat.funnel[0]],['EMA 9 &gt; EMA 21 (trend)',strat.funnel[1]],['RVOL &gt; 1.0',strat.funnel[2]]].map(([lb,ct])=>{const mx=Math.max(...strat.funnel,1);return '<div class="frow'+(ct===0?' zero':'')+'"><span>'+lb+'</span><span class="num">'+ct+'</span><div class="ft" style="grid-column:1/-1"><span style="width:'+(ct/mx*100)+'%"></span></div></div>'}).join('')+'</div>';
-      h+='<div class="secl">Preview result</div><div class="stats"><div class="st"><div class="k">Signals</div><div class="v">'+c.length+'</div></div><div class="st"><div class="k">Winners</div><div class="v positive">'+w+'</div></div></div><p class="note" style="margin:0">▲ entries and ▼ exits are drawn on the chart, with the stop (red) and target (green) as the simulation used them.</p>'}
+  strategy:()=>{const s=stratDef;let h=head('Strategy','Build a setup by rules, preview on the chart');
+    h+='<div class="note"><b>Build by clicking.</b> Add entry and exit rules from the verified operands, set the risk, then Evaluate. The full engine has 14 operators and nested groups. <b>It never places an order — it alerts only.</b></div>';
+    if(savedStrats.length)h+='<div class="field"><label>Load a saved strategy</label><select id="loadStrat"><option value="">— '+savedStrats.length+' saved —</option>'+savedStrats.map((x,i)=>'<option value="'+i+'">'+safe(x.name)+'</option>').join('')+'</select></div>';
+    h+='<div class="field"><label>Name</label><input id="sName" value="'+safe(s.name)+'"></div>';
+    h+='<div class="two"><div class="field"><label>Side</label><select id="sSide"><option value="long"'+(s.side==='long'?' selected':'')+'>long</option><option value="short"'+(s.side==='short'?' selected':'')+'>short</option></select></div><div class="field"><label>Stage</label><select id="sStage"><option'+(s.stage==='development'?' selected':'')+'>development</option><option'+(s.stage==='ready'?' selected':'')+'>ready</option></select></div></div>';
+    h+='<div class="secl">Entry <select class="logicsel" id="entryLogic">'+logicOpts(s.entryLogic)+'</select></div>';
+    h+=s.entry.map((r,i)=>ruleEditor(r,'entry',i)).join('')||'<p class="note">No entry rules — add one.</p>';
+    h+='<button class="btn sm" data-addrule="entry" style="width:100%;margin:2px 0 4px">+ Add entry rule</button>';
+    h+='<div class="secl">Exit <select class="logicsel" id="exitLogic">'+logicOpts(s.exitLogic)+'</select></div>';
+    h+=s.exit.map((r,i)=>ruleEditor(r,'exit',i)).join('')||'<p class="note">No exit rules — stop/target still apply.</p>';
+    h+='<button class="btn sm" data-addrule="exit" style="width:100%;margin:2px 0 4px">+ Add exit rule</button>';
+    h+='<div class="secl">Risk</div><div class="two"><div class="field"><label>Stop %</label><input id="sSl" class="num" value="'+s.slPct+'"></div><div class="field"><label>Target %</label><input id="sTp" class="num" value="'+s.tpPct+'"></div></div>';
+    h+='<div class="two"><div class="field"><label>Fill model</label><select id="sFill"><option'+(s.fill==='desk'?' selected':'')+'>desk</option><option'+(s.fill==='close'?' selected':'')+'>close</option><option'+(s.fill==='next_open'?' selected':'')+'>next_open</option></select></div><div class="field"><label>Window</label><input value="'+s.window+'" disabled></div></div>';
+    h+='<div class="row"><button class="btn primary" id="evalBtn" style="flex:1">▶ Evaluate</button><button class="btn" id="saveStrat">Save</button></div>';
+    h+='<div id="stratResult">'+(strat?stratResultHtml():'')+'</div>';
     return h},
   backtest:()=>{let h=head('Backtest','Replay the strategy, honestly');
     h+='<div class="note"><b>Honest by default.</b> As-of each day, the watchlist gate, the <b>desk</b> fill (next open, levels from the decision close), costs, and open-at-end kept out of the win rate.</div>';
-    h+='<div class="field"><label>Strategy</label><select><option>'+DEMO_STRAT.name+'</option></select></div>';
+    h+='<div class="field"><label>Strategy</label><select><option>'+safe(stratDef.name)+'</option></select></div>';
     h+='<div class="two"><div class="field"><label>Universe</label><select id="btUni"><option value="register">Radar R1 (6 names)</option><option value="current">This symbol only</option></select></div><div class="field"><label>Timeframe</label><select id="btTf"><option>5m</option><option>15m</option><option>1h</option></select></div></div>';
     h+='<div class="two"><div class="field"><label>Fill model</label><select><option>desk (default)</option><option>close</option><option>next_open</option></select></div><div class="field"><label>Costs (bps/side)</label><input id="btCost" class="num" value="2"></div></div>';
     h+='<div class="field"><label>Accounting</label><select><option>unit — per-trade %</option><option>account — real money</option><option>TTP — prop firm</option><option>challenge</option></select></div>';
@@ -527,8 +574,26 @@ function rule(txt,id){return '<div class="rule" data-rule="'+id+'"><span class="
 function bindPanel(k){
   if(k==='indicators'){$('#addIndBtn')&&($('#addIndBtn').onclick=()=>{const t=$('#indPick').value,len=parseInt($('#indLen').value)||IND_DEFS[t].params.length,src=$('#indSrc').value;const a=addInd(t);if('length'in a.params)a.params.length=len;if('source'in a.params)a.params.source=src;series[a.id]=IND_DEFS[t].calc(bars,a.params);draw();openPanel('indicators')});
     $$('[data-rmind]').forEach(b=>b.onclick=()=>{active=active.filter(x=>x.id!==b.dataset.rmind);draw();openPanel('indicators')});}
-  if(k==='strategy'){$('#evalBtn')&&($('#evalBtn').onclick=runStrategyOnChart);
-    $$('[data-testrule]').forEach(b=>b.onclick=()=>{toast('Rule test: every bar where this one rule holds would be marked on the chart.');});}
+  if(k==='strategy'){
+    $('#evalBtn')&&($('#evalBtn').onclick=runStrategyOnChart);
+    const touch=()=>{strat=null;draw();const rz=$('#stratResult');if(rz)rz.innerHTML='<p class="note" style="margin-top:12px">Edited — click ▶ Evaluate to refresh the markers.</p>'};
+    const bindV=(id,fn,ev)=>{const el=$('#'+id);if(el)el[ev||'onchange']=e=>fn(e.target.value)};
+    bindV('sName',v=>{stratDef.name=v},'oninput');
+    bindV('sSide',v=>{stratDef.side=v;touch()});bindV('sStage',v=>{stratDef.stage=v});
+    bindV('entryLogic',v=>{stratDef.entryLogic=v;touch()});bindV('exitLogic',v=>{stratDef.exitLogic=v;touch()});
+    bindV('sSl',v=>{stratDef.slPct=parseFloat(v)||1.5;touch()});bindV('sTp',v=>{stratDef.tpPct=parseFloat(v)||3;touch()});
+    bindV('sFill',v=>{stratDef.fill=v});
+    $$('.rule2').forEach(row=>{const grp=row.dataset.grp,ri=+row.dataset.ri,rule=stratDef[grp]&&stratDef[grp][ri];if(!rule)return;
+      row.querySelectorAll('[data-rf]').forEach(ctrl=>{const fld=ctrl.dataset.rf;
+        ctrl.onchange=()=>{if(fld==='rval')rule.rval=parseFloat(ctrl.value);else{rule[fld]=ctrl.value;if(fld==='right'&&ctrl.value==='__value__'&&rule.rval==null)rule.rval=1}
+          if(fld==='op'||fld==='right')openPanel('strategy');else touch()};
+        if(fld==='rval')ctrl.oninput=()=>{rule.rval=parseFloat(ctrl.value);touch()};
+      });});
+    $$('[data-addrule]').forEach(b=>b.onclick=()=>{stratDef[b.dataset.addrule].push({left:'close',op:'gt',right:'__value__',rval:0});openPanel('strategy')});
+    $$('[data-delrule]').forEach(b=>b.onclick=()=>{const[g,i]=b.dataset.delrule.split(':');stratDef[g].splice(+i,1);strat=null;draw();openPanel('strategy')});
+    $('#saveStrat')&&($('#saveStrat').onclick=()=>{savedStrats=savedStrats.filter(x=>x.name!==stratDef.name);savedStrats.push(JSON.parse(JSON.stringify(stratDef)));try{localStorage.setItem('td-strats',JSON.stringify(savedStrats))}catch{}toast('Strategy “'+stratDef.name+'” saved.');openPanel('strategy')});
+    $('#loadStrat')&&($('#loadStrat').onchange=e=>{if(e.target.value!==''){stratDef=JSON.parse(JSON.stringify(savedStrats[+e.target.value]));strat=null;draw();openPanel('strategy');toast('Loaded “'+stratDef.name+'”')}});
+  }
   if(k==='chart'){$('#fitBtn')&&($('#fitBtn').onclick=()=>{view={start:0,count:bars.length};draw();});}
   if(k==='backtest'){$('#runBtBtn')&&($('#runBtBtn').onclick=()=>{
     const uni=$('#btUni').value==='current'?[symbol]:REGISTER.map(r=>r.sym);const btf=$('#btTf').value;const cost=parseFloat($('#btCost').value)||0;
