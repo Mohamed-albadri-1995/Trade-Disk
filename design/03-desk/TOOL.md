@@ -135,7 +135,43 @@ one. Detail: [tool/LEARNING.md](tool/LEARNING.md).
 The tool's eight tabs (its cards, the market read, the shortlist, the warehouse
 of registers, the scorecard, the screener builder, settings, the monitor), served
 in its context on its own port ([WEB.md](WEB.md)). Detail:
-[tool/PAGES.md](tool/PAGES.md).
+[tool/PAGES.md](tool/PAGES.md). In the commercial product this same tool is
+**Radar**: its Screener landing, Shortlist, Market dashboard, custom-screener
+Settings, and the four-tab analysis workspace ([tool/PAGES.md §4.1](tool/PAGES.md)).
+
+### 3.8 The data lifecycle: fetch → store → show → update → keep
+
+The steps above are one **sensitive data lifecycle**, and it is worth stating
+whole because the front end depends on getting it right
+([DATA-MODEL.md](../DATA-MODEL.md), [data-model/DATA_LIFECYCLE.md](../data-model/DATA_LIFECYCLE.md)):
+
+1. **Fetch** (§3.1–3.2): the scan and the card pull from outside sources
+   (the scanner, bars, EDGAR, short interest, news) and the research worker.
+2. **Store as canonical facts** (§3.3–3.4): the live list (R0) and the frozen
+   photo (R1) are written to the tool's own file — the **canonical record**, one
+   writer, honest nulls.
+3. **Show from a read model, never from the raw facts**: the front end reads
+   **materialized read-model snapshots** (`stock_card_snapshot`,
+   `stock_technical_read_snapshot`, `stock_canslim_snapshot`,
+   `stock_fundamental_read_snapshot`, `market_snapshot`), each published
+   **atomically** with its own `as_of` / `published_at`
+   ([CARD.md §3.6](tool/CARD.md), [MARKET.md §3.5](MARKET.md)). A page never
+   recomputes and never shows a half-written update.
+4. **Update intraday**: R0 is re-quoted every five minutes; a changed fact
+   invalidates and republishes the affected read-model snapshot, so the card
+   refreshes without the page recomputing.
+5. **Keep permanent**: the photo (R1) and its outcomes (R3) are **immutable** —
+   frozen at the capture minute, copied to the shared record, and never
+   back-dated; editing a screener later never changes what a past photo means
+   (the rebuild rule, [SCREENERS.md §4.5](tool/SCREENERS.md)).
+
+**Two modes.** Solo mode runs this on the box: canonical facts in the tool's
+SQLite file, read models computed and served by the desk. Hosted mode runs the
+same lifecycle on the managed Postgres ([DATA-MODEL.md](../DATA-MODEL.md)), every
+canonical and read-model row **scoped to an account** and isolated by row-level
+security ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); shared facts (the market
+read, the O'Neil research) stay global. The five steps and their invariants are
+identical in both.
 
 ---
 
@@ -203,4 +239,6 @@ the lifecycle, [legacy/screeners/TOOL-LIFECYCLE.md](../../legacy/screeners/TOOL-
 | the pipeline (screeners, card, live list, photo, outcomes), as each tool's own program | **built** (legacy) |
 | the same pipeline run in the desk's context, tool by tool | **to build** (step B), each only after a clean week of photos ([DESK.md](DESK.md) §3, the comparison copy) |
 | the score and scorecard rebuilt | **to build** (step E–F; [tool/LEARNING.md](tool/LEARNING.md)) |
-| the level-3 documents (SCREENERS, CARD, REGISTERS, LEARNING, PAGES) | **to write** |
+| the level-3 documents (SCREENERS, CARD, REGISTERS, LEARNING, PAGES) | **written** |
+| the read-model snapshots the front end reads, published atomically (§3.8) | **designed** ([DATA-MODEL.md](../DATA-MODEL.md), [CARD.md §3.6](tool/CARD.md)); **to build** in the infrastructure phase |
+| hosted mode: the lifecycle on the managed Postgres, every row account-scoped under RLS | **designed** (§3.8, [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |

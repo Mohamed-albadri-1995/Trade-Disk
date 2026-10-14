@@ -232,3 +232,5 @@ and the outcome measure in
 | R1 photos (stamped with their screener versions), R3 outcomes and the shortlist dual-written to the shared record; all eleven tools' history imported with 0 differences | **built, in shadow** (the tool's file stays the record until the switch) |
 | R0 as rows, R4 as a view, R2 as a view of the market history, reason rows for every ticker not measured | **to build** |
 | the switch to read registers from the shared record | **to build** (step D; [BACKTEST.md](../../05-qp/BACKTEST.md)) |
+| `stock_card_snapshot` and the sibling read models the front end reads, published atomically (§3.1) | **designed** ([DATA-MODEL.md](../../DATA-MODEL.md)); **to build** in the infrastructure phase |
+| hosted mode: registers and read models on the managed Postgres, every row account-scoped (the photo stays immutable); shared bars/market stay global | **designed** ([TOOL.md §3.8](../TOOL.md), [ACCOUNTS.md](../../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |
