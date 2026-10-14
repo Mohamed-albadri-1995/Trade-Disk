@@ -123,6 +123,25 @@ nothing points either way); a manual choice is carried into scoring
 - **The score is `—` when there is none**, never 0 — a missing score is not a low
   score.
 
+### 3.6 The analysis workspace (the card as four tabs)
+
+In the commercial front end the card is presented as a **four-tab analysis
+workspace** for one stock, reading the materialized read models
+([DATA-MODEL.md](../../DATA-MODEL.md) §3.8), never recomputing:
+
+| Tab | Shows | Read model |
+|---|---|---|
+| **Overview** | a compact decision summary — the folds above as sections: chart, volume & float, range, news, CAN SLIM summary, themes, market context, price, EMAs, ATR & move, pre-market | `stock_card_snapshot` |
+| **Technical** | the detailed price/volume evidence: chart, indicators, ranges, levels, multi-timeframe | `stock_technical_read_snapshot` |
+| **CAN SLIM / O'Neil** | the seven factors and their evidence | `stock_canslim_snapshot` |
+| **Fundamental · Market · News** | company financials, valuation, events and stock-specific news | `stock_fundamental_read_snapshot` |
+
+Two approved rules the Overview keeps: **no Score Breakdown** (removed, must not
+return) and **no section numbers**. The Overview summarizes facts the deeper tabs
+own, never shows a value that contradicts its owning tab, and its Market Context
+is a snapshot and a link, not a second market dashboard. The folds in §3.4 are
+the Overview's compact sections; the depth lives in the owning tab.
+
 ---
 
 ## 4. Colour language

@@ -68,6 +68,14 @@ the tool's file after every change**, not a memory list with a checkpoint, so a
 restart loses nothing and the day's list is kept after the close. Cleared at
 midnight.
 
+**The live card the front end reads is a materialized read model.** Between
+photos, the card a page shows is served from `stock_card_snapshot`
+([DATA-MODEL.md](../../DATA-MODEL.md) §3.8), built from the current facts and
+**published atomically** — a new snapshot id is made, its references validated,
+and the current pointer switched in one step — so a card never shows a new price
+beside a stale score. The photo (R1, §3.2) freezes that read model at the
+capture minute.
+
 ### 3.2 R1 — the photo
 
 At the tool's capture minute, the register job writes, for **every tool card of

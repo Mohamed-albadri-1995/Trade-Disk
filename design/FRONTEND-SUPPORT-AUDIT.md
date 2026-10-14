@@ -212,5 +212,5 @@ These gate the doc updates. My recommendation is in **bold**.
 | Part | Status |
 |---|---|
 | audit of the 3 tools against the front end + data layer | **done** (this document) |
-| reconciliation of storage/accounts/admin | **proposed** (§3, §5, §7); awaiting the §8 decisions |
-| the design-doc edits | **not started**; begin after agreement |
+| reconciliation of storage/accounts/admin | **done** — decisions (§8) taken 2026-10-14: dual-mode, accounts designed-now/built-later, adopt the relational schema, provider chosen later |
+| the design-doc edits | **done** — ARCHITECTURE (dual-mode); DATA-MODEL (new); DATA-SOURCES (provider swap + licensing, §3.7); ACCOUNTS + ADMIN (new); CARD §3.6 + PAGES §4.1 (analysis workspace, freeze conflicts); SHARED-RECORD / FILES / REGISTERS (hosted-mode notes) |

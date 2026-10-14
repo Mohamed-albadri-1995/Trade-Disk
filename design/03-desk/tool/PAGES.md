@@ -85,6 +85,27 @@ as old as the last load ([WEB.md](../WEB.md), D-S15). The three filters narrow t
 list once, and every tab draws from that narrowed list; the open tab is
 remembered in the browser.
 
+### 4.1 The commercial front end (hosted mode)
+
+The eight tabs above are the desk tool's own page (solo mode). The commercial
+product presents the **same tool** through the approved front end: a **Screener**
+landing, a **Shortlist**, a standalone **Market** dashboard, a **Settings**
+screener-builder, and — when a stock is selected — the **four-tab analysis
+workspace** ([CARD.md](CARD.md) §3.6). The mapping is one-to-one:
+
+| Approved front end | This tool's part |
+|---|---|
+| Screener landing + result cards | the Screener tab + the card ([CARD.md](CARD.md)) |
+| Shortlist | the Shortlist tab ([REGISTERS.md](REGISTERS.md) §3.6) |
+| Market dashboard | the Market tab ([MARKET.md](../MARKET.md)) |
+| Settings (custom screener builder) | the Screeners tab ([SCREENERS.md](SCREENERS.md)) |
+| the four-tab analysis workspace | the card, expanded ([CARD.md](CARD.md) §3.6) |
+| Warehouse · Analysis · Monitor | operator/advanced views; in the commercial product they sit under the admin surface, not as user tabs ([ADMIN.md](../../14-admin/ADMIN.md)) |
+
+Bottom navigation is Screener and Shortlist, with Market and Settings as separate
+destinations; shortlists and custom screeners are per account
+([ACCOUNTS.md](../../13-accounts/ACCOUNTS.md)).
+
 ---
 
 ## 5. What changes from today

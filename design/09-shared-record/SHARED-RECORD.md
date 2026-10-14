@@ -179,6 +179,14 @@ A family or an area is switched **on** only when its comparison is clean.
 **This is an open decision for the trader** ([ARCHITECTURE §10](../../ARCHITECTURE.md#10-decisions)).
 Moving it is one dump and one restore.
 
+**In hosted mode the record lives here, not in box files.** Solo mode keeps each
+tool's file on the box as the record and this database as a copy (§1). In the
+commercial, multi-tenant mode the **relational data model
+([DATA-MODEL.md](../DATA-MODEL.md)) in a hosted Postgres is the record itself** —
+there are no per-box files — and every row is scoped to an account
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)). The one-writer rule and the
+honest-fact rules are unchanged.
+
 **What guards it:**
 - **Saving the address.** It is checked before it is saved: it must be a
   Postgres address, reachable from the box (not Railway's private address), and

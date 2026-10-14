@@ -209,6 +209,36 @@ They feed the health page ([ALERTS.md](../11-alerts/ALERTS.md)).
 - Settings can set and test keys. The old Settings page had no inputs for them
   (D-T4).
 
+### 3.7 Swappable providers and licensing (hosted mode)
+
+Because each source sits behind an adapter, a provider is a **setting, not a
+code change**. In hosted mode this is made explicit:
+
+- a **provider registry** records, per fact family, the providers that can serve
+  it, the **active** one, the fallback order, and whether each is enabled;
+- each provider carries a **commercial-use flag** — may it be used in a product
+  that is sold? — because the honest answer differs by source;
+- the [admin dashboard](../14-admin/ADMIN.md) selects the active provider and
+  sets and tests each key, and in commercial mode it **refuses a provider whose
+  commercial-use flag is not set** (the free scrape and the unofficial feeds),
+  so an unlicensed source can never become the live one.
+
+**Commercial-use, by source** (the registry stores the current terms per
+provider; the admin dashboard shows them, and they are confirmed before a source
+is made live):
+
+| Source | Solo (free) | Commercial |
+|---|---|---|
+| **tv_scanner, tv_news** (TradingView scrape) | yes | **no** — unofficial, not licensed |
+| **yahoo_*** (quotes, news, bars), **google_news** | yes | **no** — not licensed for redistribution |
+| **alpaca_*, polygon, finnhub** | yes | **yes, on a paid/licensed plan** |
+| **edgar, sec_13f, finra, nasdaq_*, nyse_regsho, openfda, usaspending** | yes | **yes** — public/government data |
+
+Going commercial therefore means switching the quote, bar and news families to a
+licensed provider from the dashboard; the adapter contract (§3.1) is unchanged.
+The selection is stored as provider config in the data model
+([DATA-MODEL.md](../DATA-MODEL.md), [ADMIN.md](../14-admin/ADMIN.md)).
+
 ---
 
 ## 4. Contracts

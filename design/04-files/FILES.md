@@ -31,6 +31,14 @@ program that writes it**.
 - its layout changes only through numbered steps, each recorded in the file;
 - no secret is ever kept in a data file.
 
+**Solo mode only.** Everything here — SQLite files on one box — is the
+**solo-mode** record. In hosted mode there are **no box files**: the record is
+the relational [data model](../DATA-MODEL.md) in a hosted Postgres, account-scoped
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)), with the same one-writer and
+honest-fact rules. qp's rebuildable caches and the secret store have hosted
+equivalents (object storage, a secret manager); the ownership boundaries do not
+change.
+
 ---
 
 ## 2. The diagram
