@@ -765,7 +765,11 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')$('#side').classList.r
 
 /* --------------------------------------------------------------- boot */
 $('#themeBtn').textContent=theme==='dark'?'☾':'☀';
-renderRail();defaultIndicators();loadSymbol();openPanel('chart');
+renderRail();defaultIndicators();loadSymbol();
+/* On load, keep the chart in view. Desktop has a fixed side column, so fill it
+   with the Chart settings; on mobile the panel slides over the chart, so leave
+   it closed — and no tool marked active — until the trader taps the rail. */
+if(window.innerWidth>820)openPanel('chart');else{lastRail=null;renderRail()}
 setTimeout(draw,120);// after fonts
 })();
 </script>
