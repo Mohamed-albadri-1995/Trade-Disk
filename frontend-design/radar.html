@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#06111e">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#eef2f7">
 <title>Trade-Disk · Radar — Screener &amp; Analysis</title>
 <style>
 :root{--bg:#050d17;--surface:#091827;--surface2:#0c2032;--surface3:#102b42;--line:#173d58;--line2:#24536f;--blue:#087cff;--cyan:#19c6ed;--green:#19dfa0;--yellow:#ffd33d;--orange:#ffad43;--red:#ff6374;--purple:#b9a1ff;--text:#eff7ff;--muted:#8ca9c1;--radius:13px;--shadow:0 8px 28px #0003}
@@ -46,10 +46,140 @@
 /* Filter builder v3: metadata-driven conditions */
 .condition-list{display:grid;gap:12px}.condition-row{border:1px solid #20465f;background:linear-gradient(145deg,#091c2b,#071522);border-radius:12px;padding:14px;min-width:0}.condition-row-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.condition-row-head strong{font-size:12px;color:#b8d7e9}.condition-row-head button{border:1px solid #5a3442;border-radius:7px;background:#251722;color:#ff9eaa;padding:6px 10px}.condition-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.condition-fields .field{margin:0;min-width:0}.condition-fields label{font-size:10px;text-transform:uppercase;letter-spacing:.45px}.condition-fields input,.condition-fields select{width:100%;min-width:0;background:#071725;border:1px solid #20475f;border-radius:7px;padding:9px;font-size:12px}.condition-params{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:10px;background:#0a2131;border:1px solid #173b53;border-radius:9px}.condition-params .field{margin:0}.condition-preview{font-size:11px;color:#9fc2d9;padding:9px 11px;background:#06131f;border-radius:7px;margin-top:10px;overflow-wrap:anywhere}.condition-preview b{color:#dff4ff}.condition-row .field[hidden],.condition-params[hidden]{display:none!important}.condition-logic{display:flex;align-items:center;gap:8px;margin:8px 0 0;color:var(--muted);font-size:11px}.condition-logic select{background:#0a2030;border:1px solid #20475f;border-radius:7px;padding:7px;color:var(--text)}@media(max-width:900px){.condition-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.condition-params{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.condition-fields{grid-template-columns:minmax(0,1fr)}.condition-params{grid-template-columns:minmax(0,1fr)}.condition-row{padding:11px}}
 
-/* Station integration: mobile stock-card fix — stack header so the price never collides with the score chip (<=560px). Additive, desktop untouched. */@media(max-width:560px){.stockcard{grid-template-columns:1fr}.stockcard .stock-main{padding-right:60px}.stockcard .scorebox{top:12px;right:12px}.stockcard .stock-price{position:static;grid-column:1/-1;text-align:right;margin-top:2px;min-width:0}.stockcard .stock-price .priceval{font-size:18px;white-space:nowrap}.stockcard .stock-price .change{white-space:nowrap}.stockcard .stock-price .spark{width:96px;height:24px;margin-left:auto}}</style>
+/* Station integration: mobile stock-card fix — stack header so the price never collides with the score chip (<=560px). Additive, desktop untouched. */@media(max-width:560px){.stockcard{grid-template-columns:1fr}.stockcard .stock-main{padding-right:60px}.stockcard .scorebox{top:12px;right:12px}.stockcard .stock-price{position:static;grid-column:1/-1;text-align:right;margin-top:2px;min-width:0}.stockcard .stock-price .priceval{font-size:18px;white-space:nowrap}.stockcard .stock-price .change{white-space:nowrap}.stockcard .stock-price .spark{width:96px;height:24px;margin-left:auto}}
+/* ===== Light theme (default). Dark stays the untouched base, reached via the toggle. ===== */
+[data-theme=light]{--bg:#eef2f7;--surface:#ffffff;--surface2:#f4f7fb;--surface3:#e9eff5;--line:#d8e1ec;--line2:#c3cfdd;--blue:#0a6fff;--cyan:#0d87aa;--green:#0e9e6e;--yellow:#c79200;--orange:#c9741a;--red:#df3f56;--purple:#6d55e6;--text:#102234;--muted:#5a6a7b;--shadow:0 8px 24px #1a3a5a14}
+[data-theme=light] body{background:radial-gradient(ellipse at 50% -20%,#dce7f3 0,#eaf1f8 42%,var(--bg) 80%)}
+[data-theme=light] .appbar{background:#ffffffe0;border-bottom-color:#dbe4ee}
+[data-theme=light] .brand em{color:#5a6a7b}
+[data-theme=light] .iconbtn,[data-theme=light] .ghost,[data-theme=light] .select,[data-theme=light] .input,[data-theme=light] .sort{background:#ffffff}
+[data-theme=light] .input,[data-theme=light] .select,[data-theme=light] .sort,[data-theme=light] .chart-controls button,[data-theme=light] .metric,[data-theme=light] .settings-check,[data-theme=light] .market-mini-index{background:#f4f7fb}
+[data-theme=light] .demo{background:#fdf3d6;border-color:#e4c766;color:#8a6d12}
+[data-theme=light] .tag{background:#e6f3fb;border-color:#b8d9ee;color:#15607f}
+[data-theme=light] .panel,[data-theme=light] .card{background:#ffffff}
+[data-theme=light] .input,[data-theme=light] .select{border-color:#d3dde8}
+[data-theme=light] .check,[data-theme=light] .savedrow,[data-theme=light] .sectionnav button{color:#33465a}
+[data-theme=light] .stockcard{background:#ffffff;border-color:#dce5ef}
+[data-theme=light] .stockcard:hover{background:#f7fafd;border-color:#0a6fff}
+[data-theme=light] .stockmark{background:#dcf5e7;color:#0b7a4f;border-color:#a9e3c9}
+[data-theme=light] .stockmark.blue{background:#dbeaff;color:#0a5cc4;border-color:#aecdf5}
+[data-theme=light] .stockmark.purple{background:#e8e2ff;color:#5a3fd0;border-color:#cfc0f3}
+[data-theme=light] .stockmark.orange{background:#ffeccf;color:#a85f14;border-color:#f2cf9c}
+[data-theme=light] .chip{background:#eaf3fa;border-color:#c6dcec;color:#2a6a8c}
+[data-theme=light] .chip.green{background:#dbf5e7;border-color:#a7e2c7;color:#0b7a50}
+[data-theme=light] .chip.gold{background:#fbeecb;border-color:#e6cf86;color:#8a6a12}
+[data-theme=light] .scorebox{background:#dbf5e7;border-color:#a7dfc3;color:#0b7a4f}
+[data-theme=light] .scorebox.mid{background:#fbeeca;border-color:#e6cf84;color:#8a6710}
+[data-theme=light] .indicator{background:#dcf4ea;border-color:#abe0ca;color:#0c7a52}
+[data-theme=light] .detailstats{color:#5a6a7b}
+[data-theme=light] .detailstats b{color:#13202e}
+[data-theme=light] .star{color:#9aa8b6}
+[data-theme=light] .settings-note{background:#fdf6de;border-color:#e6d59a;color:#7a6a28}
+[data-theme=light] .settings-check:has(input:checked){background:#e4f0fb;border-color:#5aa3e0}
+[data-theme=light] .settings-section-title>span{background:#dceaff;border-color:#aecdf5;color:#0a5cc4}
+[data-theme=light] .settings-pill{background:#e9f2fa;border-color:#c3dcef;color:#2a6a8c}
+[data-theme=light] .secondary-btn,[data-theme=light] .saved-screener-actions button{background:#f1f5f9}
+[data-theme=light] .saved-screener-actions button:last-child{background:#fdecef;border-color:#f0b9c4;color:#c23050}
+[data-theme=light] .hero-logo{background:#dcf5e3;color:#128a2e;border-color:#aee0b6}
+[data-theme=light] .hero-score{background:linear-gradient(150deg,#fbf3d6,#eef6ea);border-color:#e3cf86}
+[data-theme=light] .hero-score span{color:#7a7046}
+[data-theme=light] .tabs{background:#eef3f8;border-color:#cfdbe8}
+[data-theme=light] .tab{color:#44586b}
+[data-theme=light] .sectionnav button{background:#f1f5f9;border-color:#cedcea}
+[data-theme=light] .sectioncard{background:#ffffff;border-color:#dce6f0}
+[data-theme=light] .sectionhead{background:#f1f6fb;border-bottom-color:#e0e8f1}
+[data-theme=light] .mini-chart{background:repeating-linear-gradient(to bottom,transparent 0,transparent 28px,#e3ebf3 29px),repeating-linear-gradient(to right,transparent 0,transparent 43px,#eef3f8 44px);border-color:#dce6f0}
+[data-theme=light] .metric{border-color:#e0e8f1}
+[data-theme=light] .factor{background:#dcf4ea;border-color:#abe0ca}
+[data-theme=light] .factor b{color:#0c7a52}
+[data-theme=light] .factor small{color:#3a7a5f}
+[data-theme=light] .factor.warn{background:#fbeeca;border-color:#e6cf84}
+[data-theme=light] .factor.warn b{color:#9a7510}
+[data-theme=light] .themechips span{background:#e6f2fb;border-color:#c3dcef;color:#2a6a8c}
+[data-theme=light] .bar,[data-theme=light] .rangebar{background:#dde7f0}
+[data-theme=light] .notice{background:#fdf3d6;border-color:#e6d191;color:#7a6020}
+[data-theme=light] .data-row,[data-theme=light] .newsitem{border-bottom-color:#e6edf4}
+[data-theme=light] .factorcard p{color:#44586b}
+[data-theme=light] .positive{color:#0c9a63}
+[data-theme=light] .neutral{color:#9a7510}
+[data-theme=light] .negative{color:#d83a52}
+[data-theme=light] .analysis-ownership-note strong{color:#102234}
+[data-theme=light] .footer{color:#8295a8}
+
+/* ===== Light theme — deep-tab components (Overview context, Technical, CAN SLIM, Market, builder) ===== */
+[data-theme=light] .market-context-regime{background:#eef4fa}
+[data-theme=light] .market-context-regime small,[data-theme=light] .market-context-row>span{color:#5a6a7b}
+[data-theme=light] .market-context-auto{background:#eef2f7;border-color:#ccd6e2;color:#3a4a5c}
+[data-theme=light] .tech-pill{background:#eef3f8;border-color:#cedcea;color:#3a4f63}
+[data-theme=light] .tech-pill.up{background:#dcf4ea;border-color:#abe0ca;color:#0c7a52}
+[data-theme=light] .tech-pill.down{background:#fde7ea;border-color:#f1b8c2;color:#c23050}
+[data-theme=light] .tech-pill.neutral{background:#fbeeca;border-color:#e6cf84;color:#8a6710}
+[data-theme=light] .tech-table th{color:#5a6a7b}
+[data-theme=light] .tech-table th,[data-theme=light] .tech-table td{border-bottom-color:#e6edf4}
+[data-theme=light] .tech-note{background:#fdf3d6;border-color:#e6d191;color:#7a6020}
+[data-theme=light] .tech-range-head strong{color:#102234}
+[data-theme=light] .tech-range-track{background:#dde7f0}
+[data-theme=light] .tech-range-foot,[data-theme=light] .tech-kpi small,[data-theme=light] .tech-kpi em{color:#5a6a7b}
+[data-theme=light] .tech-kpi{background:#f4f7fb;border-color:#dde6f0}
+[data-theme=light] .tech-timeframe button{background:#f1f5f9;border-color:#cedcea;color:#3a4f63}
+[data-theme=light] .cs-markethead,[data-theme=light] .cs-factorstrip,[data-theme=light] .cs-factor-panel,[data-theme=light] .cs-missing{background:#ffffff;border-color:#cfe0ec;box-shadow:none}
+[data-theme=light] .cs-market-meta,[data-theme=light] .cs-factor-pill span,[data-theme=light] .cs-disclaimer,[data-theme=light] .cs-factor-intro p{color:#5a6a7b}
+[data-theme=light] .cs-factor-pill b{border-color:#9fe0c4;background:#dcf5e7;color:#0b7a4f}
+[data-theme=light] .cs-factor-pill.warn b{border-color:#e6cf84;background:#fbeeca;color:#8a6710}
+[data-theme=light] .cs-letter{border-color:#8fdcb9;background:#e2f7ec;color:#0b7a4f;box-shadow:none}
+[data-theme=light] .cs-letter.warn{border-color:#e6cf84;background:#fbeeca;color:#8a6710}
+[data-theme=light] .cs-status{border-color:#9fe0c4;color:#0c8a5c}
+[data-theme=light] .cs-status.warn{border-color:#e0bd5a;color:#9a7510}
+[data-theme=light] .cs-stat,[data-theme=light] .cs-evidence{background:#f4f7fb;border-color:#dde6f0}
+[data-theme=light] .cs-stat small,[data-theme=light] .cs-stat em,[data-theme=light] .cs-table th,[data-theme=light] .cs-minirow span,[data-theme=light] .cs-barcol,[data-theme=light] .cs-chartlabels{color:#5a6a7b}
+[data-theme=light] .cs-stat strong{color:#102234}
+[data-theme=light] .cs-stat strong.good,[data-theme=light] .cs-table td.good{color:#0c9a63}
+[data-theme=light] .cs-stat strong.warn{color:#9a7510}
+[data-theme=light] .cs-table td{color:#2a3a4a}
+[data-theme=light] .cs-table th,[data-theme=light] .cs-table td,[data-theme=light] .cs-minirow{border-bottom-color:#e6edf4}
+[data-theme=light] .cs-minirow b{color:#102234}
+[data-theme=light] .cs-chartbars{border-bottom-color:#cedce8;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#eef3f8 26px)}
+[data-theme=light] .cs-meter{background:#dde7f0}
+[data-theme=light] .cs-missing{border-color:#cfe0ec}
+[data-theme=light] .cs-missing ul{color:#44586b}
+[data-theme=light] .market-scan-icon{background:#fbeeca;border-color:#e6cf84;color:#a8780f}
+[data-theme=light] .signal-list,[data-theme=light] .signal-list>div{border-color:#e6edf4}
+[data-theme=light] .signal-list span{color:#44586b}
+[data-theme=light] .table-wrap{background:#ffffff;border-color:#dce5ef}
+[data-theme=light] .market-table th{background:#eef3f8;color:#44586b}
+[data-theme=light] .market-table th,[data-theme=light] .market-table td{border-bottom-color:#e6edf4}
+[data-theme=light] .market-table tbody tr:nth-child(even){background:#f6f9fc}
+[data-theme=light] .market-table tbody tr:hover{background:#e9f1fa}
+[data-theme=light] .market-table td:first-child{color:#102234}
+[data-theme=light] .market-table td:nth-child(2){color:#2a6a8c}
+[data-theme=light] .breadth-meter>i{background:#dde7f0}
+[data-theme=light] .theme-watch>div{border-color:#e6edf4}
+[data-theme=light] .theme-dot{background:#9aa8b6}
+[data-theme=light] .market-endnote{color:#8295a8}
+[data-theme=light] .condition-row{background:#ffffff;border-color:#d8e1ec}
+[data-theme=light] .condition-row-head strong{color:#2a3a4a}
+[data-theme=light] .condition-row-head button{background:#fdecef;border-color:#f0b9c4;color:#c23050}
+[data-theme=light] .condition-fields input,[data-theme=light] .condition-fields select,[data-theme=light] .condition-logic select{background:#f4f7fb;border-color:#d3dde8}
+[data-theme=light] .condition-params{background:#eef3f8;border-color:#d8e1ec}
+[data-theme=light] .condition-preview{background:#eef2f7;color:#44586b}
+[data-theme=light] .condition-preview b{color:#0a5cc4}
+[data-theme=light] .filters-toggle{background:#ffffff}
+[data-theme=light] .bottomnav{background:#ffffffee;border-top-color:#dce5ef}
+[data-theme=light] .bottomnav button{color:#5a6a7b}
+
+/* light theme — settings / builder container bands */
+[data-theme=light] .settings-overview-head,[data-theme=light] .editor-heading{background:#f1f6fb}
+[data-theme=light] .settings-summary{background:#f4f7fb}
+[data-theme=light] .settings-empty{background:#f4f7fb;border-color:#cfdbe8}
+[data-theme=light] .settings-editor{border-color:#cfe0ec}
+[data-theme=light] .schedule-window{background:#f4f7fb;border-color:#d8e1ec}
+[data-theme=light] .add-condition{background:#e6f1fb;border-color:#bcd9f0;color:#0a5cc4}
+[data-theme=light] .add-window{background:#eef4fa;border-color:#bcd3e8;color:#0a5cc4}
+[data-theme=light] .settings-actions{background:#ffffffee}
+</style>
 </head>
 <body>
-<header class="appbar"><div class="brand"><span class="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></div><div class="app-actions"><a href="index.html" title="Back to the Trading Station" aria-label="Back to the Trading Station" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border:1px solid rgba(120,160,200,.22);border-radius:9px;color:#a9c1d3;text-decoration:none;font-size:13px;font-weight:650;margin-right:10px">&#8592; Station</a><span class="demo">● DEMO DATA · NOT LIVE</span><button class="iconbtn" aria-label="Search" onclick="focusSearch()">⌕</button><button class="iconbtn" aria-label="Notifications" onclick="toast('Notifications are outside this frontend prototype.')">♧</button></div></header>
+<header class="appbar"><div class="brand"><span class="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></div><div class="app-actions"><a href="index.html" title="Back to the Trading Station" aria-label="Back to the Trading Station" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border:1px solid rgba(120,160,200,.22);border-radius:9px;color:#a9c1d3;text-decoration:none;font-size:13px;font-weight:650;margin-right:10px">&#8592; Station</a><button class="iconbtn" id="themeBtn" aria-label="Toggle light or dark theme" title="Toggle light or dark theme">☀</button><span class="demo">● DEMO DATA · NOT LIVE</span><button class="iconbtn" aria-label="Search" onclick="focusSearch()">⌕</button><button class="iconbtn" aria-label="Notifications" onclick="toast('Notifications are outside this frontend prototype.')">♧</button></div></header>
 <main>
 <section id="screener" class="screen active">
  <div class="page-head"><div><div class="eyebrow">Market discovery</div><h1>Screener</h1><p class="subtitle">Scan, compare and shortlist stocks with strong momentum.</p></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button class="ghost" onclick="showScreen('shortlist')">☆ Shortlist</button><button class="ghost" onclick="showScreen('market')">◉ Market</button><span class="tag">✦ Approved screener layout</span></div></div>
@@ -350,4 +480,4 @@ function renderTechnical(){
 function setTechTimeframe(btn,tf){document.querySelectorAll('#techTimeframes button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');toast('Selected '+tf+' timeframe. Chart remains illustrative; no live data is connected.')}
 renderOverview();renderCanslim();renderStocks();renderShortlist();updateFilterCount();if(window.innerWidth<=700){document.getElementById('filterPanel').classList.add('collapsed')}
 </script>
-</body></html>
+<script>(function(){var r=document.documentElement,b=document.getElementById("themeBtn"),m=document.querySelector('meta[name=theme-color]');function set(t){r.setAttribute("data-theme",t);if(b)b.textContent=(t==="dark"?"☾":"☀");if(m)m.setAttribute("content",t==="dark"?"#06111e":"#eef2f7");try{localStorage.setItem("td-theme",t)}catch(e){}}var t="light";try{t=localStorage.getItem("td-theme")||"light"}catch(e){}set(t);if(b)b.onclick=function(){set(r.getAttribute("data-theme")==="dark"?"light":"dark")};})();</script></body></html>
