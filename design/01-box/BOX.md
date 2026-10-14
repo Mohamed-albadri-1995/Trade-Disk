@@ -14,6 +14,16 @@ server with 1 GB of memory. One supervisor keeps every program running inside
 its own memory budget, one command deploys new code, and the keys live in
 protected files that never leave it.
 
+**Two deployment modes.** This document describes **solo mode** — the personal
+box — in full. **Hosted mode** (the commercial, multi-tenant product) runs the
+same software on managed cloud infrastructure instead of one box: a managed
+Postgres as the record, object storage, a secret manager, scalable app hosting
+and a CDN for the front end, with accounts and tenant isolation. Every box
+concept maps to a hosted equivalent in §4.7. The data model is
+[DATA-MODEL.md](../DATA-MODEL.md), accounts are
+[ACCOUNTS.md](../13-accounts/ACCOUNTS.md), and the admin surface is
+[ADMIN.md](../14-admin/ADMIN.md).
+
 | The machine | |
 |---|---|
 | Machine | AWS EC2 **t3.micro**: 2 vCPU, **912 MiB** of memory |
@@ -208,6 +218,46 @@ restart count.
 
 ---
 
+## 4.7 Hosted deployment (commercial mode)
+
+The commercial product runs the same software as a managed, multi-tenant cloud
+service — no single box. Every solo-mode concept has a hosted equivalent, and the
+design's invariants (one writer per fact, honest nulls, no hindsight, results
+kept apart) hold in both.
+
+| Solo mode (this box) | Hosted mode (commercial) |
+|---|---|
+| one EC2 t3.micro + swap | scalable app hosting (containers or serverless), sized to load; no fixed 1 GB ceiling |
+| pm2, one supervisor, memory limits | the platform's orchestrator; each service scales and restarts on its own |
+| each tool's SQLite file on the box | the **relational data model in a managed Postgres** ([DATA-MODEL.md](../DATA-MODEL.md)), every row scoped to an account |
+| the shared record (Postgres) as a copy | that same managed Postgres **is the record** ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md)) |
+| qp's rebuildable caches, exports, print sheets on disk | **object storage** (bar cache, exports, print sheets, uploads) |
+| nightly backup to R2 | the managed database's point-in-time backups + object-storage replication |
+| secret files, mode 0600 | a **secret manager**; the [admin dashboard](../14-admin/ADMIN.md) sets and tests provider keys |
+| one login (`auth.json`) | **accounts, roles and sessions** via a managed auth service ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)) |
+| the static front end served by the box | the **three front ends** (Journal, TradeLab, Radar) served from a CDN/edge; the API behind the front door |
+| `./deploy-tools.sh` | **CI/CD**: tests green, then a rolling deploy; migrations run once under a lock |
+| the health page on the box | hosted logs, metrics and alerts, surfaced in the admin dashboard's health view |
+
+**Chosen so far** (ARCHITECTURE decisions, 2026-10-14): the managed Postgres and
+auth are **Supabase**-shaped, and the schema is [DATA-MODEL.md](../DATA-MODEL.md).
+The app-hosting platform, the CDN and the object-storage vendor are chosen at
+build time and do not change the ownership boundaries above.
+
+**What is the same in both modes.** The engine — the screeners, the card
+pipeline, the market read, the research worker, qp and the journal — is one
+codebase. Hosted mode adds tenancy (an account on every per-user row), auth, the
+admin surface and horizontal scale; it removes the 1 GB squeeze and the
+single-box single point of failure. Solo mode stays the free, private self-host.
+
+**Tenant isolation.** The "results stay apart" rule
+([ARCHITECTURE §7](../../ARCHITECTURE.md#7-rules-that-apply-everywhere)) becomes
+per-account isolation, enforced by row-level security on every per-account table
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); shared facts, market reads and
+research stay global, as in solo mode.
+
+---
+
 ## 5. Contracts
 
 | It provides | To |
@@ -262,3 +312,4 @@ restart count.
 | one secret store | **to build** |
 | only 443 open | **to do by the trader** once the domain is set ([FRONT-DOOR.md](../02-front-door/FRONT-DOOR.md)) |
 | the desk as one pm2 process for every tool | **being built** ([DESK.md](../03-desk/DESK.md), [MIGRATION.md](../12-migration/MIGRATION.md) steps A and B) |
+| hosted deployment: managed Postgres, object storage, secret manager, scalable app hosting, CDN, accounts | **designed** (§4.7, dual-mode); **to build** in the infrastructure phase |

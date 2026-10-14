@@ -32,6 +32,26 @@ tool's own program does today:
 For each stopped tool it serves the history, read-only. It is also the desk's
 only scheduler.
 
+**What "tool" means here — and the commercial product.** In the desk a **tool**
+is one *screener / discovery experiment* (T1, T2, T6, T7, T11 …), each an
+isolated method with its own history — **not** a top-level product. In the
+commercial front end, these tools are exactly what the **Radar** product's
+screener selector offers (T1/T2/T7); **the desk is the engine behind Radar's
+screener and stock-analysis** surface. The other products are separate programs:
+the **Journal** (the journal), **TradeLab** ([qp](../05-qp/QP.md)) and
+**TradePilot** (future). So "the desk runs every tool" means the desk runs every
+screener experiment that powers Radar.
+
+**Two modes.** Solo mode is one trader on one box, below. **Hosted mode** (the
+commercial product) runs the desk as a multi-tenant service: each account has its
+own tools (screeners), shortlists and results, isolated by row-level security
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); the record is the managed Postgres
+([DATA-MODEL.md](../DATA-MODEL.md)); providers, keys and thresholds are managed
+from the [admin dashboard](../14-admin/ADMIN.md). The one scheduler, the
+one-writer rule and the "results stay apart" rule hold in both — *per tool* in
+solo mode, *per account and tool* in hosted mode. Built-in presets (T1/T2/T7) are
+shared read-only; a user's runs and shortlists are their own.
+
 **What it owns:**
 - each tool's own file, of which it is the only writer;
 - its own file, for the desk jobs' runs and alerts, the market history and the
@@ -378,3 +398,4 @@ Decided by the trader on 2026-10-08 ([ARCHITECTURE §10](../../ARCHITECTURE.md#1
 | home and the desk jobs in the desk's own context | **to build** (step B, with T1, last) |
 | the market reader | **in shadow** (step 6): one read stored per scan; each tool still reads its own ([MARKET.md](MARKET.md)) |
 | the scheduler | **partly**: run history and alerts built; one scheduler per tool until step B ([JOBS.md](JOBS.md)) |
+| the desk as a multi-tenant hosted service: accounts, per-account tools/shortlists/results, the managed Postgres as the record, the admin surface | **designed** (dual-mode; §1, [ACCOUNTS.md](../13-accounts/ACCOUNTS.md), [DATA-MODEL.md](../DATA-MODEL.md), [ADMIN.md](../14-admin/ADMIN.md)); **to build** in the hosted build |
