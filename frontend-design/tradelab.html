@@ -141,12 +141,39 @@ a{color:inherit;text-decoration:none}
 .rule .rt{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:3px 7px;font-size:var(--fs-xs);color:var(--muted)}
 .rule .rt:hover{color:var(--brand);border-color:var(--brand)}
 .rule.hit{border-color:var(--brand);box-shadow:inset 2px 0 var(--brand)}
-.rule2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.05fr) 22px;gap:5px;align-items:start;margin-bottom:6px}
-.rule2 select,.rule2 input{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 5px;font-size:var(--fs-xs);min-width:0;width:100%}
-.rule2 .ropts{display:grid;gap:4px}
-.rule2 .rnone{color:var(--muted);text-align:center;font-size:var(--fs-xs);padding-top:7px}
-.rule2 .rdel{border:0;background:none;color:var(--faint);font-size:15px;padding:2px;align-self:start}
-.rule2 .rdel:hover{color:var(--neg)}
+/* strategy tree builder: nestable groups + configurable conditions */
+.grp{border:1px solid var(--line-soft);border-left:2px solid var(--line);border-radius:10px;background:var(--panel-2);padding:9px;margin:6px 0}
+.grp .grp{background:var(--panel);border-left-color:var(--brand)}
+.grp.root{border-left:2px solid var(--brand)}
+.grph{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.gl{font-family:var(--mono);font-size:var(--fs-xs);font-weight:600;color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:2px 8px;letter-spacing:.02em}
+.grph select,.grph input{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:var(--fs-xs)}
+.cond{border:1px solid var(--line-soft);border-radius:9px;background:var(--panel);padding:8px;margin:6px 0;display:grid;gap:6px}
+.grp .grp .cond{background:var(--panel-2)}
+.oper{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.oper select,.oper input{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:5px 6px;font-size:var(--fs-xs);min-width:0}
+.oper .oin{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.oper-none{color:var(--faint);font-family:var(--mono);padding-left:4px}
+.condop{display:flex;gap:5px;align-items:center}
+.condop select{flex:1;background:var(--brand-soft);color:var(--brand);border:1px solid var(--line-soft);border-radius:7px;padding:5px 6px;font-size:var(--fs-xs);font-weight:600}
+.condop input{width:52px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:5px 6px;font-size:var(--fs-xs);font-family:var(--mono)}
+.condt{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.condt select,.condt input{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:var(--fs-xs)}
+.condt .tlab{font-size:var(--fs-xs);color:var(--muted)}
+.holdlbl{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.holdlbl input{width:auto;margin:0;accent-color:var(--brand)}
+.cx{border:0;background:none;color:var(--faint);font-size:16px;line-height:1;padding:2px 5px;cursor:pointer}
+.cx:hover{color:var(--neg)}
+.ctest{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:2px 7px;font-size:12px;cursor:pointer}
+.ctest:hover{border-color:var(--brand)}
+.grpadd{display:flex;gap:6px;align-items:center;margin-top:4px}
+.gclose{margin-left:auto;font-family:var(--mono);color:var(--faint)}
+.rr2{display:flex;gap:6px}
+.rr2 select{flex:1;min-width:0}
+.rr2 input{width:72px;flex:0 0 72px}
+.leg{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.leg input{width:62px;flex:0 0 62px}
+.leg span{font-size:var(--fs-xs);color:var(--muted)}
 .logicsel{background:var(--brand-soft);color:var(--brand);border:1px solid var(--line-soft);border-radius:6px;padding:2px 6px;font-size:var(--fs-xs);font-weight:600;margin-left:8px}
 .logicpill{display:inline-block;font-family:var(--mono);font-size:var(--fs-xs);color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:2px 7px;margin-bottom:8px}
 
@@ -404,69 +431,132 @@ function drawCross(mx,my){
   octx.globalAlpha=1;octx.setLineDash([]);drawLegend(idx);
 }
 
-/* --------------------------------------------- strategy builder + engine */
-const OPERANDS=[
-  {id:'close',label:'close',kind:'price',src:'close'},{id:'open',label:'open',kind:'price',src:'open'},
-  {id:'high',label:'high',kind:'price',src:'high'},{id:'low',label:'low',kind:'price',src:'low'},
-  {id:'volume',label:'volume',kind:'price',src:'volume'},
-  {id:'ema9',label:'EMA 9',kind:'ind',t:'ema',len:9},{id:'ema21',label:'EMA 21',kind:'ind',t:'ema',len:21},
-  {id:'ema50',label:'EMA 50',kind:'ind',t:'ema',len:50},{id:'sma20',label:'SMA 20',kind:'ind',t:'sma',len:20},
-  {id:'sma50',label:'SMA 50',kind:'ind',t:'sma',len:50},{id:'vwap',label:'VWAP',kind:'ind',t:'vwap'},
-  {id:'rsi14',label:'RSI 14',kind:'ind',t:'rsi',len:14},{id:'bbU',label:'BB upper',kind:'ind',t:'bbU'},
-  {id:'bbL',label:'BB lower',kind:'ind',t:'bbL'},{id:'rvol',label:'RVOL',kind:'ind',t:'rvol',len:20},
-  {id:'atr',label:'ATR 14',kind:'ind',t:'atr',len:14}];
-const OP_BY_ID={};OPERANDS.forEach(o=>OP_BY_ID[o.id]=o);
-const OPS=[['gt','>'],['lt','<'],['ge','≥'],['le','≤'],['cross_above','crosses above'],['cross_below','crosses below'],['rising','is rising'],['falling','is falling'],['eq','='],['neq','≠']];
+/* ===================== strategy: a nestable rule tree + engine ===========
+   Operands: Price · Indicator (type+length+source+sub) · Value · Time, each
+   with an offset (bars ago) and optional hold (carry-forward). 14 operators.
+   Groups nest to any depth: ALL / ANY / AT LEAST k / IN SEQUENCE. Rich risk. */
+const SRCS=['close','open','high','low','hl2','hlc3','ohlc4','volume'];
+const IND_META={ema:{len:9,src:1},sma:{len:20,src:1},wma:{len:20,src:1},vwma:{len:20},vwap:{},rsi:{len:14,src:1},bb:{len:20,src:1,sub:1},rvol:{len:20},atr:{len:14},stdev:{len:20,src:1}};
+const IND_LABELS={ema:'EMA',sma:'SMA',wma:'WMA',vwma:'VWMA',vwap:'VWAP',rsi:'RSI',bb:'Bollinger',rvol:'RVOL',atr:'ATR',stdev:'StdDev'};
+const OPS=[['gt','>'],['lt','<'],['ge','≥'],['le','≤'],['gt_pct','above by ≥%'],['lt_pct','below by ≥%'],['cross_above','crosses ▲'],['cross_below','crosses ▼'],['bounce_up','bounces ▲ off'],['bounce_down','bounces ▼ off'],['rising','rising'],['falling','falling'],['eq','='],['neq','≠']];
 const OP_SYM=Object.fromEntries(OPS);
+const LOGIC_LBL={ALL:'ALL match',ANY:'ANY match',ATLEAST:'AT LEAST k',SEQ:'IN SEQUENCE'};
+const TIMINGS=[['none','hold —'],['for','held for'],['within','within']];
 const noRight=op=>op==='rising'||op==='falling';
-function opSeries(o,b){if(o.kind==='price')return SRC[o.src](b);const t=o.t;
-  if(t==='ema')return ema(SRC.close(b),o.len);if(t==='sma')return sma(SRC.close(b),o.len);
-  if(t==='vwap')return vwapSession(b);if(t==='rsi')return rsi(SRC.close(b),o.len);
-  if(t==='rvol')return rvol(b,o.len);if(t==='atr')return atr(b,o.len);
-  if(t==='bbU'||t==='bbL'){const r=bb(SRC.close(b),20,2);return t==='bbU'?r.up:r.lo}return null}
-function describeRule(r){const l=OP_BY_ID[r.left]?OP_BY_ID[r.left].label:r.left;if(noRight(r.op))return l+' '+OP_SYM[r.op];
-  const rt=r.right==='__value__'?(r.rval??'…'):(OP_BY_ID[r.right]?OP_BY_ID[r.right].label:r.right);return l+' '+OP_SYM[r.op]+' '+rt}
+function nyHM(d){const s=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});const[h,m]=s.split(':').map(Number);return{h,m}}
+function timeSeries(b,field){return b.map(x=>{const p=nyHM(x.t);return field==='minutes'?p.h*60+p.m:field==='hour'?p.h:field==='minute'?p.m:p.h*100+p.m})}
+function indSeriesOf(op,b){const src=op.source?SRC[op.source](b):SRC.close(b);switch(op.ind){
+  case'ema':return ema(src,op.length);case'sma':return sma(src,op.length);case'wma':return wma(src,op.length);
+  case'vwma':return vwma(b,op.length);case'vwap':return vwapSession(b);case'rsi':return rsi(src,op.length);
+  case'rvol':return rvol(b,op.length);case'atr':return atr(b,op.length);case'stdev':return stdev(src,op.length);
+  case'bb':{const r=bb(src,op.length,2);return op.sub==='lo'?r.lo:op.sub==='mid'?r.mid:r.up}}return null}
+function fwd(a){let last=NaN;return a.map(v=>{if(Number.isFinite(v)){last=v;return v}return last})}
+function opSig(op){return [op.kind,op.src,op.ind,op.length,op.source,op.sub,op.field,op.hold?'H':''].join('|')}
+function opBase(op,b,cache){if(op.kind==='value')return null;const sig=opSig(op);if(sig in cache)return cache[sig];
+  let s=op.kind==='price'?SRC[op.src](b):op.kind==='time'?timeSeries(b,op.field):indSeriesOf(op,b);
+  if(op.hold&&s)s=fwd(s);cache[sig]=s;return s}
+const gvOp=(op,series,i)=>{if(op.kind==='value')return Number(op.value);const idx=i-(op.offset||0);return (series&&idx>=0)?series[idx]:NaN};
+function condTruth(cond,b,cache){const Ls=opBase(cond.left,b,cache),Rs=noRight(cond.op)?null:opBase(cond.right,b,cache),n=b.length,out=new Array(n).fill(false);
+  for(let i=0;i<n;i++){const L=gvOp(cond.left,Ls,i);
+    if(cond.op==='rising'||cond.op==='falling'){const Lp=gvOp(cond.left,Ls,i-12);if(Number.isFinite(L)&&Number.isFinite(Lp))out[i]=cond.op==='rising'?L>Lp:L<Lp;continue}
+    const R=gvOp(cond.right,Rs,i);if(!Number.isFinite(L)||!Number.isFinite(R))continue;
+    if(cond.op==='cross_above'||cond.op==='cross_below'){const Lp=gvOp(cond.left,Ls,i-1),Rp=gvOp(cond.right,Rs,i-1);if(Number.isFinite(Lp)&&Number.isFinite(Rp))out[i]=cond.op==='cross_above'?(L>R&&Lp<=Rp):(L<R&&Lp>=Rp);continue}
+    if(cond.op==='bounce_up'||cond.op==='bounce_down'){const tol=(cond.tol??0.15)/100*Math.abs(R),bar=b[i],rng=(bar.h-bar.l)||1e-9;
+      out[i]=cond.op==='bounce_up'?(bar.l<=R+tol&&bar.l>=R-tol*4&&bar.c>R&&(bar.c-bar.l)/rng>=0.4):(bar.h>=R-tol&&bar.h<=R+tol*4&&bar.c<R&&(bar.h-bar.c)/rng>=0.4);continue}
+    const pct=cond.pct??0.1;
+    switch(cond.op){case'gt':out[i]=L>R;break;case'lt':out[i]=L<R;break;case'ge':out[i]=L>=R;break;case'le':out[i]=L<=R;break;
+      case'gt_pct':out[i]=R!==0&&(L-R)/Math.abs(R)*100>=pct;break;case'lt_pct':out[i]=R!==0&&(R-L)/Math.abs(R)*100>=pct;break;
+      case'eq':out[i]=Math.abs(L-R)<1e-9;break;case'neq':out[i]=Math.abs(L-R)>=1e-9;break}}
+  if((cond.timing==='for'||cond.timing==='within')&&cond.tn>0){const o2=new Array(n).fill(false),w=cond.tn;
+    for(let i=0;i<n;i++){let res=cond.timing==='for';for(let k=0;k<w;k++){const j=i-k;if(j<0){if(cond.timing==='for')res=false;break}if(cond.timing==='for'){if(!out[j]){res=false;break}}else if(out[j]){res=true;break}}o2[i]=res}return o2}
+  return out}
+function compileNode(node,b,cache){if(node.type==='cond')return condTruth(node,b,cache);
+  const kids=(node.items||[]).map(it=>compileNode(it,b,cache)),n=b.length,out=new Array(n).fill(false),lg=node.logic;
+  if(lg==='ALL'){for(let i=0;i<n;i++)out[i]=kids.length>0&&kids.every(k=>k[i])}
+  else if(lg==='ANY'){for(let i=0;i<n;i++)out[i]=kids.some(k=>k[i])}
+  else if(lg==='ATLEAST'){const kk=node.k||2;for(let i=0;i<n;i++)out[i]=kids.filter(k=>k[i]).length>=kk}
+  else if(lg==='SEQ'){const w=node.window||10;let si=0,anchor=-1;for(let i=0;i<n;i++){if(si<kids.length&&kids[si][i]&&(si===0||i-anchor<=w)){anchor=i;si++;if(si===kids.length){out[i]=true;si=0;anchor=-1}}else if(si>0&&i-anchor>w){si=0;anchor=-1;if(kids[0]&&kids[0][i]){anchor=i;si=1}}}}
+  return out}
 
-let stratDef={name:'EMA-9 pullback + trend',side:'long',stage:'development',
-  entryLogic:'AND',entry:[{left:'close',op:'cross_above',right:'ema9'},{left:'ema9',op:'gt',right:'ema21'},{left:'rvol',op:'gt',right:'__value__',rval:1}],
-  exitLogic:'OR',exit:[{left:'close',op:'cross_below',right:'ema9'},{left:'ema9',op:'cross_below',right:'ema21'}],
-  slPct:1.5,tpPct:3,fill:'desk',window:'09:35–15:50'};
+const defOperand=k=>k==='price'?{kind:'price',src:'close',offset:0}:k==='ind'?{kind:'ind',ind:'ema',length:9,source:'close',offset:0}:k==='time'?{kind:'time',field:'hhmm',offset:0}:{kind:'value',value:0};
+const defCond=()=>({type:'cond',left:defOperand('price'),op:'gt',right:defOperand('value'),timing:'none',tn:0});
+const defGroup=(logic)=>({type:'group',logic:logic||'ALL',items:[defCond()]});
+const freshStrat=()=>({name:'New strategy',side:'long',stage:'development',tools:'',entry:defGroup('ALL'),exit:defGroup('ANY'),slType:'pct',slVal:1.5,tpType:'pct',tpVal:3,targets:[],winStart:'',winEnd:'',cooldown:0,maxPerDay:0,minHold:0});
+let stratDef={name:'EMA-9 pullback + trend',side:'long',stage:'development',tools:'Radar',
+  entry:{type:'group',logic:'ALL',items:[
+    {type:'cond',left:{kind:'price',src:'close',offset:0},op:'cross_above',right:{kind:'ind',ind:'ema',length:9,source:'close',offset:0},timing:'none',tn:0},
+    {type:'cond',left:{kind:'ind',ind:'ema',length:9,source:'close',offset:0},op:'gt',right:{kind:'ind',ind:'ema',length:21,source:'close',offset:0},timing:'none',tn:0},
+    {type:'cond',left:{kind:'ind',ind:'rvol',length:20,offset:0},op:'gt',right:{kind:'value',value:1},timing:'none',tn:0}]},
+  exit:{type:'group',logic:'ANY',items:[
+    {type:'cond',left:{kind:'price',src:'close',offset:0},op:'cross_below',right:{kind:'ind',ind:'ema',length:9,source:'close',offset:0},timing:'none',tn:0},
+    {type:'cond',left:{kind:'ind',ind:'ema',length:9,source:'close',offset:0},op:'cross_below',right:{kind:'ind',ind:'ema',length:21,source:'close',offset:0},timing:'none',tn:0}]},
+  slType:'pct',slVal:1.5,tpType:'pct',tpVal:3,targets:[],winStart:'',winEnd:'',cooldown:0,maxPerDay:0,minHold:0};
 let savedStrats=[];try{savedStrats=JSON.parse(localStorage.getItem('td-strats'))||[]}catch{}
 if(!Array.isArray(savedStrats))savedStrats=[];
 
 function evalUserStrategy(def,b){
-  const cache={},ser=id=>{if(id==='__value__')return null;if(!(id in cache))cache[id]=opSeries(OP_BY_ID[id],b);return cache[id]};
-  const val=(ref,i)=>{const s=ser(ref);return s?s[i]:NaN};
-  const ruleTrue=(r,i)=>{const L=val(r.left,i);
-    if(r.op==='rising'||r.op==='falling'){const Lp=val(r.left,i-12);if(!Number.isFinite(L)||!Number.isFinite(Lp))return false;return r.op==='rising'?L>Lp:L<Lp}
-    const R=r.right==='__value__'?Number(r.rval):val(r.right,i);if(!Number.isFinite(L)||!Number.isFinite(R))return false;
-    if(r.op==='cross_above'||r.op==='cross_below'){const Lp=val(r.left,i-1),Rp=r.right==='__value__'?Number(r.rval):val(r.right,i-1);if(!Number.isFinite(Lp)||!Number.isFinite(Rp))return false;return r.op==='cross_above'?(L>R&&Lp<=Rp):(L<R&&Lp>=Rp)}
-    switch(r.op){case'gt':return L>R;case'lt':return L<R;case'ge':return L>=R;case'le':return L<=R;case'eq':return Math.abs(L-R)<1e-9;case'neq':return Math.abs(L-R)>=1e-9}return false};
-  const grp=(logic,rules,i)=>{if(!rules.length)return false;const res=rules.map(r=>ruleTrue(r,i));return logic==='OR'?res.some(Boolean):logic==='ATLEAST'?res.filter(Boolean).length>=2:res.every(Boolean)};
-  const long=def.side!=='short',sl=(def.slPct||1.5)/100,tp=(def.tpPct||3)/100,funnel=def.entry.map(()=>0);
-  const trades=[];let pos=null;
-  for(let i=1;i<b.length;i++){
-    def.entry.forEach((r,ri)=>{if(ruleTrue(r,i))funnel[ri]++});
-    const eNow=grp(def.entryLogic,def.entry,i),ePrev=grp(def.entryLogic,def.entry,i-1);
-    if(!pos){if(eNow&&!ePrev&&i+1<b.length){const e=b[i+1].o;pos={ei:i+1,entry:e,stop:long?e*(1-sl):e*(1+sl),target:long?e*(1+tp):e*(1-tp)}}}
-    else{const bar=b[i];let xr=null,xp=null;const hitS=long?bar.l<=pos.stop:bar.h>=pos.stop,hitT=long?bar.h>=pos.target:bar.l<=pos.target;
-      if(hitS){xr='SL';xp=pos.stop}else if(hitT){xr='TP';xp=pos.target}else if(grp(def.exitLogic,def.exit,i)){xr='exit';xp=bar.c}
-      if(xr){const pnl=(long?xp-pos.entry:pos.entry-xp)/pos.entry*100;trades.push({...pos,xi:i,exit:xp,reason:xr,pnl});pos=null}}
-  }
-  if(pos){const last=b.length-1,pnl=(long?b[last].c-pos.entry:pos.entry-b[last].c)/pos.entry*100;trades.push({...pos,xi:null,exit:b[last].c,reason:'open',pnl})}
-  return{trades,funnel,bars:b.length};
+  const cache={},entryT=compileNode(def.entry,b,cache),exitT=compileNode(def.exit,b,cache),atrArr=atr(b,14),long=def.side!=='short',n=b.length;
+  const funnel=(def.entry.items||[]).map(it=>{const t=compileNode(it,b,cache);let c=0;for(let i=0;i<n;i++)if(t[i])c++;return c});
+  const intraday=n>1&&(b[1].t-b[0].t)<20*3600*1000,dk=t=>t.toISOString().slice(0,10);
+  const inWin=i=>{if(!def.winStart&&!def.winEnd)return true;const p=nyHM(b[i].t),hhmm=p.h*100+p.m,ws=def.winStart?+def.winStart:0,we=def.winEnd?+def.winEnd:2400;return hhmm>=ws&&hhmm<=we};
+  const trades=[];let pos=null,lastExit=-1e9;const perDay={};
+  for(let i=1;i<n;i++){const day=dk(b[i].t);
+    if(!pos){const edge=entryT[i]&&!entryT[i-1],okD=(i-lastExit)>(def.cooldown||0)&&((def.maxPerDay||0)<=0||(perDay[day]||0)<def.maxPerDay);
+      if(edge&&inWin(i)&&okD&&i+1<n){const e=b[i+1].o;
+        const stopD=def.slType==='off'?null:def.slType==='pct'?e*def.slVal/100:def.slType==='atr'?(atrArr[i]||e*0.01)*def.slVal:def.slVal;
+        const risk=stopD||e*0.01;let legs=[];
+        if(def.targets&&def.targets.length)legs=def.targets.map(l=>({frac:l.fraction,price:long?e+risk*l.rMult:e-risk*l.rMult,hit:false}));
+        else{const tgtD=def.tpType==='off'?null:def.tpType==='pct'?e*def.tpVal/100:def.tpType==='rr'?risk*def.tpVal:def.tpVal;if(tgtD!=null)legs=[{frac:1,price:long?e+tgtD:e-tgtD,hit:false}]}
+        pos={ei:i+1,entry:e,stop:stopD==null?null:(long?e-stopD:e+stopD),target:legs.length?legs[0].price:(long?e*1.03:e*0.97),legs,remaining:1,realized:0,day};
+        perDay[day]=(perDay[day]||0)+1}}
+    else{const bar=b[i],held=i-pos.ei,pA=px=>(long?px-pos.entry:pos.entry-px)/pos.entry*100;let closed=false,reason=null;
+      if(pos.stop!=null&&(long?bar.l<=pos.stop:bar.h>=pos.stop)){pos.realized+=pos.remaining*pA(pos.stop);reason='SL';closed=true}
+      else{for(const leg of pos.legs)if(!leg.hit&&(long?bar.h>=leg.price:bar.l<=leg.price)){pos.realized+=leg.frac*pA(leg.price);leg.hit=true;pos.remaining-=leg.frac}
+        if(pos.remaining<=1e-9){reason='TP';closed=true}
+        else if(held>=(def.minHold||0)&&exitT[i]){pos.realized+=pos.remaining*pA(bar.c);reason='exit';closed=true}
+        else if(intraday&&(i+1>=n||dk(b[i+1].t)!==pos.day)){pos.realized+=pos.remaining*pA(bar.c);reason='eod';closed=true}}
+      if(closed){trades.push({ei:pos.ei,entry:pos.entry,stop:pos.stop,target:pos.target,xi:i,exit:bar.c,reason,pnl:pos.realized});lastExit=i;pos=null}}}
+  if(pos){const last=n-1,pA=px=>(long?px-pos.entry:pos.entry-px)/pos.entry*100;trades.push({ei:pos.ei,entry:pos.entry,stop:pos.stop,target:pos.target,xi:null,exit:b[last].c,reason:'open',pnl:pos.realized+pos.remaining*pA(b[last].c)})}
+  return{trades,funnel,bars:n};
 }
 function evalStrategy(b){return evalUserStrategy(stratDef,b||bars)}
 function runStrategyOnChart(){strat=evalStrategy(bars);draw();openPanel('strategy')}
-/* builder UI helpers */
-function logicOpts(cur){return ['AND','OR','ATLEAST'].map(l=>'<option'+(cur===l?' selected':'')+'>'+l+'</option>').join('')}
-function operandOpts(sel,withValue){let h=OPERANDS.map(o=>'<option value="'+o.id+'"'+(sel===o.id?' selected':'')+'>'+o.label+'</option>').join('');if(withValue)h+='<option value="__value__"'+(sel==='__value__'?' selected':'')+'>value…</option>';return h}
-function ruleEditor(r,grp,i){const showVal=r.right==='__value__'&&!noRight(r.op);
-  const rightCell=noRight(r.op)?'<span class="rnone">—</span>':'<div class="ropts"><select data-rf="right">'+operandOpts(r.right,true)+'</select>'+(showVal?'<input class="num rvalin" data-rf="rval" value="'+(r.rval??'')+'" placeholder="value">':'')+'</div>';
-  return '<div class="rule2" data-grp="'+grp+'" data-ri="'+i+'"><select data-rf="left">'+operandOpts(r.left,false)+'</select><select data-rf="op">'+OPS.map(([v,l])=>'<option value="'+v+'"'+(r.op===v?' selected':'')+'>'+l+'</option>').join('')+'</select>'+rightCell+'<button class="rdel" data-delrule="'+grp+':'+i+'" aria-label="Remove rule">×</button></div>'}
+
+/* ---- builder: describe + recursive render ---- */
+function opLabel(op){if(op.kind==='value')return String(op.value);const off=op.offset?'['+op.offset+']':'';if(op.kind==='price')return op.src+off;if(op.kind==='time')return op.field;return IND_LABELS[op.ind]+(IND_META[op.ind]&&IND_META[op.ind].len?' '+op.length:'')+(op.sub?' '+op.sub:'')+off}
+function describeCond(c){const l=opLabel(c.left);return noRight(c.op)?l+' '+OP_SYM[c.op]:l+' '+OP_SYM[c.op]+' '+opLabel(c.right)}
+let NSEQ=0,NID={},PARENT={};
+function nid(n,parent){const id='n'+(++NSEQ);NID[id]=n;if(parent)PARENT[id]=parent;return id}
+const o1=(v,sel)=>'<option'+(v===sel?' selected':'')+'>'+v+'</option>';
+function renderOperand(op,cid,side){let h='<div class="oper" data-nid="'+cid+'" data-side="'+side+'"><select data-of="kind">'+[['price','Price'],['ind','Indicator'],['value','Value'],['time','Time']].map(([v,l])=>'<option value="'+v+'"'+(op.kind===v?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+  if(op.kind==='price')h+='<select data-of="src">'+SRCS.map(s=>o1(s,op.src)).join('')+'</select>';
+  else if(op.kind==='ind'){h+='<select data-of="ind">'+Object.keys(IND_META).map(id=>'<option value="'+id+'"'+(op.ind===id?' selected':'')+'>'+IND_LABELS[id]+'</option>').join('')+'</select>';const m=IND_META[op.ind]||{};
+    if(m.len)h+='<input class="num oin" data-of="length" value="'+(op.length||m.len)+'" style="width:40px" title="length">';
+    if(m.src)h+='<select data-of="source" title="source">'+SRCS.slice(0,7).map(s=>o1(s,op.source||'close')).join('')+'</select>';
+    if(m.sub)h+='<select data-of="sub" title="line">'+[['up','upper'],['mid','mid'],['lo','lower']].map(([v,l])=>'<option value="'+v+'"'+((op.sub||'up')===v?' selected':'')+'>'+l+'</option>').join('')+'</select>'}
+  else if(op.kind==='value')h+='<input class="num oin" data-of="value" value="'+(op.value??0)+'" style="flex:1;min-width:46px">';
+  else if(op.kind==='time')h+='<select data-of="field">'+[['hhmm','hhmm'],['minutes','minutes'],['hour','hour'],['minute','minute']].map(([v,l])=>'<option value="'+v+'"'+((op.field||'hhmm')===v?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+  if(op.kind!=='value')h+='<input class="num oin" data-of="offset" value="'+(op.offset||0)+'" style="width:34px" title="bars ago">';
+  if(op.kind==='ind'||op.kind==='price')h+='<label class="holdlbl" title="carry last value forward (hold)"><input type="checkbox" data-of="hold"'+(op.hold?' checked':'')+'>hold</label>';
+  return h+'</div>'}
+function renderCond(cond,parentItems){const id=nid(cond,parentItems);let h='<div class="cond" data-nid="'+id+'">'+renderOperand(cond.left,id,'left');
+  h+='<div class="condop"><select data-cf="op" data-nid="'+id+'">'+OPS.map(([v,l])=>'<option value="'+v+'"'+(cond.op===v?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+  if(cond.op==='gt_pct'||cond.op==='lt_pct')h+='<input class="num oin" data-cf="pct" data-nid="'+id+'" value="'+(cond.pct??0.1)+'" style="width:44px" title="%">';
+  if(cond.op==='bounce_up'||cond.op==='bounce_down')h+='<input class="num oin" data-cf="tol" data-nid="'+id+'" value="'+(cond.tol??0.15)+'" style="width:46px" title="tol %">';
+  h+='</div>'+(noRight(cond.op)?'<div class="oper oper-none">—</div>':renderOperand(cond.right,id,'right'));
+  h+='<div class="condt"><select data-cf="timing" data-nid="'+id+'">'+TIMINGS.map(([v,l])=>'<option value="'+v+'"'+(cond.timing===v?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+  if(cond.timing==='for'||cond.timing==='within')h+='<input class="num oin" data-cf="tn" data-nid="'+id+'" value="'+(cond.tn||0)+'" style="width:38px"><span class="tlab">bars</span>';
+  h+='<span style="flex:1"></span><button class="ctest" data-testc="'+id+'" title="test on chart">🔍</button><button class="cx" data-delid="'+id+'" title="remove">×</button></div></div>';return h}
+function renderGroup(node,parentItems,isRoot){const id=nid(node,parentItems);let h='<div class="grp'+(isRoot?' root':'')+'" data-nid="'+id+'"><div class="grph"><span class="gl">'+(isRoot?'WHEN':'( group')+'</span><select data-gf="logic" data-nid="'+id+'">'+Object.keys(LOGIC_LBL).map(l=>'<option value="'+l+'"'+(node.logic===l?' selected':'')+'>'+LOGIC_LBL[l]+'</option>').join('')+'</select>';
+  if(node.logic==='ATLEAST')h+='<input class="num oin" data-gf="k" data-nid="'+id+'" value="'+(node.k||2)+'" style="width:36px" title="k">';
+  if(node.logic==='SEQ')h+='<input class="num oin" data-gf="window" data-nid="'+id+'" value="'+(node.window||10)+'" style="width:42px" title="within bars">';
+  if(!isRoot)h+='<span style="flex:1"></span><button class="cx" data-delid="'+id+'" title="remove group">×</button>';
+  h+='</div>';
+  (node.items||[]).forEach(it=>{h+=it.type==='group'?renderGroup(it,node.items,false):renderCond(it,node.items)});
+  h+='<div class="grpadd"><button class="btn sm" data-addc="'+id+'">+ condition</button><button class="btn sm" data-addg="'+id+'">+ group</button>'+(isRoot?'':'<span class="gclose">)</span>')+'</div></div>';return h}
 function stratResultHtml(){const c=strat.trades.filter(t=>t.reason!=='open'),w=c.filter(t=>t.pnl>0).length,mx=Math.max(...strat.funnel,1);
   let h='<div class="secl">Signal funnel</div><div class="funnel">';
-  stratDef.entry.forEach((r,i)=>{const ct=strat.funnel[i]||0;h+='<div class="frow'+(ct===0?' zero':'')+'"><span>'+safe(describeRule(r))+'</span><span class="num">'+ct+'</span><div class="ft" style="grid-column:1/-1"><span style="width:'+(ct/mx*100)+'%"></span></div></div>'});
+  (stratDef.entry.items||[]).forEach((it,i)=>{const ct=strat.funnel[i]||0,lbl=it.type==='group'?'('+it.logic+' group)':describeCond(it);h+='<div class="frow'+(ct===0?' zero':'')+'"><span>'+safe(lbl)+'</span><span class="num">'+ct+'</span><div class="ft" style="grid-column:1/-1"><span style="width:'+(ct/mx*100)+'%"></span></div></div>'});
   h+='</div><div class="secl">Result</div><div class="stats"><div class="st"><div class="k">Signals</div><div class="v">'+c.length+'</div></div><div class="st"><div class="k">Winners</div><div class="v positive">'+w+'</div></div></div><p class="note" style="margin:0">▲ entries and ▼ exits are on the chart, with the stop (red) and target (green).</p>';return h}
 
 /* ---------------------------------------------------------- backtest */
@@ -522,20 +612,21 @@ const PANELS={
     h+='<div class="secl">On the chart</div>';
     h+=active.length?active.map(a=>'<div class="indrow"><span class="sw" style="background:'+a.color+'"></span><div class="im"><b>'+IND_DEFS[a.type].label+(a.params.length?' '+a.params.length:'')+'</b><small>'+IND_DEFS[a.type].group+(a.params.source?' · '+a.params.source:'')+'</small></div><button class="x" data-rmind="'+a.id+'" aria-label="Remove">×</button></div>').join(''):'<div class="note">No indicators drawn. Add one above.</div>';
     return h},
-  strategy:()=>{const s=stratDef;let h=head('Strategy','Build a setup by rules, preview on the chart');
-    h+='<div class="note"><b>Build by clicking.</b> Add entry and exit rules from the verified operands, set the risk, then Evaluate. The full engine has 14 operators and nested groups. <b>It never places an order — it alerts only.</b></div>';
+  strategy:()=>{const s=stratDef;NSEQ=0;NID={};PARENT={};let h=head('Strategy','Describe a setup by rules — to any depth');
+    h+='<div class="note"><b>Build by clicking.</b> Add conditions and nested groups; each operand is price, an indicator, a value or time, with an operator and its timing. Groups nest without limit. <b>It never places an order — it alerts only.</b></div>';
     if(savedStrats.length)h+='<div class="field"><label>Load a saved strategy</label><select id="loadStrat"><option value="">— '+savedStrats.length+' saved —</option>'+savedStrats.map((x,i)=>'<option value="'+i+'">'+safe(x.name)+'</option>').join('')+'</select></div>';
-    h+='<div class="field"><label>Name</label><input id="sName" value="'+safe(s.name)+'"></div>';
-    h+='<div class="two"><div class="field"><label>Side</label><select id="sSide"><option value="long"'+(s.side==='long'?' selected':'')+'>long</option><option value="short"'+(s.side==='short'?' selected':'')+'>short</option></select></div><div class="field"><label>Stage</label><select id="sStage"><option'+(s.stage==='development'?' selected':'')+'>development</option><option'+(s.stage==='ready'?' selected':'')+'>ready</option></select></div></div>';
-    h+='<div class="secl">Entry <select class="logicsel" id="entryLogic">'+logicOpts(s.entryLogic)+'</select></div>';
-    h+=s.entry.map((r,i)=>ruleEditor(r,'entry',i)).join('')||'<p class="note">No entry rules — add one.</p>';
-    h+='<button class="btn sm" data-addrule="entry" style="width:100%;margin:2px 0 4px">+ Add entry rule</button>';
-    h+='<div class="secl">Exit <select class="logicsel" id="exitLogic">'+logicOpts(s.exitLogic)+'</select></div>';
-    h+=s.exit.map((r,i)=>ruleEditor(r,'exit',i)).join('')||'<p class="note">No exit rules — stop/target still apply.</p>';
-    h+='<button class="btn sm" data-addrule="exit" style="width:100%;margin:2px 0 4px">+ Add exit rule</button>';
-    h+='<div class="secl">Risk</div><div class="two"><div class="field"><label>Stop %</label><input id="sSl" class="num" value="'+s.slPct+'"></div><div class="field"><label>Target %</label><input id="sTp" class="num" value="'+s.tpPct+'"></div></div>';
-    h+='<div class="two"><div class="field"><label>Fill model</label><select id="sFill"><option'+(s.fill==='desk'?' selected':'')+'>desk</option><option'+(s.fill==='close'?' selected':'')+'>close</option><option'+(s.fill==='next_open'?' selected':'')+'>next_open</option></select></div><div class="field"><label>Window</label><input value="'+s.window+'" disabled></div></div>';
-    h+='<div class="row"><button class="btn primary" id="evalBtn" style="flex:1">▶ Evaluate</button><button class="btn" id="saveStrat">Save</button></div>';
+    h+=two(field('Name','<input id="sName" value="'+safe(s.name)+'">'),field('Tools','<input id="sTools" value="'+safe(s.tools||'')+'" placeholder="Radar">'));
+    h+=two(field('Side','<select id="sSide"><option value="long"'+(s.side==='long'?' selected':'')+'>long</option><option value="short"'+(s.side==='short'?' selected':'')+'>short</option></select>'),field('Stage','<select id="sStage"><option'+(s.stage==='development'?' selected':'')+'>development</option><option'+(s.stage==='ready'?' selected':'')+'>ready</option></select>'));
+    h+='<div class="secl">Entry — enter WHEN</div>'+renderGroup(s.entry,null,true);
+    h+='<div class="secl">Exit — leave WHEN <small style="color:var(--muted);font-weight:400">(stop/target still apply)</small></div>'+renderGroup(s.exit,null,true);
+    h+='<div class="secl">Risk</div>';
+    const rt=(cur,arr)=>arr.map(t=>'<option'+(cur===t?' selected':'')+'>'+t+'</option>').join('');
+    h+=two(field('Stop','<div class="rr2"><select id="slType">'+rt(s.slType,['off','pct','atr','points'])+'</select><input id="slVal" class="num" value="'+s.slVal+'"></div>'),field('Target','<div class="rr2"><select id="tpType">'+rt(s.tpType,['off','pct','rr','points'])+'</select><input id="tpVal" class="num" value="'+s.tpVal+'"></div>'));
+    h+='<div class="field"><label>Scale-out targets <small style="color:var(--muted);font-weight:400">fraction @ R-multiple</small></label><div id="legs">'+(s.targets||[]).map((l,i)=>'<div class="leg" data-li="'+i+'"><input class="num" data-lf="fraction" value="'+l.fraction+'"><span>at</span><input class="num" data-lf="rMult" value="'+l.rMult+'"><span>R</span><button class="cx" data-delleg="'+i+'" title="remove">×</button></div>').join('')+'</div><button class="btn sm" id="addLeg">+ target</button></div>';
+    h+=two(field('Window start <small style="color:var(--muted);font-weight:400">NY hhmm</small>','<input id="winStart" class="num" value="'+(s.winStart||'')+'" placeholder="935">'),field('Window end','<input id="winEnd" class="num" value="'+(s.winEnd||'')+'" placeholder="1550">'));
+    h+=two(field('Cooldown bars','<input id="cooldown" class="num" value="'+(s.cooldown||0)+'">'),field('Max per day <small style="color:var(--muted);font-weight:400">0=∞</small>','<input id="maxPerDay" class="num" value="'+(s.maxPerDay||0)+'">'));
+    h+=field('Min hold (bars)','<input id="minHold" class="num" value="'+(s.minHold||0)+'">');
+    h+='<div class="row"><button class="btn primary" id="evalBtn" style="flex:1">▶ Evaluate</button><button class="btn" id="saveStrat">Save</button><button class="btn" id="newStrat">New</button></div>';
     h+='<div id="stratResult">'+(strat?stratResultHtml():'')+'</div>';
     return h},
   backtest:()=>{let h=head('Backtest','Replay the strategy, honestly');
@@ -575,24 +666,47 @@ function bindPanel(k){
   if(k==='indicators'){$('#addIndBtn')&&($('#addIndBtn').onclick=()=>{const t=$('#indPick').value,len=parseInt($('#indLen').value)||IND_DEFS[t].params.length,src=$('#indSrc').value;const a=addInd(t);if('length'in a.params)a.params.length=len;if('source'in a.params)a.params.source=src;series[a.id]=IND_DEFS[t].calc(bars,a.params);draw();openPanel('indicators')});
     $$('[data-rmind]').forEach(b=>b.onclick=()=>{active=active.filter(x=>x.id!==b.dataset.rmind);draw();openPanel('indicators')});}
   if(k==='strategy'){
-    $('#evalBtn')&&($('#evalBtn').onclick=runStrategyOnChart);
+    const re=()=>openPanel('strategy');
     const touch=()=>{strat=null;draw();const rz=$('#stratResult');if(rz)rz.innerHTML='<p class="note" style="margin-top:12px">Edited — click ▶ Evaluate to refresh the markers.</p>'};
     const bindV=(id,fn,ev)=>{const el=$('#'+id);if(el)el[ev||'onchange']=e=>fn(e.target.value)};
-    bindV('sName',v=>{stratDef.name=v},'oninput');
+    $('#evalBtn')&&($('#evalBtn').onclick=runStrategyOnChart);
+    bindV('sName',v=>{stratDef.name=v},'oninput');bindV('sTools',v=>{stratDef.tools=v},'oninput');
     bindV('sSide',v=>{stratDef.side=v;touch()});bindV('sStage',v=>{stratDef.stage=v});
-    bindV('entryLogic',v=>{stratDef.entryLogic=v;touch()});bindV('exitLogic',v=>{stratDef.exitLogic=v;touch()});
-    bindV('sSl',v=>{stratDef.slPct=parseFloat(v)||1.5;touch()});bindV('sTp',v=>{stratDef.tpPct=parseFloat(v)||3;touch()});
-    bindV('sFill',v=>{stratDef.fill=v});
-    $$('.rule2').forEach(row=>{const grp=row.dataset.grp,ri=+row.dataset.ri,rule=stratDef[grp]&&stratDef[grp][ri];if(!rule)return;
-      row.querySelectorAll('[data-rf]').forEach(ctrl=>{const fld=ctrl.dataset.rf;
-        ctrl.onchange=()=>{if(fld==='rval')rule.rval=parseFloat(ctrl.value);else{rule[fld]=ctrl.value;if(fld==='right'&&ctrl.value==='__value__'&&rule.rval==null)rule.rval=1}
-          if(fld==='op'||fld==='right')openPanel('strategy');else touch()};
-        if(fld==='rval')ctrl.oninput=()=>{rule.rval=parseFloat(ctrl.value);touch()};
-      });});
-    $$('[data-addrule]').forEach(b=>b.onclick=()=>{stratDef[b.dataset.addrule].push({left:'close',op:'gt',right:'__value__',rval:0});openPanel('strategy')});
-    $$('[data-delrule]').forEach(b=>b.onclick=()=>{const[g,i]=b.dataset.delrule.split(':');stratDef[g].splice(+i,1);strat=null;draw();openPanel('strategy')});
-    $('#saveStrat')&&($('#saveStrat').onclick=()=>{savedStrats=savedStrats.filter(x=>x.name!==stratDef.name);savedStrats.push(JSON.parse(JSON.stringify(stratDef)));try{localStorage.setItem('td-strats',JSON.stringify(savedStrats))}catch{}toast('Strategy “'+stratDef.name+'” saved.');openPanel('strategy')});
-    $('#loadStrat')&&($('#loadStrat').onchange=e=>{if(e.target.value!==''){stratDef=JSON.parse(JSON.stringify(savedStrats[+e.target.value]));strat=null;draw();openPanel('strategy');toast('Loaded “'+stratDef.name+'”')}});
+    bindV('slType',v=>{stratDef.slType=v;touch()});bindV('slVal',v=>{stratDef.slVal=parseFloat(v)||0;touch()},'oninput');
+    bindV('tpType',v=>{stratDef.tpType=v;touch()});bindV('tpVal',v=>{stratDef.tpVal=parseFloat(v)||0;touch()},'oninput');
+    bindV('winStart',v=>{stratDef.winStart=v.trim();touch()},'oninput');bindV('winEnd',v=>{stratDef.winEnd=v.trim();touch()},'oninput');
+    bindV('cooldown',v=>{stratDef.cooldown=parseInt(v)||0;touch()},'oninput');bindV('maxPerDay',v=>{stratDef.maxPerDay=parseInt(v)||0;touch()},'oninput');
+    bindV('minHold',v=>{stratDef.minHold=parseInt(v)||0;touch()},'oninput');
+    /* scale-out legs */
+    $('#addLeg')&&($('#addLeg').onclick=()=>{(stratDef.targets=stratDef.targets||[]).push({fraction:0.5,rMult:2});re()});
+    $$('[data-delleg]').forEach(b=>b.onclick=()=>{stratDef.targets.splice(+b.dataset.delleg,1);re()});
+    $$('#legs .leg').forEach(row=>{const li=+row.dataset.li;row.querySelectorAll('[data-lf]').forEach(inp=>inp.oninput=()=>{if(stratDef.targets[li])stratDef.targets[li][inp.dataset.lf]=parseFloat(inp.value)||0;touch()})});
+    /* group fields: logic / k / window */
+    $$('[data-gf]').forEach(ctrl=>{const n=NID[ctrl.dataset.nid],f=ctrl.dataset.gf;if(!n)return;
+      if(f==='logic')ctrl.onchange=()=>{n.logic=ctrl.value;re()};
+      else ctrl.oninput=()=>{n[f]=parseInt(ctrl.value)||(f==='k'?2:10);touch()}});
+    /* condition fields: op / timing / tn / pct / tol */
+    $$('[data-cf]').forEach(ctrl=>{const c=NID[ctrl.dataset.nid],f=ctrl.dataset.cf;if(!c)return;
+      if(f==='op'||f==='timing')ctrl.onchange=()=>{c[f]=ctrl.value;re()};
+      else ctrl.oninput=()=>{c[f]=f==='tn'?(parseInt(ctrl.value)||0):parseFloat(ctrl.value);touch()}});
+    /* operand fields: kind / ind / length / source / sub / field / value / offset / hold */
+    $$('.oper[data-nid]').forEach(opEl=>{const c=NID[opEl.dataset.nid],side=opEl.dataset.side;if(!c)return;const op=()=>c[side];
+      opEl.querySelectorAll('[data-of]').forEach(ctrl=>{const f=ctrl.dataset.of;
+        if(f==='kind')ctrl.onchange=()=>{c[side]=defOperand(ctrl.value);re()};
+        else if(f==='ind')ctrl.onchange=()=>{op().ind=ctrl.value;re()};
+        else if(f==='hold')ctrl.onchange=()=>{op().hold=ctrl.checked;touch()};
+        else if(f==='length'||f==='offset'||f==='value')ctrl.oninput=()=>{op()[f]=parseFloat(ctrl.value)||0;touch()};
+        else ctrl.onchange=()=>{op()[f]=ctrl.value;touch()}})});
+    /* add / remove nodes */
+    $$('[data-addc]').forEach(b=>b.onclick=()=>{const n=NID[b.dataset.addc];if(n){(n.items=n.items||[]).push(defCond());re()}});
+    $$('[data-addg]').forEach(b=>b.onclick=()=>{const n=NID[b.dataset.addg];if(n){(n.items=n.items||[]).push(defGroup('ANY'));re()}});
+    $$('[data-delid]').forEach(b=>b.onclick=()=>{const id=b.dataset.delid,node=NID[id],parent=PARENT[id];if(parent&&node){const i=parent.indexOf(node);if(i>=0)parent.splice(i,1);touch();re()}});
+    /* test one condition on the current chart */
+    $$('[data-testc]').forEach(b=>b.onclick=()=>{const c=NID[b.dataset.testc];if(!c)return;const t=compileNode(c,bars,{});let n=0;for(let i=0;i<t.length;i++)if(t[i])n++;toast(describeCond(c)+' — true on '+n+' of '+bars.length+' bars')});
+    /* save / new / load */
+    $('#saveStrat')&&($('#saveStrat').onclick=()=>{savedStrats=savedStrats.filter(x=>x.name!==stratDef.name);savedStrats.push(JSON.parse(JSON.stringify(stratDef)));try{localStorage.setItem('td-strats',JSON.stringify(savedStrats))}catch{}toast('Strategy “'+stratDef.name+'” saved.');re()});
+    $('#newStrat')&&($('#newStrat').onclick=()=>{stratDef=freshStrat();strat=null;draw();re();toast('New strategy — build it up')});
+    $('#loadStrat')&&($('#loadStrat').onchange=e=>{if(e.target.value!==''){stratDef=JSON.parse(JSON.stringify(savedStrats[+e.target.value]));strat=null;draw();re();toast('Loaded “'+stratDef.name+'”')}});
   }
   if(k==='chart'){$('#fitBtn')&&($('#fitBtn').onclick=()=>{view={start:0,count:bars.length};draw();});}
   if(k==='backtest'){$('#runBtBtn')&&($('#runBtBtn').onclick=()=>{
