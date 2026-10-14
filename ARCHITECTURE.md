@@ -123,37 +123,42 @@ data model carries account scoping in both modes
 
 ```mermaid
 flowchart TB
-  P["📱 the trader · phone · laptop"] -->|"one address · one login"| FD["front door"]
-  subgraph BOX["the box · one small server"]
+  P["📱 the trader · phone · laptop"]
+  subgraph FE["the front end — apps in the browser (static)"]
+    direction LR
+    ST["<b>Station</b><br/>the launcher"]
+    JRA["<b>Journal</b>"]
+    RDA["<b>Radar</b>"]
+    TLA["<b>TradeLab</b>"]
+  end
+  P --> FE
+  FE -->|"one address · sign-in · /api/…"| FD["<b>front door</b><br/>serves the apps · routes the API"]
+  subgraph BOX["the box (solo) · hosting + CDN (hosted)"]
     direction TB
     FD
-    subgraph DESK["desk — ONE program for every tool"]
-      HOME["<b>home</b><br/>landing page<br/>Manage tools"]
-      TOOLS["<b>running tools</b><br/>each: finds · cards · records<br/><i>each kept apart from the others</i>"]
+    subgraph DESK["desk — ONE program (the engine behind Radar)"]
+      TOOLS["<b>running tools</b><br/>each: finds · cards · records · scores<br/><i>each kept apart from the others</i>"]
       STOP["<b>stopped tools</b><br/>their history, read-only"]
       MKT["<b>market reader</b><br/>one read of the market<br/>for every tool"]
       JOBS["<b>scheduler</b><br/>every timed job"]
+      OHOME["<b>operator home</b><br/>Manage tools · comparison"]
     end
-    FILES[("<b>files on the box</b><br/>each program's own files")]
-    QP["<b>qp</b><br/>charts · strategies<br/>backtests · signal alerts"]
+    FILES[("<b>the record</b><br/>files on the box (solo)<br/>managed Postgres (hosted)")]
+    QP["<b>qp</b> — TradeLab's engine<br/>charts · strategies<br/>backtests · signal alerts"]
     RW["<b>research worker</b><br/>O'Neil research<br/>runs, then exits"]
-    JR["<b>journal</b><br/>the trader's real trades"]
+    JRS["<b>journal</b> — the Journal's engine<br/>the trader's real trades"]
   end
   subgraph OUT["outside the box"]
     direction LR
     SRC["<b>data sources</b><br/>TradingView · Yahoo · Alpaca<br/>SEC EDGAR · and others"]
-    PG[("<b>shared record</b><br/>a database<br/>facts with their time<br/>copies of the records")]
+    PG[("<b>shared record</b><br/>facts with their time<br/>copies of the records")]
     BK[("<b>cloud storage</b><br/>nightly backups")]
     PH["<b>phone</b><br/>alerts"]
   end
-  FD --> HOME
-  FD --> TOOLS
-  FD --> STOP
-  FD -->|"/quant"| QP
-  FD -->|"/journal"| JR
-  FD ~~~ MKT
-  FD ~~~ JOBS
-  TOOLS ==>|"its own file"| FILES
+  FD -->|"/api/radar"| DESK
+  FD -->|"/api/tradelab"| QP
+  FD -->|"/api/journal"| JRS
+  TOOLS ==>|"its own data"| FILES
   TOOLS -->|"scans · facts"| SRC
   TOOLS -->|"facts · copies"| PG
   MKT -->|"copies"| PG
@@ -168,23 +173,30 @@ flowchart TB
   classDef ext fill:#ffffff,stroke:#9ca3af,stroke-dasharray: 5 5,color:#111;
   classDef tool fill:#e0f2fe,stroke:#0369a1,color:#111;
   classDef deskown fill:#ede9fe,stroke:#6d28d9,color:#111;
+  classDef app fill:#fef9c3,stroke:#a16207,color:#111;
   class TOOLS,STOP tool;
-  class HOME,MKT,JOBS deskown;
-  class FD,JR prog;
+  class MKT,JOBS,OHOME deskown;
+  class FD,JRS prog;
   class QP,RW py;
   class FILES,PG,BK store;
   class SRC,PH,P ext;
+  class ST,JRA,RDA,TLA app;
 ```
 
-Some lines are left out to keep the picture readable: the scheduler also
-starts the work of qp and the journal; qp and the journal keep their own files;
-and the backup copies the shared record as well as the files.
+The front end is **product apps** (the Station launcher and the Journal, Radar and
+TradeLab apps); each is a static app that calls the front door's API. The desk is
+the **engine behind Radar**, not a page the trader opens directly — its operator
+home (Manage tools, the comparison) is an admin surface, not a user screen
+([design/03-desk/HOME.md](design/03-desk/HOME.md) §3.4). Some lines are left out to
+keep the picture readable: the scheduler also starts the work of qp and the
+journal; qp and the journal keep their own data; the backup copies the shared
+record as well; and Radar's analysis workspace reads the research worker's facts.
 
 | Block | What it does | Its document |
 |---|---|---|
 | **the box** | the one server everything runs on | [design/01-box/BOX.md](design/01-box/BOX.md) |
-| **front door** | the one address and the one login | [design/02-front-door/FRONT-DOOR.md](design/02-front-door/FRONT-DOOR.md) |
-| **desk** | one program that runs every tool | [design/03-desk/DESK.md](design/03-desk/DESK.md) |
+| **front door** | the one address and sign-in; serves the apps (static) and routes the API | [design/02-front-door/FRONT-DOOR.md](design/02-front-door/FRONT-DOOR.md) |
+| **desk** | one program that runs every tool — the engine behind the Radar app | [design/03-desk/DESK.md](design/03-desk/DESK.md) |
 | **files on the box** | where each program keeps what it records | [design/04-files/FILES.md](design/04-files/FILES.md) |
 | **qp** | charts, strategies, backtests, signal alerts | [design/05-qp/QP.md](design/05-qp/QP.md) |
 | **research worker** | the slow, heavy research: the O'Neil method | [design/06-research-worker/RESEARCH-WORKER.md](design/06-research-worker/RESEARCH-WORKER.md) |
@@ -202,17 +214,20 @@ How today's desk becomes this one: [design/12-migration/MIGRATION.md](design/12-
 
 ### 4.1 The front door
 
-The trader reaches the whole desk at **one address**, from a phone or a laptop,
-with **one login**. The front door sends each request to the right program and
-keeps everything else closed to the outside. It holds nothing and computes
-nothing: if it stops, the desk keeps working, and only the pages are out of
-reach.
+The trader reaches the Trading Station and its **product apps** (the Journal,
+Radar, TradeLab) at **one address**, from a phone or a laptop, after **sign-in**.
+The front end is a set of self-contained static apps; the front door **serves the
+apps** and **routes each app's API calls** to the service that owns the data
+(Radar → the desk, TradeLab → qp, the Journal → the journal), and keeps everything
+else closed to the outside. It holds nothing and computes nothing: if it stops,
+the desk keeps working, and only the front end and the API are out of reach.
 
 ### 4.2 The desk
 
-**One program runs every tool.** For each tool it finds the stocks, builds
-their cards, keeps the day's list, records what the tool found, and serves the
-tool's pages.
+**One program runs every tool — the engine behind the Radar app.** For each tool
+it finds the stocks, builds their cards, keeps the day's list, records what the
+tool found, scores its cards, and answers the **data API** behind Radar's screens
+([design/03-desk/tool/PAGES.md](design/03-desk/tool/PAGES.md)).
 
 Its parts:
 - **Home:** the landing page, the lists across all tools, and the page that
@@ -416,7 +431,7 @@ with nothing depending on it yet. The program half is next.
 
 | Block | Today |
 |---|---|
-| front door | built; the one address and login work, but the domain and closing the other ports are not done |
+| front door | the one address, sign-in and API routing work; serving the static product apps (replacing the legacy pages-by-path) and the domain/port closing are not done |
 | desk | being built: the way one program holds several tools is built; the tools still run as five separate programs |
 | files on the box | built |
 | qp | mostly built; reading the tools' history from the shared record is built but off |

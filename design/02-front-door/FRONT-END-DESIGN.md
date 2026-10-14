@@ -14,17 +14,16 @@ This document specifies the **Trade-Disk Trading Station home / front-end entry 
 
 It is **not the Journal design**. Journal pages, data, capture, metrics, navigation and responsive behavior remain defined by [JOURNAL.md](../07-journal/JOURNAL.md), [REVIEW.md](../07-journal/REVIEW.md) and [IMPORT.md](../07-journal/IMPORT.md). This document adds the product-level front door that precedes those pages.
 
-The front door remains a thin entry point. It does not own trading records, calculate performance, place orders, authenticate users independently, or make the other tools operational. The front-door component's technical ownership and login/routing rules remain in [FRONT-DOOR.md](FRONT-DOOR.md); the desk owns home behavior and cross-tool content as detailed in the desk design.
+The front door remains a thin entry point. It does not own trading records, calculate performance, place orders, authenticate users independently, or make the other tools operational. The front-door component's technical ownership and login/routing rules remain in [FRONT-DOOR.md](FRONT-DOOR.md). The **Station home** (this document) is the launcher; it is distinct from the **desk's operator home** ([HOME.md](../03-desk/HOME.md): Manage tools, the cross-tool comparison), which is not a user screen in the built front end ([HOME.md §3.4](../03-desk/HOME.md)). Any cross-tool list the Station surfaces reads the desk's data; it does not make the Station the desk's home.
 
 ### Route ownership
 
-- `/` is the Trading Station / desk home after the shared login.
+- `/` is the **Trading Station home — the launcher**, after sign-in. It is *not* the desk: the desk is Radar's back end ([FRONT-DOOR.md §3.3](FRONT-DOOR.md)), not the home at `/`.
 - `/login` is the shared sign-in route from [FRONT-DOOR.md](FRONT-DOOR.md).
-- `/journal/` enters the independent Journal product. Its initial screen is the Journal overview/landing page, not a second Trade-Disk home.
-- Returning from the Journal to `/` returns to the Trading Station home.
-- The Journal remains usable as an independently accessible product, subject to its own account and access design.
+- Each product is a **self-contained app** the Station opens: the Journal at `/journal/`, Radar at `/radar/`, TradeLab at `/tradelab/`. Each app switches its own screens in the browser; the front door serves the app (static) and routes its `/api/…` calls ([FRONT-DOOR.md §3.2–3.3](FRONT-DOOR.md)).
+- The Journal's initial screen is its own overview, not a second Trade-Disk home; returning to `/` returns to the Station. Each product remains usable on its own, subject to the account and access design ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)).
 
-**Implementation boundary:** the existing static prototype is stored at `frontend-design/index.html`, but that file is not the production route definition. When integrated into the desk, the Trading Station home belongs at `/` and the Journal belongs at `/journal/`. Do not deploy the same home page as the Journal overview or place the home route inside the Journal's product navigation.
+**Implementation boundary:** the static prototypes (`frontend-design/index.html`, `radar.html`, `tradelab.html`) are the design reference, not the production route definition. In the built shape the Station is at `/` and each product app at its own path, served as **static files** (the box in solo, a CDN in hosted) with data from the API — not HTML rendered by the desk on a tool port. In the `index.html` prototype the Station landing and the Journal share one file for convenience; in production the Station is the launcher and the Journal is its own app. Do not deploy the Station as the Journal overview or place the Station route inside the Journal's navigation.
 
 ---
 
