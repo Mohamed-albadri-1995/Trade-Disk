@@ -161,6 +161,26 @@ the research method in
 new tool starts with **no** screeners and is built on its own Screeners page; an
 empty tool is visibly empty, never seeded with a copy of another tool's set.
 
+### 4.7 The scanner provider (solo vs hosted)
+
+Everything above describes the scan against **TradingView's scanner**, which is
+free but **personal-use only** ([DATA-SOURCES.md §3.7](../../08-data-sources/DATA-SOURCES.md)).
+This is the one place a tool's discovery reaches an outside source, so it is where
+the swappable-provider boundary sits:
+
+- **Solo mode** asks TradingView, as described.
+- **Hosted mode** asks the **licensed scanner provider** chosen in the
+  [admin dashboard](../../14-admin/ADMIN.md). A screener's rules, floor, windows,
+  mirror and versions **do not change** when the provider is switched; a provider
+  adapter translates the rule shape (today TradingView columns and its 15
+  operators) to the active provider's fields, and the commercial-licensing guard
+  refuses a provider flagged personal-use for a commercial deployment.
+
+In the commercial front end this builder is **Radar's Settings / custom screener**
+([PAGES.md §4.1](PAGES.md)); a user's screeners are their own, and the built-in
+presets (T1/T2/T7) are shared read-only ([DESK.md §1](../DESK.md),
+[ACCOUNTS.md](../../13-accounts/ACCOUNTS.md)).
+
 ---
 
 ## 5. Contracts
@@ -222,3 +242,4 @@ first stage in
 | the builder, the floor, mirrors, the scan, the save check, the plain-words summary | **built** (legacy) |
 | versioned definitions, and the save check that the photo minute falls in a window | **to build** |
 | no startup repair rewrites a cleared definition | **to build** (D-S10) |
+| hosted mode: the swappable licensed scanner provider (adapter + commercial-licensing guard), per-account screeners, shared read-only presets | **designed** (§4.7, [DATA-SOURCES.md §3.7](../../08-data-sources/DATA-SOURCES.md), [ADMIN.md](../../14-admin/ADMIN.md)); **to build** in the hosted build |

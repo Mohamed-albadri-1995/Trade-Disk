@@ -114,6 +114,21 @@ setting cannot reach the scans:
 Every change tells qp to re-read its list of sources, so the tool appears or
 disappears on qp's register picker with no restart.
 
+### 3.4 Home in the commercial product
+
+Home is the **desk's operator front**, not a user screen. In the commercial
+product its parts split by audience:
+
+| Home part | Commercial surface |
+|---|---|
+| landing page — "which tool to open now" | folds into **Radar's screener selector**: a user picks among the built-in presets (T1/T2/T7, shared read-only) and their own screeners ([PAGES.md §4.1](tool/PAGES.md)) |
+| cross-tool lists (unified shortlist, screener comparison) | the unified shortlist is **per account** ([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); the screener comparison and scorecards are an **operator/advanced view** under the [admin surface](../14-admin/ADMIN.md), not a user tab |
+| Manage tools (add/start/stop/pause/edit/delete/restore) | an **operator/admin** action in the [admin dashboard](../14-admin/ADMIN.md); a user does not start or stop desk contexts |
+
+So in hosted mode "which tool to open" and "my shortlist" are the user's, scoped
+to their account; managing the tools themselves, the memory guard and the
+cross-tool comparison stay with the operator.
+
 ---
 
 ## 4. Contracts
@@ -172,3 +187,4 @@ disappears on qp's register picker with no restart.
 | the landing page, the comparison, Manage tools | **built** (legacy, on T1) |
 | home and the desk jobs in the desk's own context, so T1 can be stopped | **to build** (step B, with T1, last) |
 | the unified shortlist and the comparison reading the shared record | **to build** (steps D–E) |
+| hosted mode: the landing folds into Radar's screener selector, the shortlist is per account, Manage tools and the comparison are operator/admin surfaces | **designed** (§3.4, [ACCOUNTS.md](../13-accounts/ACCOUNTS.md), [ADMIN.md](../14-admin/ADMIN.md)); **to build** in the hosted build |

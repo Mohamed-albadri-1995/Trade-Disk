@@ -108,6 +108,22 @@ terms, the sector read). It is kept with its history in the desk's own file as
 carried **as it was**, not re-read at export time, so an old R2 day shows the
 status of that day, not today's (D-D3).
 
+### 3.5 The Market dashboard (front end)
+
+The commercial product surfaces this one read as **Radar's standalone Market
+dashboard** ([PAGES.md §4.1](tool/PAGES.md)): the indexes, the regime with its
+stance, the sector heatmap and the hot sectors, plus O'Neil's M and the group
+leadership (L). It reads a **materialized `market_snapshot` read model**
+([DATA-MODEL.md](../DATA-MODEL.md) §3.8), published atomically when a read is
+stored, never recomputed in the page. This is the **global** market view; a
+stock's card carries only a **snapshot and a link** to it, not a second dashboard
+([CARD.md §3.6](tool/CARD.md)) — the two "Market" surfaces mean different things
+and must not be merged. In hosted mode the dashboard is shared across accounts
+(the market is global), served from the same read model, and the index/sector
+quotes come from the licensed provider chosen in the
+[admin dashboard](../14-admin/ADMIN.md), not TradingView
+([DATA-SOURCES.md §3.7](../08-data-sources/DATA-SOURCES.md)).
+
 ---
 
 ## 4. Contracts
@@ -169,3 +185,4 @@ market snapshots (R2) in
 | the desk's read (indexes, regime, sectors), built per scan | **built** (legacy, per tool) |
 | one read per scan for every tool, stored once, with its history | **in shadow** (step 6): one read stored per scan; each tool still reads its own |
 | M and L read from the research worker's facts | **in shadow** ([RESEARCH-WORKER.md](../06-research-worker/RESEARCH-WORKER.md)); the cards still use qp's values until the switch |
+| the standalone Market dashboard reading the `market_snapshot` read model; hosted = shared across accounts, licensed provider | **designed** (§3.5, [DATA-MODEL.md](../DATA-MODEL.md)); **to build** in the hosted build |
