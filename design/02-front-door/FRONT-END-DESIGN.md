@@ -25,6 +25,16 @@ The front door remains a thin entry point. It does not own trading records, calc
 
 **Implementation boundary:** the static prototypes (`frontend-design/index.html`, `radar.html`, `tradelab.html`) are the design reference, not the production route definition. In the built shape the Station is at `/` and each product app at its own path, served as **static files** (the box in solo, a CDN in hosted) with data from the API — not HTML rendered by the desk on a tool port. In the `index.html` prototype the Station landing and the Journal share one file for convenience; in production the Station is the launcher and the Journal is its own app. Do not deploy the Station as the Journal overview or place the Station route inside the Journal's navigation.
 
+### The prototype is the visual contract
+
+The approved prototypes are the **visual and UX contract** for the Station and the three tools: the layout, the hierarchy, the navigation, the screens each tool shows, and the visual system. **That view — what the trader sees and how they move through each tool — is the one thing that must be preserved.** How the front end is *built* is an implementation choice and may change freely:
+
+- a single prototype file may be **split into several apps** (the Station and the Journal share `index.html` today; in production they are separate apps), and new files, a build step or a component framework may be introduced;
+- the prototype's **demo behavior and synthetic data are not the spec** — the final product *looks* like the prototype but is backed by the real data and the real backend ("looks like it, need not function like it in the shadow");
+- the screen inventory each tool shows is fixed by the prototype (the Station's cards; the Journal's sections; Radar's Screener/Shortlist/Market/Settings + the analysis workspace; TradeLab's rail), but the wiring behind each screen is the backend's to shape.
+
+So the backend and the front-end structure are shaped **to fit this view** ([FRONT-DOOR.md](FRONT-DOOR.md), [DATA-MODEL.md](../DATA-MODEL.md)); either side may move to meet the other, as long as the view holds. A change to the user-facing view itself needs the trader's re-approval; a change to how it is built or backed does not.
+
 ---
 
 ## 2. Product inventory and launch state

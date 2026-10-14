@@ -477,6 +477,8 @@ Detail, with each step's check and undo: [design/12-migration/MIGRATION.md](desi
 | **accounts and roles** | designed now, built when commercial ([ACCOUNTS.md](design/13-accounts/ACCOUNTS.md)) |
 | **the canonical record (hosted)** | the relational data model in a hosted Postgres ([DATA-MODEL.md](design/DATA-MODEL.md)); the uploaded schema is adopted |
 | **commercial data provider** | swappable by design; the licensed provider is chosen later, from the admin dashboard ([DATA-SOURCES.md](design/08-data-sources/DATA-SOURCES.md), [ADMIN.md](design/14-admin/ADMIN.md)) |
+| **the front end** | **product-first: a Station launcher and self-contained apps** (the Journal, Radar, TradeLab), static, calling the backend over an API (by the trader, 2026-10-14). The desk is Radar's engine, not a page-server. Why: this is what was built ([design/02-front-door/FRONT-DOOR.md](design/02-front-door/FRONT-DOOR.md)) |
+| **the prototype's role** | the approved prototypes are the **visual contract** (the look and the user-facing view), not a functional or file-structure spec: the final looks like them but is backed by real data, and the front end may be re-architected (files split, apps separated) as long as the view holds ([design/02-front-door/FRONT-END-DESIGN.md](design/02-front-door/FRONT-END-DESIGN.md)) |
 
 ---
 
