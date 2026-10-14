@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0d131f">
+<meta name="theme-color" content="#f5f7fb">
 <meta name="description" content="Trade-Disk — The Trading Station. A precise, evidence-led trading journal, and the front door to the Trade-Disk tools.">
 <title>Trade-Disk · The Trading Station</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -495,7 +495,7 @@ a{color:inherit;text-decoration:none}
       <div class="crumb">Trading Station <span class="muted">/</span> <b id="crumb">Journal overview</b></div>
       <div class="topactions">
         <span class="livedot">Demo data</span>
-        <button class="iconbtn" id="themeBtn" title="Toggle light and dark theme" aria-label="Toggle theme">☾</button>
+        <button class="iconbtn" id="themeBtn" title="Toggle light and dark theme" aria-label="Toggle theme">☀</button>
         <button class="btn primary" id="newTradeBtn">＋ New trade</button>
       </div>
     </header>
@@ -595,7 +595,7 @@ let trades=readStore('td-trades',null); if(!Array.isArray(trades)){trades=buildS
 let notes=readStore('td-notes',[]); if(!Array.isArray(notes))notes=[];
 let batches=readStore('td-batches',[]); if(!Array.isArray(batches))batches=[];
 let dayNotes=readStore('td-daynotes',{}); if(typeof dayNotes!=='object'||!dayNotes)dayNotes={};
-let theme='dark'; try{theme=localStorage.getItem('td-theme')||'dark'}catch{} document.documentElement.dataset.theme=theme;
+let theme='light'; try{theme=localStorage.getItem('td-theme')||'light'}catch{} document.documentElement.dataset.theme=theme;
 const persistTrades=()=>writeStore('td-trades',trades);
 
 /* ------------------------------------------------------------- app state */
