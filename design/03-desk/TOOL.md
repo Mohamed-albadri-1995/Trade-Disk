@@ -4,7 +4,7 @@
 runs).
 
 **Talks to:**
-- the [web layer](WEB.md), which brings its pages and API;
+- the [web layer](WEB.md), which answers its data API (behind the Radar app);
 - the [scheduler](JOBS.md), which runs its scans, refreshes, captures and
   outcomes in its context;
 - the [market reader](MARKET.md), for one market read per scan;
@@ -23,7 +23,8 @@ screeners, its own cards, its own daily record, its own shortlist, its own
 score, kept apart from every other tool ([DESK.md](DESK.md) §3). It finds the
 stocks its screeners match, turns each into a card with everything known about
 it, keeps today's live list, freezes a photo of that list once a day, measures
-how far each photographed stock moved, scores its cards, and serves its pages.
+how far each photographed stock moved, scores its cards, and answers the data API
+behind the Radar app.
 
 This document is the shape of a running tool end to end; each part has its own
 document one level down:
@@ -130,14 +131,17 @@ about a month, cut the screeners whose stocks do not move, then work on entries.
 A model to rank a tool's stocks is prepared, not built, until the trader chooses
 one. Detail: [tool/LEARNING.md](tool/LEARNING.md).
 
-### 3.7 Show: its pages
+### 3.7 Show: the Radar app
 
-The tool's eight tabs (its cards, the market read, the shortlist, the warehouse
-of registers, the scorecard, the screener builder, settings, the monitor), served
-in its context on its own port ([WEB.md](WEB.md)). Detail:
-[tool/PAGES.md](tool/PAGES.md). In the commercial product this same tool is
-**Radar**: its Screener landing, Shortlist, Market dashboard, custom-screener
-Settings, and the four-tab analysis workspace ([tool/PAGES.md §4.1](tool/PAGES.md)).
+The tool is shown as the **Radar app** — a static app that calls the tool's
+**data API** ([WEB.md](WEB.md)): a Screener landing, a Shortlist, a Market
+dashboard and a custom-screener Settings, plus a drill-in four-tab analysis
+workspace (Overview · Technical · CAN SLIM · Fundamental). The operator views the
+old per-tool program also carried — the warehouse of raw registers, the
+scorecard, the job monitor — are not in the user app; they sit under the admin
+surface. Detail: [tool/PAGES.md](tool/PAGES.md). (The old desk served these as
+**eight HTML tabs on the tool's own port**; that is the legacy delivery being
+replaced, [tool/PAGES.md §7](tool/PAGES.md).)
 
 ### 3.8 The data lifecycle: fetch → store → show → update → keep
 

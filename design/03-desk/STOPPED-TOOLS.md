@@ -19,9 +19,12 @@ its photos, its outcomes, its scorecard. A deleted tool is the same — off ever
 list, but nothing erased.
 
 In the design a stopped tool is **a read-only context inside the desk**
-([DESK.md](DESK.md) §3), opened over its file read-only, serving the same routes
-on the same port it used when it ran. It replaces the old desk's separate
-**archive** program, which loaded a copy of the modules for each stopped tool.
+([DESK.md](DESK.md) §3), opened over its file read-only, answering the same
+**read-only data API** it did when it ran (and, for the legacy addresses, on the
+same port). This is an **operator/history** surface, not a product screen in the
+Radar app ([tool/PAGES.md §4](tool/PAGES.md)); in hosted mode it is read via the
+API, account-scoped (§7). It replaces the old desk's separate **archive** program,
+which loaded a copy of the modules for each stopped tool.
 
 **What it owns:** nothing new — it only reads a tool's stored file.
 
