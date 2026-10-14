@@ -1,11 +1,12 @@
 # The front door
 
 **Above:** [ARCHITECTURE.md](../../ARCHITECTURE.md) §4.1.
-**Front-end design:** [FRONT-END-DESIGN.md](FRONT-END-DESIGN.md) specifies the Trading Station home and its route into the Journal.
+**Front-end design:** [FRONT-END-DESIGN.md](FRONT-END-DESIGN.md) specifies the Trading Station home and its cards for the three products the trader can open (Journal, TradeLab, Radar) and the one to come (TradePilot).
 **Talks to:**
 - the trader's phone and laptop;
-- the [desk](../03-desk/DESK.md), [qp](../05-qp/QP.md) and the
-  [journal](../07-journal/JOURNAL.md), behind it;
+- the [desk](../03-desk/DESK.md) (the engine behind **Radar**), [qp](../05-qp/QP.md)
+  (**TradeLab**) and the [journal](../07-journal/JOURNAL.md) (**the Journal**),
+  behind it;
 - the [box](../01-box/BOX.md) it runs on.
 
 ---
@@ -94,6 +95,29 @@ The gateway (`src/shell/gateway.js`) holds no state.
 | `/tools/T<n>/…` | that tool, in the desk (running or stopped) |
 | `/quant/…` | qp, including its live chart WebSocket (`/ws/live`) |
 | `/journal/…` | the journal |
+
+**The front end's products behind these routes.** The built front end
+([FRONT-END-DESIGN.md](FRONT-END-DESIGN.md)) presents a **Trading Station** home
+with four product cards. Each maps to a program (and route) above:
+
+| Product card | Program | Route | State |
+|---|---|---|---|
+| **The Journal** | the journal | `/journal/…` | production |
+| **TradeLab** | [qp](../05-qp/QP.md) | `/quant/…` | preview (demo) |
+| **Radar** | the [desk](../03-desk/DESK.md) (its engine) | `/` + `/tools/T<n>/…` + `/market` + `/screeners…` | preview (demo) |
+| **TradePilot** | — (future) | — | coming soon |
+
+So "the desk at `/`" is the **Radar** product's back end: Radar's screener
+selector offers the desk's tools (T1/T2/T7), and tapping a stock opens the
+desk's card as Radar's analysis workspace ([CARD.md §3.6](../03-desk/tool/CARD.md),
+[PAGES.md §4.1](../03-desk/tool/PAGES.md)). The static prototypes
+(`frontend-design/*.html`) are the design reference, not the production routes.
+
+**Hosted mode (commercial).** The same routes hold, but the three front ends are
+served from a **CDN/edge** and the programs sit behind the door as an **API**;
+the door's login becomes an account/session service
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md), §3.3), and every forwarded request
+carries the account it is scoped to.
 
 **How pages that write absolute paths keep working.** Pages ask for `/api/…`,
 `/desk.js` or `/static/…` at the root of their own address.
@@ -208,3 +232,4 @@ stopped tools' ports, qp on 8765 and the journal on 3100.
 | closing the program ports | **the trader's to do**, after the domain answers |
 | the `Secure` cookie flag | follows HTTPS |
 | the `Origin` check; the session list and "sign out everywhere" | **to build** |
+| hosted mode: account/session service in place of the one login, front ends on a CDN, programs behind the door as an API, every request scoped to an account | **designed** (§3.2–3.3, [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |
