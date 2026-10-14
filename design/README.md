@@ -18,6 +18,7 @@ what the level below needs, and no more.
 | **0** | [ARCHITECTURE.md](../ARCHITECTURE.md) | [PDF](../pdf/ARCHITECTURE.pdf) | the whole desk: what it is, the one picture, each block in a few lines, a trading day, the rules, status, decisions, risks | written |
 | **1** | [01-box/BOX.md](01-box/BOX.md) | [PDF](../pdf/design/01-box/BOX.pdf) | the server, its memory, the supervisor, the deploy, the secrets | written |
 | **1** | [02-front-door/FRONT-DOOR.md](02-front-door/FRONT-DOOR.md) | [PDF](../pdf/design/02-front-door/FRONT-DOOR.pdf) | the one address, the one login, routing to each program | written |
+| 2 | [02-front-door/FRONT-END-DESIGN.md](02-front-door/FRONT-END-DESIGN.md) | [PDF](../pdf/design/02-front-door/FRONT-END-DESIGN.pdf) | the Trade-Disk home, the four tool cards and the route into the Journal | written |
 | **1** | [03-desk/DESK.md](03-desk/DESK.md) | [PDF](../pdf/design/03-desk/DESK.pdf) | the one program for every tool: its parts, how a tool's record is taken and measured, the day's clock | written |
 | 2 | [03-desk/WEB.md](03-desk/WEB.md) | [PDF](../pdf/design/03-desk/WEB.pdf) | how a page or an API call reaches its tool | written |
 | 2 | [03-desk/HOME.md](03-desk/HOME.md) | [PDF](../pdf/design/03-desk/HOME.pdf) | the landing page, the lists across tools, Manage tools | written |

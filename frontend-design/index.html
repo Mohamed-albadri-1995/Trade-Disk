@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101311">
+<meta name="description" content="Trade-Disk — The Trading Station. A clear, evidence-led trading journal, and the front door to the Trade-Disk tools.">
+<title>Trade-Disk · The Trading Station</title>
+<style>
+/* ============================================================================
+   Trade-Disk front-end — single-file prototype
+   Synced to the design tree:
+     design/02-front-door/FRONT-END-DESIGN.md   (the Trading Station home)
+     design/07-journal/JOURNAL.md / REVIEW.md   (the journal page, 8 tabs)
+     design/07-journal/IMPORT.md                (three doors, one engine)
+   Two accent systems, per FRONT-END-DESIGN.md §4: the station uses a blue brand
+   accent; the Journal keeps its own green product accent inside its workspace.
+   Every figure here is synthetic demo data, clearly labelled, never a claim.
+   ========================================================================== */
+
+/* ---- Journal workspace theme (green product accent) ---- */
+:root{color-scheme:dark;--bg:#101311;--panel:#171b18;--panel2:#1d231e;--line:#2a332c;--text:#eef2ed;--muted:#96a197;--accent:#b8f36b;--accent2:#d7ffab;--green:#9fe870;--red:#ff8b84;--amber:#f1c36a;--blue:#9bbcff;--shadow:0 16px 50px #0003}
+html[data-theme=light]{color-scheme:light;--bg:#f5f7f3;--panel:#fff;--panel2:#f0f3ed;--line:#dfe5dc;--text:#202820;--muted:#68736a;--accent:#386d12;--accent2:#dff5cb;--green:#267c3e;--red:#c23e39;--amber:#95610c;--blue:#315fc3;--shadow:0 12px 32px #24351b0b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+.app{min-height:100vh;width:100%;max-width:100%;overflow-x:clip}
+
+/* sidebar */
+.sidebar{position:fixed;inset:0 auto 0 0;width:238px;padding:22px 17px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;z-index:20;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.5px;padding:0 10px 10px}
+.brandmark{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#17200f;display:grid;place-items:center;font-weight:900}
+.brand small{display:block;font-size:10px;letter-spacing:1.8px;color:var(--muted);font-weight:600;margin-top:1px}
+.tohome{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:8px 11px;border-radius:9px;font-size:11px;margin:4px 2px 14px}
+.tohome:hover{color:var(--text)}
+.navlabel{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;padding:0 12px;margin:12px 0 8px}
+.nav{display:grid;gap:3px}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:var(--muted);padding:10px 12px;border-radius:9px;text-align:left}
+.nav button .ico{font-size:15px;width:20px;text-align:center}
+.nav button.active,.nav button:hover{background:var(--panel2);color:var(--text)}
+.nav button.active{box-shadow:inset 3px 0 var(--accent);font-weight:700}
+.nav button.active .ico{color:var(--accent)}
+.sidebottom{margin-top:auto;padding-top:12px}
+.demo-note{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2);font-size:11px;color:var(--muted);margin:14px 4px}
+.demo-note strong{display:block;color:var(--amber);font-size:11px;margin-bottom:4px}
+.profile{display:flex;align-items:center;gap:10px;padding:12px 9px 2px;border-top:1px solid var(--line)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent2);color:var(--accent);display:grid;place-items:center;font-weight:800}
+.profile small{display:block;color:var(--muted);font-size:11px}
+
+/* main + topbar */
+.main{margin-left:238px;min-height:100vh;min-width:0;width:calc(100% - 238px)}
+.topbar{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:var(--bg);position:sticky;top:0;z-index:10}
+.crumb{color:var(--muted);font-size:12px}
+.crumb b{color:var(--text);font-weight:700}
+.topactions{display:flex;align-items:center;gap:10px}
+.iconbtn,.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:9px 12px}
+.iconbtn{width:38px;height:38px;display:grid;place-items:center;padding:0}
+.btn.primary{background:var(--accent);color:#17200f;border-color:var(--accent);font-weight:800}
+.btn.subtle{background:var(--panel2)}
+.btn.small{padding:6px 10px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.content{width:100%;max-width:1500px;min-width:0;margin:0 auto;padding:30px 30px 70px}
+
+/* page head + filters */
+.pagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px}
+.eyebrow{color:var(--accent);font-size:10px;letter-spacing:1.7px;text-transform:uppercase;font-weight:800}
+.pagehead h1{font-size:28px;letter-spacing:-1.1px;margin:5px 0}
+.sub{color:var(--muted);margin:0;font-size:13px;max-width:62ch}
+.headactions{display:flex;gap:8px;flex-wrap:wrap}
+.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:12px 13px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.filters select,.filters input,.field input,.field select,.field textarea,.searchbox{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 10px;min-width:120px}
+.filters label{font-size:11px;color:var(--muted)}
+.filters .filtergroup{display:flex;align-items:center;gap:6px}
+.filters .spacer{flex:1}
+.status{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block}
+
+/* grids + panels */
+.grid{display:grid;gap:14px}
+.metrics{grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:15px}
+.metrics.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;min-width:0}
+.metric{padding:16px 16px 14px;min-height:112px}
+.metriclabel{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.metricvalue{font-size:23px;letter-spacing:-.9px;font-weight:750;margin:10px 0 4px;white-space:nowrap}
+.positive{color:var(--green)!important}
+.negative{color:var(--red)!important}
+.neutral{color:var(--muted)}
+.metricfoot{font-size:11px;color:var(--muted)}
+.sectiongrid{grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);margin-bottom:15px}
+.panelhead{padding:17px 19px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.paneltitle{font-weight:750;font-size:14px}
+.paneldesc{color:var(--muted);font-size:11px;margin-top:3px}
+.panelbody{padding:0 19px 19px}
+.pill{font-size:10px;border-radius:99px;padding:4px 8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.twocol{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:15px}
+.threecol{grid-template-columns:repeat(3,minmax(0,1fr))}
+.widepanel{margin-bottom:15px}
+.hidden{display:none!important}
+
+/* charts */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-size:10px;fill:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-top:8px}
+.legend span:before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;background:var(--accent);margin-right:6px}
+.legend .red:before{background:var(--red)}
+
+/* rings (win% / long%) */
+.rings{display:flex;gap:18px;flex-wrap:wrap;justify-content:space-around}
+.ring{text-align:center}
+.ring svg{display:block;margin:0 auto}
+.ring b{display:block;font-size:12px;margin-top:4px}
+.ring small{color:var(--muted);font-size:10px}
+.ringcenter{font-weight:800;font-size:15px;fill:var(--text)}
+
+/* strip */
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:4px}
+.stripchip{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:var(--bg)}
+.stripchip small{display:block;color:var(--muted);font-size:10px}
+.stripchip b{display:block;font-size:16px;margin-top:4px;letter-spacing:-.4px}
+
+/* split bar */
+.splitbar{height:9px;border-radius:99px;overflow:hidden;background:var(--panel2);display:flex;margin:14px 0 8px}
+.splitbar span:first-child{background:var(--green)}
+.splitbar span:last-child{background:var(--red)}
+.splitlabels{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
+
+/* histogram */
+.histo{display:flex;align-items:flex-end;gap:5px;height:140px;padding-top:10px}
+.histo .bar{flex:1;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.histo .bar.neg{background:var(--red)}
+.histoax{display:flex;justify-content:space-between;color:var(--muted);font-size:9px;margin-top:6px;gap:4px}
+.hbars{display:grid;gap:9px}
+.hbar{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;font-size:11px}
+.hbar .track{height:9px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.hbar .track span{display:block;height:100%;background:var(--accent);border-radius:99px}
+.hbar .track span.neg{background:var(--red)}
+
+/* mini rows */
+.minirow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.minirow:last-child{border-bottom:0}
+.miniicon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--panel2);font-weight:800;flex-shrink:0}
+.minimain{flex:1;min-width:0}
+.minimain b{display:block;font-size:12px}
+.minimain small{display:block;color:var(--muted);font-size:10px}
+.minivalue{text-align:right;font-weight:750;font-size:12px}
+
+/* tables */
+.tablewrap{overflow:auto}
+.table{width:100%;border-collapse:collapse;white-space:nowrap}
+.table th{text-align:left;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;padding:12px 15px;border-bottom:1px solid var(--line)}
+.table td{padding:13px 15px;border-bottom:1px solid var(--line);font-size:12px}
+.table tr:last-child td{border-bottom:0}
+.table tbody tr.clickable:hover{background:var(--panel2);cursor:pointer}
+.symbol{font-weight:800}
+.subcell{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.tag{display:inline-flex;padding:4px 7px;border-radius:6px;background:var(--panel2);font-size:10px;color:var(--muted)}
+.tag.good{color:var(--green)}
+.tag.warn{color:var(--amber)}
+.tag.bad{color:var(--red)}
+.tag.info{color:var(--blue)}
+.tablefoot{display:flex;justify-content:space-between;align-items:center;padding:13px 17px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding:0 16px;overflow:auto}
+.tabs button{padding:13px 11px;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font-size:12px;white-space:nowrap}
+.tabs button.active{border-bottom-color:var(--accent);color:var(--text);font-weight:750}
+
+/* calendar */
+.calendar{padding:16px 18px 20px}
+.calhead,.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.calhead div{text-align:center;font-size:10px;color:var(--muted);padding:7px 0}
+.day{min-height:78px;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--bg);text-align:left;color:var(--text)}
+.day.mutedday{opacity:.4}
+.day.selected{outline:2px solid var(--accent)}
+.daynum{font-size:11px}
+.daypnl{font-size:11px;font-weight:800;display:block;margin-top:8px}
+.daycount{font-size:9px;color:var(--muted)}
+
+/* detail + kv */
+.detailgrid{grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr)}
+.detailhero{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:22px}
+.detailhero h2{font-size:24px;letter-spacing:-.8px;margin:3px 0}
+.bigpnl{font-size:29px;font-weight:800;letter-spacing:-1px}
+.detailstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 22px 20px}
+.detailstat{border:1px solid var(--line);border-radius:10px;padding:12px}
+.detailstat small{display:block;color:var(--muted);font-size:10px}
+.detailstat b{display:block;margin-top:4px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.kv div{padding:10px 0;border-bottom:1px solid var(--line)}
+.kv small{display:block;color:var(--muted);font-size:10px}
+.kv b{display:block;font-size:12px;margin-top:3px}
+
+/* misc */
+.empty{padding:34px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--text);margin-bottom:5px}
+.notice{border:1px solid #8c6a2b55;background:#8c6a2b12;border-radius:10px;padding:12px 14px;color:var(--muted);font-size:11px;margin-bottom:16px}
+.notice strong{color:var(--amber)}
+.notice.info{border-color:#2b5a8c55;background:#2b5a8c12}
+.notice.info strong{color:var(--blue)}
+.insight{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--bg);margin-bottom:9px}
+.insight:last-child{margin-bottom:0}
+.insight b{font-size:12px;display:block;margin-bottom:4px}
+.insight p{font-size:11px;color:var(--muted);margin:0}
+.muted{color:var(--muted)}
+.inline-link{color:var(--accent);font-size:11px;background:none;border:0;padding:0;cursor:pointer}
+.progress{height:5px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:8px}
+.progress span{height:100%;display:block;background:var(--accent);border-radius:99px}
+.reportcard{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.reportcard b{display:block;font-size:12px}
+.reportcard p{font-size:11px;color:var(--muted);margin:7px 0 12px}
+.kicker{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);font-weight:800}
+.roflag{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--green);border:1px solid var(--line);border-radius:99px;padding:3px 8px;background:var(--panel2)}
+
+/* forms + modal */
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{display:grid;gap:6px}
+.field label{font-size:11px;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%;min-width:0}
+.field textarea{min-height:92px;resize:vertical}
+.field.full{grid-column:1/-1}
+.modalback{position:fixed;inset:0;background:#0009;z-index:50;display:grid;place-items:center;padding:18px}
+.modal{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.modalhead{display:flex;justify-content:space-between;align-items:center;padding:17px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:2}
+.modalbody{padding:20px}
+.segmented{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:16px}
+.segmented button{flex:1;border:0;background:none;color:var(--muted);padding:9px;border-radius:7px;font-size:12px;font-weight:650}
+.segmented button.active{background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+.toast{position:fixed;bottom:22px;right:22px;z-index:100;background:var(--text);color:var(--bg);padding:12px 17px;border-radius:10px;box-shadow:var(--shadow);font-size:12px;max-width:340px}
+
+/* import doors + connectors */
+.doors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:15px}
+.door{padding:17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);display:flex;flex-direction:column}
+.door .dnum{font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:800}
+.door h3{margin:7px 0 6px;font-size:15px}
+.door p{color:var(--muted);font-size:11px;margin:0 0 12px;flex:1}
+.door .btn{margin-top:auto}
+.conncard{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);margin-bottom:9px}
+.conncard .cmeta{flex:1;min-width:0}
+.conncard .cmeta b{font-size:12px}
+.conncard .cmeta small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.maptable{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.maptable td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.maptable select{width:100%}
+.dropzone{border:1.5px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);background:var(--bg)}
+.dropzone b{color:var(--text);display:block;margin-bottom:4px}
+.batchrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}
+.batchrow:last-child{border-bottom:0}
+.batchrow .bmain{flex:1;min-width:0}
+.batchrow small{color:var(--muted);font-size:10px;display:block}
+
+.mobilebrand,.mobilebottom,.mobiletop{display:none}
+
+/* ---- responsive ---- */
+@media(max-width:1200px){.metrics,.metrics.five{grid-template-columns:repeat(3,minmax(0,1fr))}.strip{grid-template-columns:repeat(5,minmax(0,1fr))}.sectiongrid{grid-template-columns:minmax(0,1.4fr) minmax(250px,1fr)}.doors{grid-template-columns:1fr}.content{padding:26px 22px 55px}.topbar{padding:0 22px}}
+@media(max-width:900px){.sidebar{width:205px;padding:18px 13px}.main{margin-left:205px;width:calc(100% - 205px)}.sectiongrid,.detailgrid{grid-template-columns:1fr}.metrics,.metrics.five{grid-template-columns:repeat(2,minmax(0,1fr))}.topbar{height:64px}.content{padding:22px 16px 45px}.strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .app,.main,.content,#content{width:100%;max-width:100%;min-width:0;margin-left:0;margin-right:0}
+  .sidebar{display:none}
+  .main{margin-left:0;padding-bottom:72px}
+  .topbar{height:56px;padding:0 15px}
+  .crumb{font-size:11px}
+  .content{padding:20px 14px 30px}
+  .pagehead{display:block;margin-bottom:16px}
+  .pagehead h1{font-size:24px}
+  .headactions{margin-top:12px}.headactions .btn{flex:1}
+  .filters{padding:10px;gap:7px}
+  .filters .filtergroup{flex:1;min-width:calc(50% - 6px);display:block}
+  .filters label{display:block;margin-bottom:4px}
+  .filters select,.filters input{width:100%;min-width:0}
+  .filters .spacer{display:none}.filters .status{width:100%;padding:3px 0}
+  .metrics,.metrics.five,.twocol,.threecol,.sectiongrid,.doors{grid-template-columns:1fr!important}
+  .metrics,.metrics.five{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px}
+  .metric{padding:13px;min-height:102px}.metricvalue{font-size:20px}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panelhead{padding:15px 15px 11px}.panelbody{padding:0 15px 15px}
+  .table th,.table td{padding:11px}
+  .searchbox{min-width:0;flex:1;width:100%}
+  .calendar{padding:10px}.calhead,.calgrid{gap:3px}.day{min-height:56px;padding:5px}.daypnl{font-size:9px;margin-top:6px}.daycount{font-size:8px}
+  .detailstats{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 15px 15px}.detailhero{padding:16px}.bigpnl{font-size:23px}
+  .formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}
+  .hbar{grid-template-columns:90px 1fr auto}
+  .mobilebottom{display:flex;position:fixed;inset:auto 0 0;background:var(--panel);border-top:1px solid var(--line);padding:7px 2px calc(7px + env(safe-area-inset-bottom));z-index:30;justify-content:space-around}
+  .mobilebottom button{border:0;background:none;color:var(--muted);font-size:9px;display:grid;gap:3px;place-items:center;padding:5px 6px;min-width:46px}
+  .mobilebottom button span{font-size:16px}
+  .mobilebottom button.active{color:var(--accent);font-weight:800}
+  .topactions .btn{padding:7px 9px;font-size:11px}.topactions{gap:6px}
+  .kv{gap:0 12px}
+}
+
+/* ============================= Trading Station home ========================= */
+.station-home .sidebar,.station-home .topbar,.station-home .mobilebottom{display:none!important}
+.station-home .main{margin-left:0;width:100%}
+.station-home .content{max-width:none;margin:0;padding:0}
+.station-home #content{width:100%;max-width:none;margin:0}
+.station-homepage{--station-blue:#1683ff;--station-ink:#07172e;--station-muted:#5c6b80;--station-line:#dce6f2;--station-card:#fff;min-height:100vh;background:#f4f8fd;color:var(--station-ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.station-homepage *{box-sizing:border-box}
+.station-homepage button{font:inherit}
+.station-header{height:66px;padding:0 clamp(18px,4vw,58px);display:flex;align-items:center;gap:24px;border-bottom:1px solid #e2eaf4;background:#fff}
+.station-brand{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#101d30;text-align:left;padding:0}
+.station-brand span:nth-child(2) b{display:block;font-size:17px;line-height:1.1}
+.station-brand small{display:block;font-size:8px;letter-spacing:1.5px;color:#687991}
+.station-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--station-blue);color:#fff;font-size:21px;font-weight:900}
+.station-links{display:flex;gap:28px;margin-left:auto}
+.station-links a{font-size:12px;color:#253247}
+.station-login{border:0;background:transparent;color:#17243a;font-size:12px;padding:10px 3px}
+.station-cta{border:1px solid var(--station-blue);border-radius:8px;background:var(--station-blue);color:#fff;padding:12px 17px;font-size:13px;font-weight:750;box-shadow:0 5px 14px #1683ff2e}
+.station-cta.ghost{background:transparent;color:var(--station-blue);box-shadow:none}
+.station-cta span{margin-left:8px}
+.station-hero{max-width:1360px;margin:auto;padding:44px clamp(18px,4vw,58px) 30px;display:grid;grid-template-columns:.92fr 1.08fr;align-items:center;gap:44px;min-height:340px}
+.station-eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:800;color:#54708f}
+.station-copy h1{font-size:clamp(42px,5vw,66px);line-height:.99;letter-spacing:-3px;margin:14px 0 16px;color:#0b1728}
+.station-copy h1 span{color:var(--station-blue)}
+.station-copy>p{font-size:16px;line-height:1.55;color:#45546a;max-width:500px;margin:0}
+.station-actions{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+.station-secondary{font-size:12px;color:#34435a;font-weight:650;padding:12px 15px;border:0;background:transparent}
+.station-points{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:24px;color:#394b63;font-size:11px;font-weight:650}
+.station-points span{color:#394b63}
+.station-visual{background:#071322;border:1px solid #16304b;border-radius:16px;padding:14px;color:#dceaff;box-shadow:0 20px 50px #15345b2b;overflow:hidden}
+.visual-top{height:28px;display:flex;align-items:center;gap:8px;font-size:9px;font-weight:800;border-bottom:1px solid #1b3047;padding-bottom:9px}
+.visual-dot{width:8px;height:8px;border-radius:50%;background:var(--station-blue);box-shadow:0 0 14px #1683ff}
+.visual-tabs{margin-left:16px;color:#95a9c1;font-size:8px;font-weight:500}
+.visual-live{margin-left:auto;color:#f1c36a;font-size:8px}
+.visual-layout{display:grid;grid-template-columns:92px 1fr;gap:12px;padding-top:12px}
+.visual-side{display:grid;align-content:start;gap:13px;color:#8298b2;font-size:8px}
+.visual-side b{color:#85bcff}
+.visual-main{min-width:0}
+.visual-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.visual-metrics div{padding:9px;background:#101f31;border:1px solid #1a3049;border-radius:7px}
+.visual-metrics small{display:block;color:#8da3bc;font-size:7px}
+.visual-metrics b{display:block;font-size:14px;color:#62d99b;margin-top:3px}
+.visual-chart{position:relative;background:#0b1928;border:1px solid #1a3049;border-radius:8px;margin-top:9px;padding:19px 11px 15px}
+.chart-label{position:absolute;top:8px;left:11px;color:#8da3bc;font-size:7px;letter-spacing:1px}
+.visual-chart svg{display:block;width:100%;height:100px;margin-top:6px}
+.chart-axis{display:flex;justify-content:space-between;color:#71869e;font-size:7px}
+.visual-trades{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px;color:#9bb0c6;font-size:8px}
+.visual-trades span{grid-column:1/-1;font-size:7px;letter-spacing:1px}
+.visual-trades b{background:#101f31;border:1px solid #1a3049;border-radius:5px;padding:7px}
+.visual-trades i{float:right;color:#62d99b;font-style:normal}
+.visual-trades i.loss{color:#ff8d89}
+.station-tools{max-width:1360px;margin:0 auto;padding:22px clamp(18px,4vw,58px) 26px}
+.station-section-title{display:flex;align-items:end;justify-content:space-between;margin-bottom:16px;gap:12px}
+.station-section-title h2{font-size:25px;letter-spacing:-.8px;margin:5px 0 2px}
+.station-section-title p{margin:0;color:var(--station-muted);font-size:12px}
+.station-count{font-size:9px;letter-spacing:1px;color:#59718d;font-weight:800;white-space:nowrap}
+.station-tool-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.station-tool{position:relative;min-height:198px;padding:17px;border:1px solid var(--station-line);border-radius:13px;background:var(--station-card);text-align:left;color:var(--station-ink);display:flex;flex-direction:column;box-shadow:0 7px 22px #17375908}
+.station-tool.journal-tool{border-color:#9bc9ff;background:linear-gradient(145deg,#fff,#edf6ff);cursor:pointer}
+.tool-icon{width:36px;height:36px;border-radius:10px;background:#e4f1ff;color:var(--station-blue);display:grid;place-items:center;font-size:20px;font-weight:800;margin-bottom:12px}
+.radar-icon{background:#e7fbf3;color:#12a66a}
+.lab-icon{background:#f0eaff;color:#8655e7}
+.pilot-icon{background:#fff1dd;color:#d88210}
+.tool-status{position:absolute;right:14px;top:15px;border-radius:20px;padding:5px 8px;font-size:8px;letter-spacing:.5px;font-weight:850}
+.tool-status.ready{background:#dff7eb;color:#168653}
+.tool-status.pending{background:#eef2f7;color:#708096}
+.station-tool>b{font-size:15px}
+.station-tool p{color:#5d6b7e;font-size:11px;line-height:1.45;margin:6px 0 11px;max-width:270px}
+.tool-link{margin-top:auto;display:flex;justify-content:space-between;color:var(--station-blue);font-size:11px;font-weight:750}
+.muted-link{color:#8794a5}
+.station-flow{max-width:1360px;margin:0 auto;padding:6px clamp(18px,4vw,58px) 8px}
+.flowrow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.flowstep{border:1px solid var(--station-line);border-radius:12px;background:var(--station-card);padding:15px}
+.flowstep b{display:block;font-size:13px;margin:7px 0 3px}
+.flowstep small{color:var(--station-muted);font-size:11px}
+.flowstep .fn{font-size:9px;font-weight:800;color:var(--station-blue);letter-spacing:1px}
+.station-journal{max-width:1360px;margin:18px auto 20px;padding:18px clamp(18px,3vw,32px);display:flex;align-items:center;gap:17px;border:1px solid #dbe8f6;background:#fff;border-radius:13px}
+.journal-promo-icon{width:45px;height:45px;display:grid;place-items:center;border-radius:12px;background:#e5f2ff;color:var(--station-blue);font-size:22px}
+.station-journal h2{margin:2px 0;font-size:20px}
+.station-journal p{margin:0;color:#5b6a7e;font-size:11px}
+.station-journal .station-cta{margin-left:auto}
+.station-footer{max-width:1360px;margin:auto;padding:16px clamp(18px,4vw,58px) 26px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:#7b8899;font-size:10px;border-top:1px solid #e2eaf4;flex-wrap:wrap}
+html[data-theme=dark] .station-homepage{background:#06101e;color:#edf5ff;--station-ink:#edf5ff;--station-muted:#a8b8ca;--station-line:#1e344c;--station-card:#0d1c2d}
+html[data-theme=dark] .station-header{background:#081524;border-color:#1c3046}
+html[data-theme=dark] .station-brand,html[data-theme=dark] .station-login,html[data-theme=dark] .station-links a{color:#e4efff}
+html[data-theme=dark] .station-copy h1{color:#f3f8ff}
+html[data-theme=dark] .station-copy>p,html[data-theme=dark] .station-points span,html[data-theme=dark] .station-tool p,html[data-theme=dark] .station-journal p,html[data-theme=dark] .station-secondary,html[data-theme=dark] .flowstep small{color:#adbed1}
+html[data-theme=dark] .station-tool.journal-tool,html[data-theme=dark] .station-journal,html[data-theme=dark] .flowstep{background:#0d1c2d}
+html[data-theme=dark] .tool-status.pending{background:#17283b;color:#a8b8ca}
+html[data-theme=dark] .tool-status.ready{background:#103a2c;color:#75e5ad}
+html[data-theme=dark] .station-footer{color:#7e91a7;border-color:#1c3046}
+html[data-theme=dark] .tool-icon{background:#12263c}
+html[data-theme=dark] .radar-icon{background:#0e3328}html[data-theme=dark] .lab-icon{background:#241b3f}html[data-theme=dark] .pilot-icon{background:#39280f}
+@media(max-width:850px){.station-hero{grid-template-columns:1fr;gap:24px;padding-top:32px}.station-copy h1{font-size:52px}.station-visual{max-width:680px;width:100%}.station-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.flowrow{grid-template-columns:repeat(2,1fr)}.station-journal{margin-left:18px;margin-right:18px}}
+@media(max-width:560px){.station-header{height:56px;gap:12px;padding:0 15px}.station-brand span:nth-child(2) b{font-size:14px}.station-mark{width:30px;height:30px}.station-links{display:none}.station-header>.station-login{margin-left:auto}.station-header .station-cta{padding:9px 11px;font-size:10px}.station-hero{padding:30px 16px 20px;min-height:auto}.station-copy h1{font-size:44px;letter-spacing:-2px}.station-copy>p{font-size:14px}.station-actions{gap:8px}.station-cta{padding:11px 13px;font-size:11px}.station-points{gap:7px 14px;font-size:10px}.station-visual{padding:10px}.visual-layout{grid-template-columns:62px 1fr;gap:7px}.visual-side{font-size:7px;gap:10px}.visual-metrics b{font-size:12px}.visual-chart svg{height:80px}.visual-trades{grid-template-columns:1fr 1fr}.station-tools{padding:20px 16px}.station-section-title{align-items:start;flex-direction:column;gap:6px}.station-tool-grid{grid-template-columns:1fr;gap:9px}.station-tool{min-height:0}.flowrow{grid-template-columns:1fr}.station-journal{margin:0 16px 15px;padding:14px;gap:11px;flex-wrap:wrap}.station-journal .station-cta{width:100%;margin:3px 0 0}.station-footer{padding:14px 16px 22px;flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">◇</div><div>Trade-Disk<small>THE TRADING STATION</small></div></div>
+    <button class="tohome" data-page="home">‹ Trade-Disk home</button>
+    <div class="navlabel">Journal</div>
+    <nav class="nav" id="sidenav">
+      <button data-page="overview"><span class="ico">◫</span>Overview</button>
+      <button data-page="calendar"><span class="ico">▦</span>Calendar</button>
+      <button data-page="time"><span class="ico">◷</span>Time</button>
+      <button data-page="risk"><span class="ico">⚠</span>Risk</button>
+      <button data-page="stats"><span class="ico">∑</span>Stats</button>
+      <button data-page="setups"><span class="ico">◈</span>Setups</button>
+      <button data-page="trades"><span class="ico">↗</span>Trades</button>
+      <button data-page="import"><span class="ico">⇪</span>Import</button>
+    </nav>
+    <div class="navlabel">Workspace</div>
+    <nav class="nav">
+      <button data-page="notes"><span class="ico">▤</span>Notes &amp; reviews</button>
+      <button data-page="settings"><span class="ico">⚙</span>Settings</button>
+    </nav>
+    <div class="sidebottom">
+      <div class="demo-note"><strong>● DEMO WORKSPACE</strong>Illustrative trades only. No broker is connected and no real performance is shown.</div>
+      <div class="profile"><div class="avatar">TD</div><div><b>Trader workspace</b><small>Local demo · not synced</small></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">Trading Station <span class="muted">/</span> <b id="crumb">Journal overview</b></div>
+      <div class="topactions">
+        <span class="status"><i class="dot"></i> Demo data</span>
+        <button class="iconbtn" id="themeBtn" title="Toggle light and dark theme" aria-label="Toggle theme">☼</button>
+        <button class="btn primary" id="newTradeBtn">＋ New trade</button>
+      </div>
+    </header>
+    <div class="content" id="content"></div>
+  </main>
+  <nav class="mobilebottom" id="mobileNav">
+    <button data-page="overview"><span>◫</span>Overview</button>
+    <button data-page="calendar"><span>▦</span>Calendar</button>
+    <button data-page="trades"><span>↗</span>Trades</button>
+    <button data-page="import"><span>⇪</span>Import</button>
+    <button data-page="more"><span>•••</span>More</button>
+  </nav>
+</div>
+<div id="modalroot"></div>
+<div id="toastroot"></div>
+<script>
+(()=>{'use strict';
+/* ----------------------------------------------------------------- helpers */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmt=(n,dec=2)=>new Intl.NumberFormat('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}).format(Number(n)||0);
+const money=n=>(n<0?'−':'')+'$'+fmt(Math.abs(n));
+const pct=(n,d=1)=>fmt(n,d)+'%';
+const signed=(n,s)=>(n>0?'+':n<0?'−':'')+s(Math.abs(n));
+const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=new Date(); const dateISO=d=>d.toISOString().slice(0,10); const iso=dateISO(today);
+const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+/* ------------------------------------------------------------- reference data */
+const setups=['Breakout retest','VWAP pullback','Opening range breakout','Trend continuation'];
+const ASSETS={stock:'Stock / ETF',option:'Option',future:'Future',forex:'Forex',crypto:'Crypto'};
+const MULT={stock:1,option:100,future:50,forex:100000,crypto:1}; // illustrative contract multipliers (IMPORT.md §3.8); forex standard lot = 100,000 units
+// Demo accounts + their connector door (IMPORT.md §3.1–3.3). Read-only; no credential that can trade.
+const accounts=[
+  {id:'acc-alpaca',name:'Alpaca — Paper',door:'Broker connector',kind:'Alpaca',auth:'Read-only API key',status:'connected',readOnly:true,last:'T+1 · synced '+iso,note:'Activities + orders API'},
+  {id:'acc-ibkr',name:'Interactive Brokers',door:'Broker connector',kind:'IBKR Flex',auth:'Flex token + Query ID',status:'not-connected',readOnly:true,last:'Reporting only — cannot trade or move funds',note:'Flex Web Service'},
+  {id:'acc-manual',name:'Manual / CSV',door:'File upload + manual',kind:'File',auth:'—',status:'file',readOnly:true,last:'Column-mapping wizard',note:'CSV · XLSX · broker exports'}
+];
+const connectorCatalog=[
+  {kind:'Alpaca',auth:'Read-only API key + secret',transport:'Poll the activities & orders API',cadence:'T+1',note:'Built today — the first connector'},
+  {kind:'Interactive Brokers',auth:'Read-only Flex token + Query ID',transport:'Poll the Flex Web Service',cadence:'T+1',note:'Reporting only; cannot place trades'},
+  {kind:'Tastytrade',auth:'OAuth (refresh + 15-min access tokens)',transport:'Poll the read-only endpoints',cadence:'T+1',note:'Per-account read-only scope'},
+  {kind:'MetaTrader 4/5',auth:'Server + investor (read-only) password',transport:'MetaApi or FTP export',cadence:'Near real-time',note:'Forex / CFD'},
+  {kind:'Tradovate / NinjaTrader',auth:'—',transport:'A local file the desk watches',cadence:'Near real-time',note:'Futures / prop platforms'}
+];
+
+/* ------------------------------------------------------------- demo trades */
+const seedRows=[
+  ['NVDA','Long','Breakout retest','stock',60,124.2,127.4,0.8,'2026-10-13','Closed','Good'],
+  ['AAPL','Long','VWAP pullback','stock',100,246.4,248.4,1.2,'2026-10-12','Closed','Average'],
+  ['TSLA','Short','Opening range breakout','stock',50,452.0,447.8,1.4,'2026-10-11','Closed','Good'],
+  ['AMD','Long','Trend continuation','stock',120,169.2,172.1,1.6,'2026-10-10','Closed','Good'],
+  ['PLTR','Long','Breakout retest','stock',150,176.3,173.4,1.7,'2026-10-09','Closed','Poor'],
+  ['SPY 670C','Long','VWAP pullback','option',4,3.10,4.05,0.6,'2026-10-08','Closed','Good'],
+  ['MSFT','Long','Breakout retest','stock',40,521.2,525.6,1.1,'2026-10-07','Closed','Good'],
+  ['ES','Long','Opening range breakout','future',2,5720.0,5731.5,4.0,'2026-10-06','Closed','Average'],
+  ['AMZN','Long','Trend continuation','stock',70,228.1,231.5,1.3,'2026-10-03','Closed','Good'],
+  ['HOOD','Short','VWAP pullback','stock',120,128.7,131.4,1.8,'2026-10-02','Closed','Poor'],
+  ['GOOGL','Long','Breakout retest','stock',60,244.3,248.2,1.2,'2026-10-01','Closed','Good'],
+  ['EURUSD','Short','Opening range breakout','forex',1,1.0880,1.0845,0.0015,'2026-09-29','Closed','Average'],
+  ['QQQ','Long','Trend continuation','stock',40,605.4,609.8,1.0,'2026-09-26','Closed','Good'],
+  ['IWM','Short','Breakout retest','stock',100,241.3,239.5,1.3,'2026-09-25','Closed','Average'],
+  ['BTC','Long','VWAP pullback','crypto',0.25,61200,62850,900,'2026-09-23','Closed','Good'],
+  ['INTC','Long','Breakout retest','stock',400,37.4,36.1,1.9,'2026-09-20','Closed','Poor'],
+  ['SPY','Long','Trend continuation','stock',30,667.2,669.1,0.9,'2026-09-18','Closed','Good'],
+  ['MU','Short','Opening range breakout','stock',80,181.3,178.7,1.2,'2026-09-15','Closed','Good'],
+  ['AVGO','Long','Breakout retest','stock',20,357.2,361.3,1.0,'2026-09-12','Closed','Good'],
+  ['SOFI','Long','VWAP pullback','stock',300,27.6,26.9,1.6,'2026-09-10','Closed','Poor'],
+  ['CRWD','Long','Trend continuation','stock',20,418.2,425.1,1.1,'2026-09-05','Open','Unknown'],
+  ['UBER','Long','Breakout retest','stock',120,98.4,99.6,0.7,'2026-10-13','Open','Unknown']
+];
+function buildSeed(){return seedRows.map((x,i)=>{
+  const [symbol,side,setup,assetType,qty,entry,exit,risk,date,status,adherence]=x;
+  const mult=MULT[assetType]||1, dir=side==='Long'?1:-1;
+  let gross=status==='Open'?0:(exit-entry)*qty*mult*dir;
+  let fees=status==='Open'?0:Math.max(.3,qty*(assetType==='stock'?.01:.6));
+  let net=gross-fees;
+  const perUnit=Math.abs(entry-(side==='Long'?entry-risk:entry+risk));
+  const initialRisk=perUnit*qty*mult;
+  const acct=assetType==='forex'||assetType==='future'?'Interactive Brokers':i%4===0?'Manual / CSV':'Alpaca — Paper';
+  const src=acct==='Manual / CSV'?'File import (demo)':'Broker connector (demo)';
+  return {id:'TD-'+String(1032-i).padStart(4,'0'),symbol,side,setup,assetType,qty,entry,
+    exit:status==='Open'?null:exit,risk,date,status,adherence,fees,net,gross,mult,
+    movePct:status==='Open'?null:((exit-entry)/entry*100)*dir,
+    r:status==='Open'||!initialRisk?null:net/initialRisk,
+    account:acct,source:src,duration:Math.round(12+((i*17)%250)),
+    tags:i%3===0?['planned']:i%3===1?['late entry']:['clean execution'],
+    thesis:'Illustrative thesis: waited for price to confirm the planned setup and respected the risk level.',
+    notes:'Demo note. Replace with your own trade observations.',
+    stop:side==='Long'?entry-risk:entry+risk,target:side==='Long'?entry+risk*2:entry-risk*2,
+    plannedRR:2,initialRisk,emotions:'Focused',batch:'seed',
+    createdAt:date+'T14:30:00Z',updatedAt:date+'T20:00:00Z',entrySnapshot:null};
+})}
+
+/* ------------------------------------------------------------- persistence */
+const readStore=(k,f)=>{try{const r=localStorage.getItem(k);return r===null?f:JSON.parse(r)}catch{return f}};
+const writeStore=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch{toast('Browser storage is unavailable or full. Export your data before closing this tab.');return false}};
+let trades=readStore('td-trades',null); if(!Array.isArray(trades)){trades=buildSeed();writeStore('td-trades',trades)}
+let notes=readStore('td-notes',[]); if(!Array.isArray(notes))notes=[];
+let batches=readStore('td-batches',[]); if(!Array.isArray(batches))batches=[];
+let dayNotes=readStore('td-daynotes',{}); if(typeof dayNotes!=='object'||!dayNotes)dayNotes={};
+let theme='dark'; try{theme=localStorage.getItem('td-theme')||'dark'}catch{} document.documentElement.dataset.theme=theme;
+const persistTrades=()=>writeStore('td-trades',trades);
+
+/* ------------------------------------------------------------- app state */
+let page='home',detailId=null,selectedDay=iso,calendarMonth=new Date(today.getFullYear(),today.getMonth(),1),
+    filters={period:'all',account:'all',setup:'all',symbol:''},
+    tradeQuery='',sortKey='date',sortDir=-1,tradeTab='All trades',editingNoteId=null,toastTimer,
+    importState=null,captureTab='manual';
+
+/* ------------------------------------------------------------- selection + stats */
+const filtered=()=>trades.filter(t=>{
+  if(filters.account!=='all'&&t.account!==filters.account)return false;
+  if(filters.setup!=='all'&&t.setup!==filters.setup)return false;
+  if(filters.symbol&&!t.symbol.toLowerCase().includes(filters.symbol.toLowerCase()))return false;
+  if(filters.period!=='all'){const d=new Date(t.date+'T12:00:00'),now=new Date(iso+'T12:00:00');
+    const days=filters.period==='7d'?7:filters.period==='30d'?30:filters.period==='90d'?90:
+      filters.period==='ytd'?Math.ceil((now-new Date(now.getFullYear(),0,1))/864e5)+1:1e9;
+    if((now-d)/864e5>=days)return false}
+  return true});
+function stats(list){
+  const c=list.filter(t=>t.status==='Closed'),wins=c.filter(t=>t.net>0),loss=c.filter(t=>t.net<0),
+    sum=c.reduce((a,t)=>a+t.net,0),winSum=wins.reduce((a,t)=>a+t.net,0),lossSum=Math.abs(loss.reduce((a,t)=>a+t.net,0)),
+    rs=c.filter(t=>Number.isFinite(t.r)).map(t=>t.r),avgWin=wins.length?winSum/wins.length:0,avgLoss=loss.length?lossSum/loss.length:0;
+  return {c,wins,loss,sum,winRate:c.length?wins.length/c.length*100:0,pf:lossSum?winSum/lossSum:null,
+    expect:c.length?sum/c.length:0,avgR:rs.length?rs.reduce((a,b)=>a+b,0)/rs.length:null,
+    fees:c.reduce((a,t)=>a+t.fees,0),avgWin,avgLoss,payoff:avgLoss?avgWin/avgLoss:null,rs,
+    longN:c.filter(t=>t.side==='Long').length,shortN:c.filter(t=>t.side==='Short').length,
+    be:c.filter(t=>t.net===0).length};
+}
+function drawdown(list){let c=[...list].filter(t=>t.status==='Closed').sort((a,b)=>a.date.localeCompare(b.date)),eq=0,peak=0,mdd=0;c.forEach(t=>{eq+=t.net;peak=Math.max(peak,eq);mdd=Math.max(mdd,peak-eq)});return mdd}
+function advanced(list){
+  const s=stats(list),mdd=drawdown(list);
+  let sqn=null; if(s.rs.length>1){const m=s.rs.reduce((a,b)=>a+b,0)/s.rs.length,v=s.rs.reduce((a,b)=>a+(b-m)**2,0)/(s.rs.length-1),sd=Math.sqrt(v);sqn=sd?m/sd*Math.sqrt(s.rs.length):null}
+  const w=s.winRate/100; let kelly=(s.payoff&&s.payoff>0)?(w-(1-w)/s.payoff)*100:null;
+  const recovery=mdd>0?s.sum/mdd:null;
+  // consistency = share of distinct trading days that closed net-positive
+  const byDay={}; s.c.forEach(t=>{byDay[t.date]=(byDay[t.date]||0)+t.net});
+  const days=Object.values(byDay),greenDays=days.filter(v=>v>0).length,consistency=days.length?greenDays/days.length*100:null;
+  // streaks by exit/date order
+  let curW=0,curL=0,maxW=0,maxL=0,cur=0;
+  [...s.c].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{if(t.net>0){curW++;curL=0;maxW=Math.max(maxW,curW);cur=curW}else if(t.net<0){curL++;curW=0;maxL=Math.max(maxL,curL);cur=-curL}});
+  return {sqn,kelly,recovery,consistency,mdd,streakCur:cur,maxW,maxL};
+}
+
+/* ------------------------------------------------------------- UI builders */
+const head=(ey,title,desc,actions='')=>'<div class="pagehead"><div><div class="eyebrow">'+ey+'</div><h1>'+title+'</h1><p class="sub">'+desc+'</p></div><div class="headactions">'+actions+'</div></div>';
+const btn=(label,act,cls='')=>'<button class="btn '+cls+'" data-action="'+act+'">'+label+'</button>';
+const panel=(title,desc,body,right='')=>'<section class="panel"><div class="panelhead"><div><div class="paneltitle">'+title+'</div><div class="paneldesc">'+desc+'</div></div>'+(right||'')+'</div>'+body+'</section>';
+const metric=(label,value,foot,cls='')=>'<div class="panel metric"><div class="metriclabel">'+label+'</div><div class="metricvalue '+cls+'">'+value+'</div><div class="metricfoot">'+foot+'</div></div>';
+const demoBanner='<div class="notice"><strong>Demo workspace.</strong> Every figure on this screen is synthetic sample data for interface preview. No broker is connected; nothing here is a claim about real performance.</div>';
+function filterBar(){return '<div class="filters">'+
+  '<div class="filtergroup"><label for="period">Period</label><select id="period" data-filter="period">'+
+    [['7d','Last 7 days'],['30d','Last 30 days'],['90d','Last 90 days'],['ytd','Year to date'],['all','All time']].map(([v,l])=>'<option value="'+v+'" '+(filters.period===v?'selected':'')+'>'+l+'</option>').join('')+'</select></div>'+
+  '<div class="filtergroup"><label for="account">Account</label><select id="account" data-filter="account"><option value="all">All accounts</option>'+accounts.map(a=>'<option '+(filters.account===a.name?'selected':'')+'>'+a.name+'</option>').join('')+'</select></div>'+
+  '<div class="filtergroup"><label for="setupFilter">Setup</label><select id="setupFilter" data-filter="setup"><option value="all">All setups</option>'+setups.map(s=>'<option '+(filters.setup===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'+
+  '<div class="filtergroup"><label for="symbolFilter">Symbol</label><input id="symbolFilter" data-filter="symbol" placeholder="Any symbol" value="'+safe(filters.symbol)+'"></div>'+
+  '<div class="spacer"></div><button class="btn subtle small" data-action="reset-filters">Reset</button>'+
+  '<span class="status"><i class="dot"></i> Demo · not synced</span></div>'}
+function ring(pctv,label,sub,color){const r=34,c=2*Math.PI*r,off=c*(1-Math.max(0,Math.min(100,pctv))/100);
+  return '<div class="ring"><svg width="86" height="86" viewBox="0 0 86 86" role="img" aria-label="'+label+' '+fmt(pctv,0)+'%"><circle cx="43" cy="43" r="'+r+'" fill="none" stroke="var(--panel2)" stroke-width="9"/><circle cx="43" cy="43" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 43 43)"/><text x="43" y="48" text-anchor="middle" class="ringcenter">'+fmt(pctv,0)+'%</text></svg><b>'+label+'</b><small>'+sub+'</small></div>'}
+function lineChart(list){let c=list.filter(t=>t.status==='Closed').sort((a,b)=>a.date.localeCompare(b.date)),vals=[],s=0;c.forEach(t=>{s+=t.net;vals.push(s)});if(!vals.length)vals=[0];
+  let min=Math.min(0,...vals),max=Math.max(1,...vals),range=max-min||1,w=680,h=205,pad=20;
+  let pts=vals.map((v,i)=>[pad+i*(w-2*pad)/Math.max(1,vals.length-1),h-pad-(v-min)/range*(h-2*pad)]);
+  let path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  let area=path+' L'+pts[pts.length-1][0]+','+(h-pad)+' L'+pts[0][0]+','+(h-pad)+' Z';
+  return '<svg class="chart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Illustrative cumulative net profit and loss curve"><defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".24"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'+
+    [0,.33,.66,1].map(p=>'<line x1="'+pad+'" y1="'+(pad+p*(h-2*pad))+'" x2="'+(w-pad)+'" y2="'+(pad+p*(h-2*pad))+'" stroke="var(--line)" stroke-dasharray="3 5"/>').join('')+
+    '<path d="'+area+'" fill="url(#fill)"/><path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="'+pad+'" y="'+(h-2)+'">Start</text><text x="'+(w-pad)+'" y="'+(h-2)+'" text-anchor="end">Latest closed trade</text></svg>'}
+function histogram(buckets){const max=Math.max(1,...buckets.map(b=>b.count));
+  return '<div class="histo">'+buckets.map(b=>'<div class="bar'+(b.neg?' neg':'')+'" style="height:'+(b.count/max*100)+'%" title="'+b.label+': '+b.count+'"></div>').join('')+'</div><div class="histoax">'+buckets.map(b=>'<span>'+b.label+'</span>').join('')+'</div>'}
+function hbars(rows){const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
+  return '<div class="hbars">'+rows.map(r=>'<div class="hbar"><span>'+safe(r.label)+'</span><div class="track"><span class="'+(r.value<0?'neg':'')+'" style="width:'+(Math.abs(r.value)/max*100)+'%"></span></div><b class="'+(r.value<0?'negative':'positive')+'">'+(r.fmt?r.fmt(r.value):r.value)+'</b></div>').join('')+'</div>'}
+function tradesTable(list,limit=100,clickable=true){
+  let items=[...list].sort((a,b)=>{if(['net','r','qty','movePct'].includes(sortKey))return sortDir*((a[sortKey]||0)-(b[sortKey]||0));return sortDir*String(a[sortKey]??'').localeCompare(String(b[sortKey]??''))}).slice(0,limit);
+  if(!items.length)return '<div class="empty"><b>No trades match these filters</b>Try resetting the filters, or add a trade from the Import tab.</div>';
+  const cols=[['date','Date'],['symbol','Symbol'],['side','Side'],['setup','Setup'],['qty','Qty'],['entry','Entry'],['exit','Exit'],['net','Net P&L'],['movePct','% move'],['r','R'],['status','Status']];
+  return '<div class="tablewrap"><table class="table"><thead><tr>'+cols.map(([k,v])=>'<th><button class="inline-link" data-sort="'+k+'">'+v+(sortKey===k?(sortDir===1?' ↑':' ↓'):'')+'</button></th>').join('')+'</tr></thead><tbody>'+
+    items.map(t=>'<tr class="'+(clickable?'clickable':'')+'" data-trade="'+t.id+'"><td>'+fmtDate(t.date)+'</td><td><span class="symbol">'+safe(t.symbol)+'</span><span class="subcell">'+ASSETS[t.assetType]+' · '+t.id+'</span></td><td><span class="tag '+(t.side==='Long'?'good':'bad')+'">'+t.side+'</span></td><td>'+safe(t.setup)+'</td><td>'+fmt(t.qty,t.qty<10?3:0)+'</td><td>$'+fmt(t.entry,t.entry<10?4:2)+'</td><td>'+(t.exit===null?'—':'$'+fmt(t.exit,t.exit<10?4:2))+'</td><td class="'+(t.status==='Open'?'neutral':t.net>=0?'positive':'negative')+'">'+(t.status==='Open'?'Open':money(t.net))+'</td><td class="'+(t.movePct===null?'neutral':t.movePct>=0?'positive':'negative')+'">'+(t.movePct===null?'—':signed(t.movePct,v=>fmt(v,2)+'%'))+'</td><td>'+(t.r===null?'—':fmt(t.r,2)+'R')+'</td><td><span class="tag '+(t.status==='Open'?'warn':'good')+'">'+t.status+'</span></td></tr>').join('')+'</tbody></table></div>'}
+function accountsPanel(compact){
+  const rows=accounts.map(a=>{const cls=a.status==='connected'?'good':a.status==='file'?'info':'warn';const label=a.status==='connected'?'Connected · read-only':a.status==='file'?'File / manual':'Not connected';
+    return '<div class="conncard"><div class="miniicon">'+(a.kind==='File'?'⇪':'◎')+'</div><div class="cmeta"><b>'+safe(a.name)+'</b><small>'+safe(a.door)+' · '+safe(a.note)+'</small></div><div style="text-align:right"><span class="tag '+cls+'">'+label+'</span><div class="metricfoot" style="margin-top:4px">'+safe(a.last)+'</div></div></div>'}).join('');
+  const body='<div class="panelbody">'+rows+'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn subtle small" data-page="import">Manage in Import</button><button class="btn subtle small" data-action="sync-now">Sync now</button><span class="roflag">🔒 Read-only — no credential that can trade</span></div></div>';
+  return panel('Accounts &amp; connectors',compact?'Each account keeps its trades apart (IMPORT.md §3.7)':'Read-only broker connectors and file sources',body);
+}
+
+/* ------------------------------------------------------------- HOME (station) */
+function homePage(){return `
+<div class="station-homepage">
+  <header class="station-header">
+    <button class="station-brand" data-page="home" aria-label="Trade-Disk home"><span class="station-mark">◇</span><span><b>Trade-Disk</b><small>THE TRADING STATION</small></span></button>
+    <nav class="station-links" aria-label="Main navigation"><a href="#tools">Products</a><a href="#workflow">Workflow</a><a href="#journal">The Journal</a></nav>
+    <button class="station-login" type="button" data-page="overview">Sign in</button>
+    <button class="station-cta" type="button" data-page="overview">Get Started<span>→</span></button>
+  </header>
+  <section class="station-hero">
+    <div class="station-copy">
+      <div class="station-eyebrow">ANALYZE. PLAN. EXECUTE. IMPROVE.</div>
+      <h1>Your Trading.<br><span>One Station.</span></h1>
+      <p>Four tools to help you find opportunities, analyze, test, trade and improve — on web and Android. Start with the Trading Journal; the rest of the toolkit is on the way.</p>
+      <div class="station-actions"><button class="station-cta" data-page="overview">Open Trading Journal <span>→</span></button><a class="station-secondary" href="#tools">Explore the tools</a></div>
+      <div class="station-points"><span>✓ Web and Android</span><span>✓ Use tools independently</span><span>✓ Built for active traders</span></div>
+    </div>
+    <div class="station-visual" aria-label="Illustration of the Trade-Disk Journal workspace">
+      <div class="visual-top"><span class="visual-dot"></span> TRADE-DISK <span class="visual-tabs">Journal　Radar　TradeLab　TradePilot</span><span class="visual-live">● DEMO</span></div>
+      <div class="visual-layout">
+        <aside class="visual-side"><b>◫ Overview</b><span>▦ Calendar</span><span>↗ Trades</span><span>∑ Stats</span><span>⇪ Import</span></aside>
+        <div class="visual-main">
+          <div class="visual-metrics"><div><small>Net P&L</small><b>+$2,480</b></div><div><small>Win rate</small><b>58%</b></div><div><small>Profit factor</small><b>1.9</b></div></div>
+          <div class="visual-chart"><div class="chart-label">EQUITY CURVE · ILLUSTRATIVE</div><svg viewBox="0 0 620 170" preserveAspectRatio="none" role="img" aria-label="Illustrative rising equity curve"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1683ff" stop-opacity=".34"/><stop offset="1" stop-color="#1683ff" stop-opacity="0"/></linearGradient></defs><path d="M0 143 C35 134 48 140 77 116 S122 124 150 96 S205 111 230 87 S275 100 304 68 S350 90 380 61 S427 78 449 44 S492 58 517 35 S558 48 584 17 S607 32 620 8 L620 170 L0 170Z" fill="url(#area)"/><path d="M0 143 C35 134 48 140 77 116 S122 124 150 96 S205 111 230 87 S275 100 304 68 S350 90 380 61 S427 78 449 44 S492 58 517 35 S558 48 584 17 S607 32 620 8" fill="none" stroke="#1683ff" stroke-width="3" vector-effect="non-scaling-stroke"/></svg><div class="chart-axis"><span>Oct 01</span><span>Oct 08</span><span>Oct 15</span><span>Oct 22</span><span>Oct 31</span></div></div>
+          <div class="visual-trades"><span>RECENT TRADES</span><b>NVDA <i>+$190</i></b><b>AAPL <i>+$199</i></b><b>HOOD <i class="loss">−$328</i></b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="station-tools" id="tools">
+    <div class="station-section-title"><div><div class="station-eyebrow">ONE STATION. FOUR TOOLS.</div><h2>Choose your trading tool.</h2><p>Use each on its own, or get the complete Trade-Disk. Only the Journal is available today.</p></div><span class="station-count">01 / 04 AVAILABLE</span></div>
+    <div class="station-tool-grid">
+      <button class="station-tool journal-tool" data-page="overview"><span class="tool-icon">▤</span><span class="tool-status ready">LAUNCH FIRST</span><b>Trading Journal</b><p>Track your trades, analyze performance, and improve your process.</p><span class="tool-link">Open Journal <b>→</b></span></button>
+      <div class="station-tool pending-tool"><span class="tool-icon radar-icon">⌕</span><span class="tool-status pending">COMING SOON</span><b>Radar</b><p>Find high-probability opportunities with powerful screening tools and watchlists.</p><span class="tool-link muted-link">In development</span></div>
+      <div class="station-tool pending-tool"><span class="tool-icon lab-icon">▥</span><span class="tool-status pending">COMING SOON</span><b>TradeLab</b><p>Professional charting, indicators, strategy development and backtesting.</p><span class="tool-link muted-link">In development</span></div>
+      <div class="station-tool pending-tool"><span class="tool-icon pilot-icon">✦</span><span class="tool-status pending">COMING SOON</span><b>TradePilot</b><p>Algorithmic trading, strategy automation and execution controls.</p><span class="tool-link muted-link">In development</span></div>
+    </div>
+  </section>
+  <section class="station-flow" id="workflow">
+    <div class="station-section-title"><div><div class="station-eyebrow">A COMPLETE WORKFLOW</div><h2>Find. Analyze. Trade. Improve.</h2></div></div>
+    <div class="flowrow">
+      <div class="flowstep"><span class="fn">01 · RADAR</span><b>Find</b><small>Discover opportunities with screeners and watchlists.</small></div>
+      <div class="flowstep"><span class="fn">02 · TRADELAB</span><b>Analyze</b><small>Chart, test and develop your strategies.</small></div>
+      <div class="flowstep"><span class="fn">03 · YOUR BROKER</span><b>Trade</b><small>Execute at your broker, then record it in the Journal.</small></div>
+      <div class="flowstep"><span class="fn">04 · JOURNAL</span><b>Improve</b><small>Review performance and refine your edge.</small></div>
+    </div>
+  </section>
+  <section class="station-journal" id="journal"><div class="journal-promo-icon">▤</div><div><div class="station-eyebrow">AVAILABLE NOW</div><h2>Trading Journal</h2><p>Track your trades. Analyze your performance. Improve your results.</p></div><button class="station-cta" data-page="overview">Launch Journal <span>→</span></button></section>
+  <footer class="station-footer"><span>© Trade-Disk · The Trading Station</span><span>Journal preview uses synthetic demo trades — never real performance. The Trade-Disk tools place no orders.</span></footer>
+</div>`}
+
+/* ------------------------------------------------------------- OVERVIEW */
+function overviewPage(){
+  const list=filtered(),s=stats(list),a=advanced(list),open=list.filter(t=>t.status==='Open');
+  const six='<div class="grid metrics">'+
+    metric('Net P&L',money(s.sum),'Closed · after fees',s.sum>=0?'positive':'negative')+
+    metric('Win rate',pct(s.winRate),s.c.length+' closed trades')+
+    metric('Profit factor',s.pf===null?'—':fmt(s.pf,2),'Gross wins ÷ gross losses')+
+    metric('Expectancy',money(s.expect),'Avg net per closed trade',s.expect>=0?'positive':'negative')+
+    metric('Payoff',s.payoff===null?'—':fmt(s.payoff,2),'Avg win ÷ avg loss')+
+    metric('Max drawdown',money(a.mdd),'Running equity high-water mark',a.mdd>0?'negative':'')+'</div>';
+  const rings='<div class="panelbody"><div class="rings">'+
+    ring(s.winRate,'Win rate',s.wins.length+' W · '+s.loss.length+' L','var(--green)')+
+    ring(s.c.length?s.longN/s.c.length*100:0,'Long share',s.longN+' long · '+s.shortN+' short','var(--blue)')+'</div></div>';
+  const strip='<div class="panelbody"><div class="strip">'+
+    [['SQN',a.sqn===null?'—':fmt(a.sqn,2),'System quality'],['Kelly',a.kelly===null?'—':fmt(a.kelly,0)+'%','Suggested fraction'],['Recovery',a.recovery===null?'—':fmt(a.recovery,2),'Net ÷ drawdown'],['Consistency',a.consistency===null?'—':fmt(a.consistency,0)+'%','Green days'],['Streaks','+'+a.maxW+' / −'+a.maxL,'Best win / loss run']]
+    .map(([l,v,sub])=>'<div class="stripchip"><small>'+l+'</small><b>'+v+'</b><small>'+sub+'</small></div>').join('')+'</div></div>';
+  const insights='<div class="panelbody">'+
+    (s.loss.length?'<div class="insight"><b>Review your largest losses</b><p>'+s.loss.length+' losing trades in this sample. Open any trade to review its plan, fees and notes. This is a demo sample, not a performance diagnosis.</p></div>':'')+
+    '<div class="insight"><b>Check setup sample sizes</b><p>Compare setup results next to their trade counts and consistent filters before drawing conclusions. Small samples are not evidence of an edge.</p></div>'+
+    '<div class="insight"><b>Add a stop to every trade</b><p>R-multiple, capture and the verdict need a recorded initial risk. Trades without a stop show “—”, never a guessed R.</p></div></div>';
+  return head('YOUR JOURNAL','See the full picture.','A clear view of your trading decisions, results and risk — every number computed in one place (REVIEW.md §3.4).',btn('View all trades','goto-trades','subtle'))+
+    filterBar()+demoBanner+six+
+    '<div class="grid sectiongrid"><div>'+panel('Equity curve','Cumulative realized net P&L · selected period','<div class="panelbody">'+lineChart(list)+'<div class="legend"><span>Realized net P&L</span></div></div>')+'</div><div>'+
+      panel('Outcome rings','Win rate and long share',rings)+'</div></div>'+
+    panel('Performance strip','Quality, risk and streak measures over this sample',strip)+
+    '<div class="grid sectiongrid" style="margin-top:15px"><div>'+panel('Recent trades','Latest activity · select a row to inspect',tradesTable(list,6),'<button class="inline-link" data-action="goto-trades">View all →</button>')+'</div><div>'+
+      panel('Evidence, not guesses','Insights tied to this filtered sample',insights)+'</div></div>'+
+    '<div class="grid sectiongrid"><div>'+accountsPanel(true)+'</div><div>'+
+      panel('Open positions','Excluded from realized P&L',open.length?'<div class="panelbody">'+open.map(t=>'<div class="minirow" data-trade="'+t.id+'" style="cursor:pointer"><div class="miniicon">'+safe(t.symbol.slice(0,1))+'</div><div class="minimain"><b>'+safe(t.symbol)+' · '+t.side+'</b><small>'+safe(t.setup)+' · '+t.account+'</small></div><div class="minivalue neutral">Open</div></div>').join('')+'</div>':'<div class="empty">No open positions in this sample.</div>')+'</div></div>';
+}
+
+/* ------------------------------------------------------------- CALENDAR */
+function calendarPage(){
+  const list=filtered(),month=calendarMonth.getMonth(),year=calendarMonth.getFullYear(),first=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate(),prev=new Date(year,month,0).getDate(),cells=[];
+  for(let i=0;i<42;i++){let day,dt,other=false;
+    if(i<first){day=prev-first+i+1;dt=new Date(year,month-1,day);other=true}
+    else if(i>=first+days){day=i-first-days+1;dt=new Date(year,month+1,day);other=true}
+    else{day=i-first+1;dt=new Date(year,month,day)}
+    const key=dateISO(dt),ts=list.filter(t=>t.date===key&&t.status==='Closed'),sum=ts.reduce((a,t)=>a+t.net,0),op=list.some(t=>t.date===key&&t.status==='Open');
+    cells.push('<button class="day '+(other?'mutedday ':'')+(selectedDay===key?'selected':'')+'" data-day="'+key+'"><span class="daynum">'+day+'</span>'+(ts.length?'<span class="daypnl '+(sum>=0?'positive':'negative')+'">'+(sum<0?'−':'')+'$'+fmt(Math.abs(sum),0)+'</span><span class="daycount">'+ts.length+' trade'+(ts.length===1?'':'s')+'</span>':'')+(op?'<span class="daycount">● Open</span>':'')+'</button>')}
+  const chosen=list.filter(t=>t.date===selectedDay),dnet=chosen.reduce((a,t)=>a+(t.status==='Closed'?t.net:0),0);
+  // weekly totals column note
+  return head('JOURNAL / CALENDAR','Your month, trade by trade.','Daily realized net P&L and counts, weekend trades kept (REVIEW.md §3.4). Times are shown in New York.',btn('Today','calendar-today','subtle'))+filterBar()+
+    '<div class="grid sectiongrid"><div>'+panel('<span id="monthlabel">'+calendarMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</span>','Daily realized net P&L · open positions marked separately','<div class="calendar"><div class="calhead">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>'<div>'+x+'</div>').join('')+'</div><div class="calgrid">'+cells.join('')+'</div></div>','<div class="toolbar"><button class="iconbtn" data-action="month-prev" aria-label="Previous month">‹</button><button class="iconbtn" data-action="month-next" aria-label="Next month">›</button></div>')+'</div><div>'+
+    panel('Day review',fmtDate(selectedDay),'<div class="panelbody"><div class="grid twocol" style="gap:8px;margin-bottom:10px"><div class="reportcard"><span class="metriclabel">Net P&L</span><b class="'+(dnet>=0?'positive':'negative')+'">'+money(dnet)+'</b></div><div class="reportcard"><span class="metriclabel">Closed trades</span><b>'+chosen.filter(t=>t.status==='Closed').length+'</b></div></div><div class="metriclabel" style="margin:12px 0">Trades on this day</div>'+(chosen.length?chosen.map(t=>'<div class="minirow" data-trade="'+t.id+'" style="cursor:pointer"><div class="miniicon">'+safe(t.symbol.slice(0,1))+'</div><div class="minimain"><b>'+safe(t.symbol)+' · '+t.side+'</b><small>'+safe(t.setup)+' · '+t.status+'</small></div><div class="minivalue '+(t.status==='Open'?'neutral':t.net>=0?'positive':'negative')+'">'+(t.status==='Open'?'Open':money(t.net))+'</div></div>').join(''):'<div class="empty"><b>No trades on this date</b>Use a day note to record your plan or review.</div>')+'<div style="margin-top:16px"><div class="field"><label for="daynote">Daily plan / review note</label><textarea id="daynote" placeholder="What was the plan? What did you learn?">'+safe(dayNotes[selectedDay]||'')+'</textarea></div><button class="btn primary" style="margin-top:10px" data-action="save-daynote">Save day note</button></div></div>')+'</div></div>';
+}
+
+/* ------------------------------------------------------------- TIME */
+function timePage(){
+  const list=filtered(),closed=list.filter(t=>t.status==='Closed');
+  const wk=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>({label:d,value:0}));
+  closed.forEach(t=>{wk[new Date(t.date+'T12:00:00').getDay()].value+=t.net});
+  const priceBuckets=[['<$50',0,50],['$50–150',50,150],['$150–400',150,400],['≥$400',400,1e9]].map(([label,lo,hi])=>({label,value:closed.filter(t=>t.entry>=lo&&t.entry<hi).reduce((a,t)=>a+t.net,0)}));
+  const sizeBuckets=[['1–10',1,10],['10–50',10,50],['50–150',50,150],['150+',150,1e9]].map(([label,lo,hi])=>({label,value:closed.filter(t=>t.qty>=lo&&t.qty<hi).reduce((a,t)=>a+t.net,0)}));
+  const winners=closed.filter(t=>t.net>0),losers=closed.filter(t=>t.net<0);
+  const med=arr=>{if(!arr.length)return 0;const s=[...arr].sort((a,b)=>a-b);return s[Math.floor(s.length/2)]};
+  return head('JOURNAL / TIME','When do you trade well?','Net P&L, counts and win rate by weekday, entry price and position size; plus hold time (REVIEW.md Time).')+filterBar()+
+    '<div class="notice info"><strong>Entry hour &amp; session need timestamps.</strong> This sample stores dates, not intraday entry times, so hour-of-day and session analysis are shown as unavailable rather than invented. Weekday, price and size use the data on hand.</div>'+
+    '<div class="grid twocol"><div>'+panel('Net P&L by weekday','Closed trades','<div class="panelbody">'+hbars(wk.map(w=>({label:w.label,value:w.value,fmt:v=>money(v)})))+'</div>')+'</div><div>'+
+      panel('Entry hour &amp; session','Timezone-aware grouping','<div class="panelbody"><div class="empty"><b>Unavailable in demo</b>Needs exact entry timestamps and the chosen display timezone, including DST and overnight sessions.</div></div>')+'</div></div>'+
+    '<div class="grid twocol"><div>'+panel('Net P&L by entry price','Closed trades','<div class="panelbody">'+hbars(priceBuckets.map(b=>({...b,fmt:v=>money(v)})))+'</div>')+'</div><div>'+
+      panel('Net P&L by position size','Closed trades','<div class="panelbody">'+hbars(sizeBuckets.map(b=>({...b,fmt:v=>money(v)})))+'</div>')+'</div></div>'+
+    '<div class="grid twocol"><div>'+panel('Hold time','Minutes · closed positions','<div class="panelbody"><div class="kv"><div><small>Median — winners</small><b>'+fmt(med(winners.map(t=>t.duration)),0)+' min</b></div><div><small>Median — losers</small><b>'+fmt(med(losers.map(t=>t.duration)),0)+' min</b></div><div><small>Shortest</small><b>'+fmt(Math.min(...closed.map(t=>t.duration).concat(0)),0)+' min</b></div><div><small>Longest</small><b>'+fmt(Math.max(0,...closed.map(t=>t.duration)),0)+' min</b></div></div><p class="metricfoot">Durations are illustrative in this demo.</p></div>')+'</div><div>'+
+      panel('Winners vs losers','Closed trades','<div class="panelbody"><div class="splitbar"><span style="width:'+(closed.length?winners.length/closed.length*100:0)+'%"></span><span style="width:'+(closed.length?losers.length/closed.length*100:0)+'%"></span></div><div class="splitlabels"><span>'+winners.length+' winners</span><span>'+losers.length+' losers</span></div></div>')+'</div></div>';
+}
+
+/* ------------------------------------------------------------- RISK */
+function riskPage(){
+  const list=filtered(),s=stats(list),a=advanced(list);
+  const rbuckets=[['≤−2R',-99,-2],['−2…−1R',-2,-1],['−1…0R',-1,0],['0…1R',0,1],['1…2R',1,2],['≥2R',2,99]].map(([label,lo,hi])=>({label,count:s.rs.filter(r=>r>lo&&r<=hi).length,neg:hi<=0}));
+  const pls=s.c.map(t=>t.net);const plbuckets=(()=>{if(!pls.length)return [];const mn=Math.min(...pls),mx=Math.max(...pls),step=(mx-mn)/6||1;return Array.from({length:6},(_,i)=>{const lo=mn+i*step,hi=lo+step;return {label:'$'+fmt(lo,0),count:pls.filter(v=>v>=lo&&(i===5?v<=hi:v<hi)).length,neg:hi<=0}})})();
+  const riskTrades=list.filter(t=>t.initialRisk>0);
+  return head('JOURNAL / RISK','Respect the risk first.','The risk snapshot, the R-multiple distribution and the P&L distribution (REVIEW.md Risk).')+filterBar()+
+    '<div class="grid threecol">'+
+      panel('Initial risk at work','Trades with a recorded stop','<div class="panelbody"><div class="metricvalue">'+money(riskTrades.reduce((a,t)=>a+t.initialRisk,0))+'</div><div class="metricfoot">'+riskTrades.length+' of '+list.length+' trades carry a stop</div></div>')+
+      panel('Average R','Closed trades with valid risk','<div class="panelbody"><div class="metricvalue '+((s.avgR||0)>=0?'positive':'negative')+'">'+(s.avgR===null?'—':fmt(s.avgR,2)+'R')+'</div><div class="metricfoot">Blank when no stop recorded</div></div>')+
+      panel('MAE / MFE','Needs time-valid bars','<div class="panelbody"><div class="metricvalue">Unknown</div><div class="metricfoot">Captured at entry in production — not replaced with zero</div></div>')+'</div>'+
+    '<div class="grid twocol"><div>'+panel('R-multiple distribution','Closed trades with valid initial risk','<div class="panelbody">'+(s.rs.length?histogram(rbuckets):'<div class="empty">No trades with a recorded stop in this sample.</div>')+'</div>')+'</div><div>'+
+      panel('P&L distribution','Closed trades','<div class="panelbody">'+(plbuckets.length?histogram(plbuckets):'<div class="empty">No closed trades.</div>')+'</div>')+'</div></div>'+
+    panel('Risk strip','Drawdown and sizing measures','<div class="panelbody"><div class="strip"><div class="stripchip"><small>Max drawdown</small><b class="negative">'+money(a.mdd)+'</b><small>Equity order</small></div><div class="stripchip"><small>Recovery</small><b>'+(a.recovery===null?'—':fmt(a.recovery,2))+'</b><small>Net ÷ DD</small></div><div class="stripchip"><small>SQN</small><b>'+(a.sqn===null?'—':fmt(a.sqn,2))+'</b><small>System quality</small></div><div class="stripchip"><small>Kelly</small><b>'+(a.kelly===null?'—':fmt(a.kelly,0)+'%')+'</b><small>Suggested</small></div><div class="stripchip"><small>Worst loss run</small><b class="negative">−'+a.maxL+'</b><small>Trades</small></div></div><p class="metricfoot" style="margin-top:12px">R multiples are only meaningful when initial risk is valid and positive.</p></div>');
+}
+
+/* ------------------------------------------------------------- STATS */
+function statsPage(){
+  const list=filtered(),s=stats(list);
+  const syms=[...new Set(list.map(t=>t.symbol))].map(sym=>({sym,...stats(list.filter(t=>t.symbol===sym))})).sort((a,b)=>b.sum-a.sum);
+  const assetRows=Object.keys(ASSETS).map(k=>({k,...stats(list.filter(t=>t.assetType===k))})).filter(r=>r.c.length);
+  const groups=[
+    ['Performance',[['Net P&L',money(s.sum)],['Profit factor',s.pf===null?'—':fmt(s.pf,2)],['Expectancy',money(s.expect)],['Average R',s.avgR===null?'—':fmt(s.avgR,2)+'R']]],
+    ['Trade',[['Closed trades',s.c.length],['Winners',s.wins.length],['Losers',s.loss.length],['Breakeven',s.be]]],
+    ['Cost',[['Fees paid',money(s.fees)],['Avg win',money(s.avgWin)],['Avg loss',money(-s.avgLoss)],['Payoff',s.payoff===null?'—':fmt(s.payoff,2)]]],
+    ['Volume',[['Total units',fmt(s.c.reduce((a,t)=>a+t.qty,0),0)],['Avg units/trade',fmt(s.c.length?s.c.reduce((a,t)=>a+t.qty,0)/s.c.length:0,1)],['Symbols',syms.length],['Accounts',new Set(list.map(t=>t.account)).size]]]
+  ];
+  return head('JOURNAL / STATS','The numbers, grouped.','Performance, trade, cost and volume groups, the symbols with the largest net P&L, and a by-asset-class breakdown (REVIEW.md Stats).')+filterBar()+
+    '<div class="grid twocol">'+groups.map(([title,rows])=>panel(title,'Closed trades · selected filters','<div class="panelbody"><div class="kv">'+rows.map(([k,v])=>'<div><small>'+k+'</small><b>'+v+'</b></div>').join('')+'</div></div>')).join('')+'</div>'+
+    panel('By asset class','Per-class multipliers applied (IMPORT.md §3.8)','<div class="tablewrap"><table class="table"><thead><tr><th>Asset class</th><th>Closed</th><th>Net P&L</th><th>Win rate</th><th>Profit factor</th></tr></thead><tbody>'+(assetRows.length?assetRows.map(r=>'<tr><td><b>'+ASSETS[r.k]+'</b></td><td>'+r.c.length+'</td><td class="'+(r.sum>=0?'positive':'negative')+'">'+money(r.sum)+'</td><td>'+pct(r.winRate)+'</td><td>'+(r.pf===null?'—':fmt(r.pf,2))+'</td></tr>').join(''):'<tr><td colspan="5"><div class="empty">No closed trades.</div></td></tr>')+'</tbody></table></div>')+
+    '<section class="panel widepanel" style="margin-top:15px"><div class="panelhead"><div><div class="paneltitle">Symbols by net P&L</div><div class="paneldesc">Largest contributors first · closed trades</div></div></div><div class="tablewrap"><table class="table"><thead><tr><th>Symbol</th><th>Trades</th><th>Net P&L</th><th>Win rate</th><th>Profit factor</th><th>Avg R</th></tr></thead><tbody>'+(syms.length?syms.map(x=>'<tr><td><b>'+safe(x.sym)+'</b></td><td>'+x.c.length+'</td><td class="'+(x.sum>=0?'positive':'negative')+'">'+money(x.sum)+'</td><td>'+pct(x.winRate)+'</td><td>'+(x.pf===null?'—':fmt(x.pf,2))+'</td><td>'+(x.avgR===null?'—':fmt(x.avgR,2)+'R')+'</td></tr>').join(''):'<tr><td colspan="6"><div class="empty">No trades.</div></td></tr>')+'</tbody></table></div></section>';
+}
+
+/* ------------------------------------------------------------- SETUPS */
+function setupsPage(){
+  const list=filtered();
+  return head('JOURNAL / SETUPS','Know the setup, not just the ticker.','Per-setup statistics over closed trades with an R, and the conditions recorded at entry (REVIEW.md §3.3).',btn('Review trades','goto-trades','subtle'))+filterBar()+
+    '<div class="notice"><strong>Condition data is not fabricated.</strong> This demo has no verified entry-time snapshots, so alignment shows as unknown, never assumed. Setups with fewer than three closed trades are flagged as small samples.</div>'+
+    '<div class="grid twocol">'+setups.map((name,i)=>{const sl=list.filter(t=>t.setup===name),st=stats(sl);const small=st.c.length<3;return '<section class="panel"><div class="panelhead"><div><div class="paneltitle">'+safe(name)+'</div><div class="paneldesc">'+sl.length+' trades · '+st.c.length+' closed</div></div><span class="pill">Setup '+String.fromCharCode(65+i)+'</span></div><div class="panelbody"><div class="grid twocol" style="margin-bottom:12px"><div><div class="metriclabel">Net P&L</div><div class="metricvalue '+(st.sum>=0?'positive':'negative')+'" style="font-size:20px">'+money(st.sum)+'</div></div><div><div class="metriclabel">Win rate</div><div class="metricvalue" style="font-size:20px">'+pct(st.winRate)+'</div></div></div><div class="kv"><div><small>Profit factor</small><b>'+(st.pf===null?'—':fmt(st.pf,2))+'</b></div><div><small>Average R</small><b>'+(st.avgR===null?'—':fmt(st.avgR,2)+'R')+'</b></div><div><small>Expectancy</small><b>'+money(st.expect)+'</b></div><div><small>Entry conditions</small><b>Unknown</b></div></div>'+(small?'<div class="tag warn" style="margin-top:12px">Small sample — not reliable evidence</div>':'')+'<button class="btn subtle small" style="margin-top:12px" data-setup="'+safe(name)+'">View matching trades</button></div></section>'}).join('')+'</div>';
+}
+
+/* ------------------------------------------------------------- TRADES */
+function tradesPage(){
+  let list=filtered();
+  if(tradeQuery){const q=tradeQuery.toLowerCase();list=list.filter(t=>[t.symbol,t.id,t.setup,t.side,t.status,t.account,...t.tags].join(' ').toLowerCase().includes(q))}
+  if(tradeTab==='Open positions')list=list.filter(t=>t.status==='Open');
+  if(tradeTab==='Needs review')list=list.filter(t=>t.adherence==='Poor'||t.adherence==='Unknown');
+  const s=stats(list);
+  return head('YOUR RECORD','Every trade has a story.','Search, filter and inspect each trade from entry plan to realized result. The accounts and connectors panel sits above the ledger (REVIEW.md §3.4).',btn('＋ Add / import','new-trade','primary'))+filterBar()+
+    accountsPanel(true)+
+    '<div class="grid metrics five" style="margin-top:15px">'+metric('Matched trades',list.length,'After filters')+metric('Net P&L',money(s.sum),'Closed only',s.sum>=0?'positive':'negative')+metric('Win rate',pct(s.winRate),'Closed denominator')+metric('Open',list.filter(t=>t.status==='Open').length,'Unrealized kept separate')+metric('Needs review',list.filter(t=>t.adherence==='Poor'||t.adherence==='Unknown').length,'Review markers illustrative')+'</div>'+
+    '<section class="panel widepanel"><div class="panelhead"><div><div class="paneltitle">Trade ledger</div><div class="paneldesc">Choose a trade to open its record, risk, notes and chart link.</div></div><div class="toolbar"><input class="searchbox" id="tradeSearch" placeholder="Search symbol, setup, account, ID…" value="'+safe(tradeQuery)+'"><button class="btn subtle small" data-action="export-csv">Export CSV</button></div></div><div class="tabs">'+['All trades','Open positions','Needs review'].map(t=>'<button class="'+(tradeTab===t?'active':'')+'" data-tradetab="'+t+'">'+t+'</button>').join('')+'</div>'+tradesTable(list,200)+'<div class="tablefoot"><span>'+list.length+' records · synthetic demo data</span><span>Net P&L excludes open positions · % move signed by direction</span></div></section>';
+}
+
+/* ------------------------------------------------------------- TRADE DETAIL */
+function tradeDetail(t){
+  const open=t.status==='Open';
+  return '<div class="modalback" id="detailBack"><div class="modal"><div class="modalhead"><div><div class="eyebrow">TRADE RECORD / '+t.id+'</div><b style="font-size:17px">'+safe(t.symbol)+' · '+t.side+'</b></div><button class="iconbtn" data-action="close-modal" aria-label="Close">×</button></div>'+
+    '<div class="detailhero"><div><div class="muted">'+fmtDate(t.date)+' · '+t.duration+' min'+(open?' · Open position':'')+' · '+ASSETS[t.assetType]+'</div><h2>'+safe(t.symbol)+' <span class="tag">'+safe(t.setup)+'</span></h2><div class="sub">'+safe(t.account)+' · '+safe(t.source)+'</div></div><div style="text-align:right"><div class="bigpnl '+(open?'neutral':t.net>=0?'positive':'negative')+'">'+(open?'Open':money(t.net))+'</div><div class="metricfoot">'+(open?'Quote unavailable':'Net after '+money(t.fees)+' fees · '+(t.movePct===null?'':signed(t.movePct,v=>fmt(v,2)+'% move')))+'</div></div></div>'+
+    '<div class="detailstats"><div class="detailstat"><small>Gross P&L</small><b class="'+(t.gross>=0?'positive':'negative')+'">'+(open?'—':money(t.gross))+'</b></div><div class="detailstat"><small>Realized R</small><b>'+(t.r===null?'Needs stop':fmt(t.r,2)+'R')+'</b></div><div class="detailstat"><small>Initial risk</small><b>'+(t.initialRisk?money(t.initialRisk):'—')+'</b></div><div class="detailstat"><small>Quantity</small><b>'+fmt(t.qty,t.qty<10?3:0)+(t.mult>1?' × '+t.mult:'')+'</b></div><div class="detailstat"><small>Entry avg</small><b>$'+fmt(t.entry,t.entry<10?4:2)+'</b></div><div class="detailstat"><small>Exit avg</small><b>'+(open?'—':'$'+fmt(t.exit,t.exit<10?4:2))+'</b></div></div>'+
+    '<div class="tabs" id="detailTabs">'+['Overview','Edit','Entry snapshot','Executions','History'].map((x,i)=>'<button data-detailtab="'+x+'" class="'+(i===0?'active':'')+'">'+x+'</button>').join('')+'</div><div class="modalbody" id="detailBody">'+detailTabContent(t,'Overview')+'</div></div></div>';
+}
+function detailTabContent(t,tab){
+  if(tab==='Overview')return '<div class="kicker">Trade facts</div><div class="kv"><div><small>Opened (UTC)</small><b>'+safe(t.createdAt)+'</b></div><div><small>Last updated (UTC)</small><b>'+safe(t.updatedAt)+'</b></div><div><small>Side</small><b>'+t.side+'</b></div><div><small>Status</small><b>'+t.status+'</b></div><div><small>Stop loss</small><b>'+(t.stop?'$'+fmt(t.stop,t.stop<10?4:2):'—')+'</b></div><div><small>Target</small><b>'+(t.target?'$'+fmt(t.target,t.target<10?4:2):'—')+'</b></div><div><small>Planned reward:risk</small><b>'+(t.plannedRR?t.plannedRR.toFixed(1)+':1':'—')+'</b></div><div><small>Fees</small><b>'+money(t.fees)+'</b></div></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:15px"><button class="btn subtle small" data-action="chart-trade">📈 Open chart in TradeLab</button><span class="roflag">TradeLab (qp) — coming soon</span></div>'+
+    '<div class="notice" style="margin-top:14px"><strong>Data provenance:</strong> synthetic demo record. The 📈 chart would open qp\'s print sheet of this stock and day at the trade\'s real instants (REVIEW.md §3.5); MAE/MFE and the entry snapshot are captured from verified bars in production, not inferred here.</div>';
+  if(tab==='Edit')return '<p class="metricfoot">Setup, stop, target, fees and notes are editable on the page (REVIEW.md §3.5).</p><div class="formgrid" style="margin-top:10px"><div class="field"><label>Setup</label><select id="eSetup">'+setups.map(s=>'<option '+(t.setup===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div class="field"><label>Rule adherence</label><select id="eAdh">'+['Good','Average','Poor','Unknown'].map(x=>'<option '+(t.adherence===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div><div class="field"><label>Stop</label><input id="eStop" type="number" step=".0001" value="'+(t.stop??'')+'"></div><div class="field"><label>Target</label><input id="eTarget" type="number" step=".0001" value="'+(t.target??'')+'"></div><div class="field"><label>Fees</label><input id="eFees" type="number" step=".01" value="'+fmt(t.fees,2)+'"></div><div class="field"><label>Emotional state</label><select id="eEmo">'+['Focused','Confident','Anxious','FOMO','Frustrated','Tired','Unknown'].map(x=>'<option '+(t.emotions===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div></div><div class="field full" style="margin-top:12px"><label>Notes</label><textarea id="eNotes">'+safe(t.notes)+'</textarea></div><button class="btn primary" style="margin-top:12px" data-action="save-trade-edit" data-id="'+t.id+'">Save changes</button>';
+  if(tab==='Entry snapshot')return '<div class="empty"><b>No entry-time snapshot in demo</b>In production the snapshot stores the price structure up to the entry minute, plus the facts, market state and R1 row as known at the entry — read from the shared record, never look-ahead (REVIEW.md §3.1). MAE and MFE are measured between entry and exit.</div>';
+  if(tab==='Executions')return '<div class="empty"><b>No execution ledger in this record</b>Imported trades carry their executions (fills and events). The pairing engine groups executions flat-to-flat, FIFO, splitting reversals (IMPORT.md §3.5). This synthetic trade was seeded as a single round trip.</div>';
+  return '<div class="kv"><div><small>Created</small><b>'+safe(t.createdAt)+'</b></div><div><small>Updated</small><b>'+safe(t.updatedAt)+'</b></div><div><small>Source</small><b>'+safe(t.source)+'</b></div><div><small>Import batch</small><b>'+safe(t.batch||'—')+'</b></div></div><p class="muted" style="font-size:11px;margin-top:10px">A production audit history needs persisted, immutable change events. This preview stores none.</p>';
+}
+
+/* ------------------------------------------------------------- IMPORT (three doors) */
+function importPage(){
+  return head('JOURNAL / IMPORT','Three ways in. One engine.','Read-only broker connectors, file upload with a column-mapping wizard, and manual entry — all feeding one pairing engine with de-dup, split/merge and undo (IMPORT.md).',btn('＋ Manual entry','new-trade','subtle'))+
+    '<div class="notice"><strong>Prototype.</strong> Connectors are illustrated, not live — a static page holds no credentials. The file-upload path below really runs: it maps columns, pairs executions flat-to-flat (FIFO), previews the trades, and lets you undo the batch. Nothing leaves your browser.</div>'+
+    accountsPanel(false)+
+    '<div class="doors" style="margin-top:15px">'+
+      '<div class="door"><span class="dnum">DOOR 1</span><h3>Broker connectors</h3><p>Read-only, scheduled auto-sync — one connector per broker. Holds no credential that can trade or move money.</p><button class="btn subtle small" data-action="show-connectors">View connectors</button></div>'+
+      '<div class="door"><span class="dnum">DOOR 2</span><h3>File upload</h3><p>A broker export through a preset, or any CSV through the generic column-mapping wizard, with a preview before commit.</p><button class="btn primary small" data-action="start-upload">Upload a file</button></div>'+
+      '<div class="door"><span class="dnum">DOOR 3</span><h3>Manual entry</h3><p>Type a trade on the page — asset-aware fields for stocks, options, futures, forex and crypto.</p><button class="btn subtle small" data-action="new-trade">Add manually</button></div>'+
+    '</div>'+
+    '<div id="importWork"></div>'+
+    '<section class="panel widepanel"><div class="panelhead"><div><div class="paneltitle">Import batches</div><div class="paneldesc">Every import is a batch with one-click undo (IMPORT.md §3.10)</div></div></div><div class="panelbody" id="batchList">'+batchListHtml()+'</div></section>'+
+    '<div class="grid twocol"><div>'+panel('How de-duplication works','A re-import never duplicates','<div class="panelbody"><div class="minirow"><div class="miniicon">1</div><div class="minimain"><b>Primary key</b><small>(account, trade-date, broker execution id)</small></div></div><div class="minirow"><div class="miniicon">2</div><div class="minimain"><b>Fallback</b><small>normalized content hash — price, symbol and timezone canonicalized</small></div></div><p class="metricfoot" style="margin-top:10px">An execution already seen is skipped; an open trade updates; a closed trade is never rewritten.</p></div>')+'</div><div>'+
+      panel('What the engine does','One engine behind all three doors','<div class="panelbody"><div class="kv"><div><small>Grouping</small><b>Flat-to-flat per account + instrument</b></div><div><small>Realized P&L</small><b>FIFO</b></div><div><small>Reversals</small><b>Split into close + open</b></div><div><small>Open positions</small><b>Kept, no exit</b></div><div><small>Override</small><b>Manual split / merge</b></div><div><small>Assets</small><b>Stock · option · future · forex · crypto</b></div></div></div>')+'</div></div>';
+}
+function batchListHtml(){
+  if(!batches.length)return '<div class="empty"><b>No imports yet</b>Upload a file above to create a batch. You can undo any batch in one click.</div>';
+  return batches.slice().reverse().map(b=>'<div class="batchrow"><div class="miniicon">⇪</div><div class="bmain"><b>'+safe(b.name)+'</b><small>'+b.when+' · '+b.created+' trades created · '+b.execs+' executions · '+(b.skipped||0)+' skipped</small></div><button class="btn subtle small" data-undo-batch="'+b.id+'">Undo</button></div>').join('');
+}
+
+/* ---- Door 2: the working file-upload + column-mapping flow ---- */
+const CANON=[['date','Date'],['time','Time (optional)'],['symbol','Symbol'],['side','Side (buy/sell)'],['qty','Quantity'],['price','Price'],['fees','Fees (optional)'],['account','Account (optional)'],['assetType','Asset type (optional)']];
+const SAMPLE_CSV=`Date,Time,Symbol,Side,Quantity,Price,Fees,Account
+2026-10-02,09:32,AAPL,Buy,100,246.10,1.00,Alpaca - Paper
+2026-10-02,10:15,AAPL,Sell,100,248.40,1.00,Alpaca - Paper
+2026-10-03,09:45,TSLA,Sell,50,452.00,1.25,Alpaca - Paper
+2026-10-03,11:20,TSLA,Buy,50,447.80,1.25,Alpaca - Paper
+2026-10-06,09:40,NVDA,Buy,40,124.20,0.80,Alpaca - Paper
+2026-10-06,13:05,NVDA,Buy,20,123.10,0.40,Alpaca - Paper
+2026-10-06,15:30,NVDA,Sell,60,127.40,1.20,Alpaca - Paper`;
+function parseCSV(text){
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch}
+    else{if(ch==='"')q=true;else if(ch===','){row.push(cell);cell=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(c=>c.trim()!==''))rows.push(row);row=[];cell=''}else cell+=ch}}
+  if(cell!==''||row.length){row.push(cell);if(row.some(c=>c.trim()!==''))rows.push(row)}
+  return rows;
+}
+function guessMap(headers){const m={};const h=headers.map(x=>x.toLowerCase().trim());
+  const find=(...keys)=>{for(const k of keys){const i=h.findIndex(x=>x.includes(k));if(i>=0)return i}return -1};
+  m.date=find('date','time/date','opened');m.time=find('time');if(m.time===m.date)m.time=-1;
+  m.symbol=find('symbol','ticker','instrument');m.side=find('side','action','buy/sell','b/s','type');
+  m.qty=find('qty','quantity','shares','size','volume','units');m.price=find('price','fill','avg');
+  m.fees=find('fee','commission','comm');m.account=find('account','acct');m.assetType=find('asset','class','sectype');
+  return m;
+}
+function startUpload(){
+  importState={stage:'choose'};
+  $('#importWork').innerHTML='<section class="panel widepanel" style="margin-top:15px"><div class="panelhead"><div><div class="paneltitle">File upload</div><div class="paneldesc">Pick a preset or map any CSV. Date format and timezone are chosen here, then every import previews before it commits.</div></div><button class="iconbtn" data-action="cancel-upload" aria-label="Close">×</button></div><div class="panelbody">'+
+    '<div class="formgrid"><div class="field"><label>Broker preset</label><select id="preset"><option>Generic CSV (column mapping)</option><option>Alpaca activities (CSV)</option><option>Interactive Brokers — Flex (CSV/XML)</option><option>MetaTrader 4/5 — HTML statement</option><option>TradingView — list of trades</option></select></div><div class="field"><label>Date format</label><select id="dateFmt"><option value="ymd">YYYY-MM-DD</option><option value="mdy">MM/DD/YYYY (US)</option><option value="dmy">DD/MM/YYYY</option></select></div><div class="field"><label>Time zone</label><select id="tz"><option>America/New_York</option><option>UTC</option><option>Europe/London</option><option>Asia/Dubai</option></select></div><div class="field"><label>Save mapping as template</label><input id="tmplName" placeholder="e.g. My broker CSV"></div></div>'+
+    '<div class="dropzone" style="margin-top:14px"><b>Drop a CSV here, or choose a file</b>Your file is parsed in the browser and never uploaded.<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><label class="btn subtle small">Choose CSV<input type="file" id="csvFile" accept=".csv,text/csv" hidden></label><button class="btn subtle small" data-action="load-sample">Load sample CSV</button></div></div>'+
+    '<p class="metricfoot" style="margin-top:10px">Unrecognized exports can be converted to the generic CSV by the desk\'s own model (IMPORT.md §3.3). mm/dd vs dd/mm and the time zone can\'t be settled from the data — you pick them above.</p></div></section>';
+}
+function handleCSV(text,name){
+  const rows=parseCSV(text); if(rows.length<2){toast('That file has no data rows.');return}
+  const headers=rows[0],body=rows.slice(1),map=guessMap(headers);
+  importState={stage:'map',name:name||'pasted.csv',headers,body,map};
+  renderMapping();
+}
+function renderMapping(){
+  const {headers,body,map}=importState;
+  const sel=field=>'<select data-map="'+field+'"><option value="-1">— none —</option>'+headers.map((h,i)=>'<option value="'+i+'" '+(map[field]===i?'selected':'')+'>'+safe(h)+'</option>').join('')+'</select>';
+  $('#importWork').innerHTML='<section class="panel widepanel" style="margin-top:15px"><div class="panelhead"><div><div class="paneltitle">Map your columns</div><div class="paneldesc">'+safe(importState.name)+' · '+body.length+' rows. Match your columns to the canonical fields, then preview.</div></div><button class="iconbtn" data-action="cancel-upload" aria-label="Close">×</button></div><div class="panelbody">'+
+    '<table class="maptable"><tbody>'+CANON.map(([f,l])=>'<tr><td style="width:46%"><b>'+l+'</b></td><td>'+sel(f)+'</td></tr>').join('')+'</tbody></table>'+
+    '<div class="metriclabel" style="margin:10px 0 6px">First rows</div><div class="tablewrap"><table class="table"><thead><tr>'+headers.map(h=>'<th>'+safe(h)+'</th>').join('')+'</tr></thead><tbody>'+body.slice(0,4).map(r=>'<tr>'+r.map(c=>'<td>'+safe(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+
+    '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn primary" data-action="preview-import">Preview trades</button><button class="btn subtle" data-action="cancel-upload">Cancel</button></div></div></section>';
+}
+function readMapped(){
+  const {headers,body,map}=importState;
+  const g=(r,f)=>map[f]>=0?(r[map[f]]||'').trim():'';
+  const execs=[],skipped=[];
+  body.forEach((r,idx)=>{
+    const symbol=g(r,'symbol').toUpperCase(),sideRaw=g(r,'side').toLowerCase(),qty=parseFloat(g(r,'qty').replace(/[,]/g,'')),price=parseFloat(g(r,'price').replace(/[,$]/g,''));
+    if(!symbol||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<=0){skipped.push({row:idx+2,reason:'missing symbol, quantity or price'});return}
+    const side=/^s|sell|short/.test(sideRaw)?'sell':/^b|buy|long/.test(sideRaw)?'buy':'';
+    if(!side){skipped.push({row:idx+2,reason:'unrecognized side "'+safe(g(r,'side'))+'"'});return}
+    const fees=parseFloat((g(r,'fees')||'0').replace(/[,$]/g,''))||0;
+    const account=g(r,'account')||'Imported';
+    const at=(g(r,'assetType')||'stock').toLowerCase(),assetType=Object.keys(ASSETS).includes(at)?at:'stock';
+    execs.push({date:normDate(g(r,'date')),time:g(r,'time'),symbol,side,qty,price,fees,account,assetType});
+  });
+  return {execs,skipped};
+}
+function normDate(s){if(!s)return iso;s=s.trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  const parts=s.split(/[\/\-.]/).map(x=>x.trim());if(parts.length<3)return iso;
+  const fmt=($('#dateFmt')&&$('#dateFmt').value)||'ymd';let y,m,d;
+  if(fmt==='mdy'){m=+parts[0];d=+parts[1];y=+parts[2]}else if(fmt==='dmy'){d=+parts[0];m=+parts[1];y=+parts[2]}else{y=+parts[0];m=+parts[1];d=+parts[2]}
+  if(y<100)y+=2000;if(!y||!m||!d)return iso;return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+// flat-to-flat FIFO pairing (IMPORT.md §3.5) — produces round-trip trades
+function pairExecutions(execs){
+  const groups={};execs.forEach(e=>{const k=e.account+'|'+e.symbol;(groups[k]=groups[k]||[]).push(e)});
+  const out=[],openTrades=[];
+  Object.values(groups).forEach(list=>{
+    list.sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+    const mult=MULT[list[0].assetType]||1;let pos=0,lots=[],trade=null;
+    const finalize=(open)=>{const dir=trade.dir,qty=trade.qtyOpen,entry=trade.entryVal/qty,exit=trade.exitQty?trade.exitVal/trade.exitQty:null;
+      const t={id:'TD-'+Math.random().toString(36).slice(2,8).toUpperCase(),symbol:trade.symbol,side:dir>0?'Long':'Short',setup:setups[0],assetType:trade.assetType,qty,entry,exit,
+        status:open?'Open':'Closed',net:open?0:trade.realized-trade.fees,gross:open?0:trade.realized,fees:trade.fees,mult,
+        movePct:open||exit===null?null:((exit-entry)/entry*100)*dir,r:null,account:trade.account,source:'File import (demo)',
+        date:trade.openDate,duration:0,tags:['imported'],thesis:'',notes:'',stop:null,target:null,plannedRR:null,initialRisk:null,
+        adherence:'Unknown',emotions:'Unknown',batch:importState.batchId,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),entrySnapshot:null};
+      out.push(t);if(open)openTrades.push(t)};
+    list.forEach(e=>{let dir=e.side==='buy'?1:-1,remaining=e.qty;
+      while(remaining>1e-9){
+        if(pos===0){trade={symbol:e.symbol,account:e.account,assetType:e.assetType,dir,openDate:e.date,qtyOpen:remaining,entryVal:remaining*e.price,exitVal:0,exitQty:0,realized:0,fees:e.fees};lots=[{qty:remaining,price:e.price}];pos=dir*remaining;remaining=0;}
+        else if(Math.sign(pos)===dir){trade.qtyOpen+=remaining;trade.entryVal+=remaining*e.price;trade.fees+=e.fees;lots.push({qty:remaining,price:e.price});pos+=dir*remaining;remaining=0;}
+        else{const closeQty=Math.min(remaining,Math.abs(pos));let toClose=closeQty,realized=0;
+          while(toClose>1e-9&&lots.length){const lot=lots[0],mm=Math.min(toClose,lot.qty);realized+=(e.price-lot.price)*mm*trade.dir*mult;lot.qty-=mm;toClose-=mm;if(lot.qty<=1e-9)lots.shift()}
+          trade.realized+=realized;trade.exitVal+=closeQty*e.price;trade.exitQty+=closeQty;trade.fees+=e.fees*(closeQty/e.qty);
+          pos+=dir*closeQty;remaining-=closeQty;
+          if(Math.abs(pos)<1e-9){finalize(false);trade=null;lots=[]}
+        }
+      }});
+    if(trade&&Math.abs(pos)>1e-9)finalize(true);
+  });
+  return out;
+}
+function previewImport(){
+  importState.batchId='B-'+Date.now().toString().slice(-7);
+  const {execs,skipped}=readMapped();
+  const paired=pairExecutions(execs);
+  importState.preview={execs,skipped,paired};
+  const closed=paired.filter(t=>t.status==='Closed'),open=paired.filter(t=>t.status==='Open');
+  $('#importWork').innerHTML='<section class="panel widepanel" style="margin-top:15px"><div class="panelhead"><div><div class="paneltitle">Preview — before commit</div><div class="paneldesc">'+execs.length+' executions read → '+paired.length+' trades ('+closed.length+' closed, '+open.length+' open). Review, then commit.</div></div><button class="iconbtn" data-action="cancel-upload" aria-label="Close">×</button></div>'+
+    '<div class="grid metrics five" style="margin:15px 19px"><div class="panel metric"><div class="metriclabel">Executions</div><div class="metricvalue">'+execs.length+'</div><div class="metricfoot">rows read</div></div><div class="panel metric"><div class="metriclabel">Trades</div><div class="metricvalue">'+paired.length+'</div><div class="metricfoot">round trips</div></div><div class="panel metric"><div class="metriclabel">Open left</div><div class="metricvalue">'+open.length+'</div><div class="metricfoot">kept, no exit</div></div><div class="panel metric"><div class="metriclabel">Skipped</div><div class="metricvalue '+(skipped.length?'negative':'')+'">'+skipped.length+'</div><div class="metricfoot">unreadable rows</div></div><div class="panel metric"><div class="metriclabel">Net P&L</div><div class="metricvalue '+(closed.reduce((a,t)=>a+t.net,0)>=0?'positive':'negative')+'">'+money(closed.reduce((a,t)=>a+t.net,0))+'</div><div class="metricfoot">closed, FIFO</div></div></div>'+
+    '<div class="tablewrap"><table class="table"><thead><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Net P&L</th><th>Account</th><th>Status</th></tr></thead><tbody>'+(paired.length?paired.map(t=>'<tr><td>'+fmtDate(t.date)+'</td><td><b>'+safe(t.symbol)+'</b></td><td><span class="tag '+(t.side==='Long'?'good':'bad')+'">'+t.side+'</span></td><td>'+fmt(t.qty,t.qty<10?3:0)+'</td><td>$'+fmt(t.entry,t.entry<10?4:2)+'</td><td>'+(t.exit===null?'—':'$'+fmt(t.exit,t.exit<10?4:2))+'</td><td class="'+(t.status==='Open'?'neutral':t.net>=0?'positive':'negative')+'">'+(t.status==='Open'?'Open':money(t.net))+'</td><td>'+safe(t.account)+'</td><td><span class="tag '+(t.status==='Open'?'warn':'good')+'">'+t.status+'</span></td></tr>').join(''):'<tr><td colspan="9"><div class="empty">No trades were produced from these rows.</div></td></tr>')+'</tbody></table></div>'+
+    (skipped.length?'<div class="panelbody"><div class="notice"><strong>'+skipped.length+' row'+(skipped.length>1?'s':'')+' skipped — nothing dropped silently (IMPORT.md §3.10):</strong><br>'+skipped.slice(0,8).map(s=>'Row '+s.row+': '+safe(s.reason)).join('<br>')+(skipped.length>8?'<br>… and '+(skipped.length-8)+' more':'')+'</div></div>':'')+
+    '<div class="panelbody" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-action="commit-import">Commit '+paired.length+' trades</button><button class="btn subtle" data-action="back-mapping">Back to mapping</button><button class="btn subtle" data-action="cancel-upload">Cancel</button></div></section>';
+}
+function commitImport(){
+  const {paired,execs,skipped}=importState.preview;
+  // de-dup: skip an execution/trade already present by (account, date, symbol, side, qty, entry)
+  let added=0,dupes=0;
+  paired.forEach(t=>{const key=[t.account,t.date,t.symbol,t.side,t.qty,t.entry].join('|');
+    if(trades.some(x=>[x.account,x.date,x.symbol,x.side,x.qty,x.entry].join('|')===key)){dupes++;return}
+    trades.unshift(t);added++});
+  const batch={id:importState.batchId,name:(importState.name||'import')+(dupes?' ('+dupes+' dupes skipped)':''),when:new Date().toLocaleString('en-US'),created:added,execs:execs.length,skipped:skipped.length};
+  batches.push(batch);persistTrades();writeStore('td-batches',batches);
+  importState=null;render();toast(added+' trades committed'+(dupes?', '+dupes+' duplicates skipped':'')+' — undo any time.');
+}
+function undoBatch(id){
+  trades=trades.filter(t=>t.batch!==id);batches=batches.filter(b=>b.id!==id);
+  persistTrades();writeStore('td-batches',batches);render();toast('Import batch undone.');
+}
+function showConnectors(){
+  $('#importWork').innerHTML='<section class="panel widepanel" style="margin-top:15px"><div class="panelhead"><div><div class="paneltitle">Broker connectors</div><div class="paneldesc">Read-only direct APIs — no third-party aggregator (IMPORT.md §3.2). Each is illustrated here; connecting needs the production journal.</div></div><button class="iconbtn" data-action="cancel-upload" aria-label="Close">×</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Broker</th><th>Auth</th><th>Transport</th><th>Cadence</th><th>Notes</th><th></th></tr></thead><tbody>'+connectorCatalog.map(c=>'<tr><td><b>'+safe(c.kind)+'</b></td><td>'+safe(c.auth)+'</td><td>'+safe(c.transport)+'</td><td><span class="tag info">'+safe(c.cadence)+'</span></td><td class="muted">'+safe(c.note)+'</td><td><button class="btn subtle small" data-action="connect-demo">Connect</button></td></tr>').join('')+'</tbody></table></div><div class="panelbody"><span class="roflag">🔒 Read-only — the secret is stored mode 0600, never backed up, never returned by any route.</span></div></section>';
+}
+
+/* ------------------------------------------------------------- NOTES */
+function notesPage(){
+  return head('JOURNAL / NOTES','The thinking behind the trades.','Keep daily plans, lessons and process reviews close to the record.',btn('＋ New note','clear-note','primary'))+
+    '<div class="grid sectiongrid"><div>'+panel('Create a note','Daily plan, post-market review, or lesson','<div class="panelbody"><div class="formgrid"><div class="field"><label for="noteDate">Date</label><input id="noteDate" type="date" value="'+iso+'"></div><div class="field"><label for="noteType">Note type</label><select id="noteType"><option>Daily plan</option><option>Daily review</option><option>Lesson learned</option><option>Weekly review</option></select></div><div class="field full"><label for="noteTitle">Title</label><input id="noteTitle" placeholder="What do you want to remember?"></div><div class="field full"><label for="noteText">Notes</label><textarea id="noteText" placeholder="Write your plan, context, mistakes, or lessons…"></textarea></div></div><button class="btn primary" style="margin-top:14px" data-action="save-note">Save note</button></div>')+'</div><div>'+
+    panel('Saved notes','Stored locally in this browser',('<div class="panelbody">'+(notes.length?notes.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="insight"><div class="metriclabel">'+fmtDate(n.date)+' · '+safe(n.type)+'</div><b>'+safe(n.title||'Untitled note')+'</b><p>'+safe(n.text).slice(0,260)+'</p><button class="inline-link" data-note="'+n.id+'">Open / edit</button> · <button class="inline-link" data-delete-note="'+n.id+'">Delete</button></div>').join(''):'<div class="empty"><b>No saved notes yet</b>Your notes stay in this browser and are not synced.</div>')+'</div>'))+'</div></div>';
+}
+
+/* ------------------------------------------------------------- SETTINGS */
+function settingsPage(){
+  return head('JOURNAL / SETTINGS','Make the journal yours.','Display preferences, and an honest look at what this demo does — and does not — connect to.')+
+    '<div class="grid sectiongrid"><div>'+panel('Appearance','Comfortable in light or dark','<div class="panelbody"><div class="minirow"><div class="minimain"><b>Theme</b><small>Applies across the Journal</small></div><select id="themeSelect" class="searchbox"><option value="dark" '+(theme==='dark'?'selected':'')+'>Dark</option><option value="light" '+(theme==='light'?'selected':'')+'>Light</option></select></div><div class="minirow"><div class="minimain"><b>Display timezone</b><small>Times shown in New York; production selection not wired</small></div><span class="tag warn">New York</span></div><div class="minirow"><div class="minimain"><b>Currency</b><small>Demo uses USD</small></div><span class="tag">USD · $</span></div></div>')+'</div><div>'+
+    panel('Data &amp; connections','Current demo status','<div class="panelbody"><div class="minirow"><div class="minimain"><b>Broker connections</b><small>Illustrated in Import; none live</small></div><span class="tag warn">Not connected</span></div><div class="minirow"><div class="minimain"><b>Cloud sync</b><small>Trades, batches, notes live in this browser</small></div><span class="tag warn">Local only</span></div><div class="minirow"><div class="minimain"><b>Demo trades</b><small>Illustrative sample, not user records</small></div><span class="tag warn">Synthetic</span></div><button class="btn subtle small" data-action="reset-demo" style="margin-top:13px">Reset demo workspace</button></div>')+'</div></div>'+
+    '<section class="panel widepanel"><div class="panelhead"><div><div class="paneltitle">Product integrity</div><div class="paneldesc">Capabilities that need a connected production data layer (IMPLEMENTATION-STATUS.md)</div></div></div><div class="panelbody"><div class="grid twocol"><div class="minirow"><div class="minimain"><b>Fills &amp; partial allocations</b><small>Needs the canonical execution ledger</small></div><span class="tag warn">Unavailable</span></div><div class="minirow"><div class="minimain"><b>Entry-time market snapshots</b><small>Must be time-valid and sourced</small></div><span class="tag warn">Unavailable</span></div><div class="minirow"><div class="minimain"><b>Sync health &amp; data-quality warnings</b><small>Requires a real connector</small></div><span class="tag warn">Demo only</span></div><div class="minirow"><div class="minimain"><b>Audit history</b><small>Requires persisted revision events</small></div><span class="tag warn">Unavailable</span></div></div></div></section>';
+}
+
+/* ------------------------------------------------------------- MORE (mobile) */
+function morePage(){
+  return head('WORKSPACE','More Journal tools.','Choose a section.')+'<div class="grid twocol">'+
+    [['time','Time','P&L by weekday, price and size.'],['risk','Risk','R-multiple and P&L distributions.'],['stats','Stats','Grouped metrics and top symbols.'],['setups','Setups','Per-setup statistics.'],['notes','Notes & reviews','Daily plans and lessons.'],['settings','Settings','Theme and connection status.'],['home','Trade-Disk home','Back to the Trading Station.']]
+    .map(x=>'<button class="panel reportcard" data-page="'+x[0]+'" style="text-align:left;color:var(--text)"><b>'+x[1]+'</b><p>'+x[2]+'</p><span class="inline-link">Open →</span></button>').join('')+'</div>';
+}
+
+/* ------------------------------------------------------------- capture modal */
+function newTrade(){ captureTab='manual'; renderCapture(); }
+function renderCapture(){
+  const seg=['manual','file','connector'].map(k=>'<button class="'+(captureTab===k?'active':'')+'" data-capturetab="'+k+'">'+({manual:'Manual entry',file:'File upload',connector:'Connect broker'}[k])+'</button>').join('');
+  let body='';
+  if(captureTab==='manual'){
+    body='<div class="notice"><strong>Prototype.</strong> This creates a local synthetic record. It places no orders and connects to no broker.</div>'+
+      '<form id="newTradeForm"><div class="formgrid"><div class="field"><label>Asset type</label><select name="assetType" id="capAsset">'+Object.entries(ASSETS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></div><div class="field"><label>Symbol</label><input name="symbol" required maxlength="16" placeholder="AAPL"></div><div class="field"><label>Trade date</label><input type="date" name="date" value="'+iso+'" required></div><div class="field"><label>Account</label><select name="account">'+accounts.map(a=>'<option>'+a.name+'</option>').join('')+'</select></div><div class="field"><label>Side</label><select name="side"><option>Long</option><option>Short</option></select></div><div class="field"><label>Setup</label><select name="setup">'+setups.map(s=>'<option>'+s+'</option>').join('')+'</select></div><div class="field"><label>Quantity</label><input name="qty" type="number" min=".0001" step=".0001" value="1" required></div><div class="field" id="multField" style="display:none"><label>Contract multiplier</label><input name="mult" type="number" step="1" value="100"></div><div class="field"><label>Entry average</label><input name="entry" type="number" min=".000001" step=".000001" required placeholder="100.00"></div><div class="field"><label>Exit average (blank if open)</label><input name="exit" type="number" min=".000001" step=".000001" placeholder="Optional"></div><div class="field"><label>Stop (for R)</label><input name="stop" type="number" step=".000001" placeholder="Needed for R-multiple"></div><div class="field"><label>Fees</label><input name="fees" type="number" step=".01" placeholder="0.00"></div><div class="field full optFields" style="display:none"><div class="formgrid"><div class="field"><label>Strike</label><input name="strike" type="number" step=".01" placeholder="e.g. 670"></div><div class="field"><label>Expiry</label><input name="expiry" type="date"></div><div class="field"><label>Call / Put</label><select name="cp"><option>Call</option><option>Put</option></select></div></div></div><div class="field full"><label>Thesis / notes</label><textarea name="notes" placeholder="Why did you take this trade?"></textarea></div></div><button class="btn primary" style="margin-top:16px" type="submit">Save demo trade</button></form>';
+  } else if(captureTab==='file'){
+    body='<div class="notice"><strong>File upload.</strong> Map any CSV to the canonical fields and preview before commit. The full flow lives on the Import tab.</div><div class="dropzone"><b>Import from a file</b>Presets for Alpaca, IBKR Flex, MetaTrader and TradingView, plus a generic column-mapping wizard.</div><button class="btn primary" style="margin-top:14px" data-action="open-import-upload">Open file upload</button>';
+  } else {
+    body='<div class="notice"><strong>Broker connectors.</strong> Read-only, scheduled auto-sync — one per broker, no credential that can trade.</div>'+connectorCatalog.slice(0,4).map(c=>'<div class="conncard"><div class="miniicon">◎</div><div class="cmeta"><b>'+safe(c.kind)+'</b><small>'+safe(c.auth)+' · '+safe(c.cadence)+'</small></div><span class="roflag">🔒 Read-only</span></div>').join('')+'<button class="btn subtle" style="margin-top:8px" data-action="open-import-connectors">See all connectors</button>';
+  }
+  $('#modalroot').innerHTML='<div class="modalback"><div class="modal"><div class="modalhead"><div><div class="eyebrow">JOURNAL / CAPTURE</div><b style="font-size:17px">Add a trade</b></div><button class="iconbtn" data-action="close-modal" aria-label="Close">×</button></div><div class="modalbody"><div class="segmented">'+seg+'</div>'+body+'</div></div></div>';
+  if(captureTab==='manual')syncAssetFields();
+}
+function syncAssetFields(){const sel=$('#capAsset');if(!sel)return;const v=sel.value;const mf=$('#multField'),of=$$('.optFields');
+  if(mf)mf.style.display=(v==='future'||v==='option')?'grid':'none';
+  of.forEach(e=>e.style.display=v==='option'?'block':'none');
+  const mi=document.querySelector('input[name=mult]');if(mi)mi.value=v==='option'?100:v==='future'?50:1;
+}
+function saveNew(form){
+  const f=new FormData(form),symbol=String(f.get('symbol')).trim().toUpperCase(),assetType=f.get('assetType'),qty=Number(f.get('qty')),entry=Number(f.get('entry')),
+    exit=f.get('exit')?Number(f.get('exit')):null,stop=f.get('stop')?Number(f.get('stop')):null,side=f.get('side'),
+    mult=(assetType==='option'||assetType==='future')?(Number(f.get('mult'))||MULT[assetType]):(MULT[assetType]||1),
+    fees=f.get('fees')?Number(f.get('fees')):(exit===null?0:Math.max(.3,qty*(assetType==='stock'?.01:.6))),status=exit===null?'Open':'Closed',dir=side==='Long'?1:-1;
+  if(!symbol||!Number.isFinite(qty)||qty<=0||!Number.isFinite(entry)||entry<=0||(exit!==null&&(!Number.isFinite(exit)||exit<=0))){toast('Please check symbol, quantity and prices.');return}
+  const gross=exit===null?0:(exit-entry)*qty*mult*dir,net=gross-fees,initialRisk=stop?Math.abs(entry-stop)*qty*mult:null;
+  const t={id:'TD-'+Date.now().toString().slice(-7),symbol,side,setup:f.get('setup'),assetType,qty,entry,exit,mult,status,
+    net,gross,fees,movePct:exit===null?null:((exit-entry)/entry*100)*dir,r:initialRisk&&exit!==null?net/initialRisk:null,
+    account:f.get('account')||'Manual / CSV',source:'Manual demo entry',duration:0,tags:['manual'],
+    thesis:'',notes:f.get('notes')||'',stop,target:stop?(side==='Long'?entry+(entry-stop)*2:entry-(stop-entry)*2):null,
+    plannedRR:stop?2:null,initialRisk,adherence:'Unknown',emotions:'Unknown',batch:'manual',
+    createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),entrySnapshot:null,risk:stop?Math.abs(entry-stop):null};
+  trades.unshift(t);persistTrades();$('#modalroot').innerHTML='';navigate('trades');toast('Trade saved in this browser.');
+}
+
+/* ------------------------------------------------------------- export */
+function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
+function exportCSV(){const list=filtered(),cols=['id','date','symbol','assetType','side','setup','qty','entry','exit','status','gross','fees','net','movePct','r','initialRisk','account','source'];
+  const data=[cols.join(','),...list.map(t=>cols.map(k=>csvEscape(t[k])).join(','))].join('\r\n');
+  download('trade-disk-journal-demo.csv',data,'text/csv');toast('CSV export created for '+list.length+' records.')}
+function download(name,data,type){const blob=new Blob([data],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+
+/* ------------------------------------------------------------- router */
+const CRUMB={home:'Trade-Disk home',overview:'Journal overview',calendar:'Calendar',time:'Time',risk:'Risk',stats:'Stats',setups:'Setups',trades:'Trade ledger',import:'Import',notes:'Notes & reviews',settings:'Settings',more:'More'};
+function render(){
+  let html='';
+  switch(page){
+    case'home':html=homePage();break;
+    case'overview':html=overviewPage();break;
+    case'calendar':html=calendarPage();break;
+    case'time':html=timePage();break;
+    case'risk':html=riskPage();break;
+    case'stats':html=statsPage();break;
+    case'setups':html=setupsPage();break;
+    case'trades':html=tradesPage();break;
+    case'import':html=importPage();break;
+    case'notes':html=notesPage();break;
+    case'settings':html=settingsPage();break;
+    case'more':html=morePage();break;
+    default:html=overviewPage();
+  }
+  $('#content').innerHTML=html;
+  $('.app').classList.toggle('station-home',page==='home');
+  if($('#crumb'))$('#crumb').textContent=CRUMB[page]||'Journal';
+  $$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  if($('#themeBtn'))$('#themeBtn').textContent=theme==='dark'?'☼':'☾';
+}
+function navigate(p){page=p;importState=null;render();window.scrollTo({top:0,behavior:'smooth'})}
+function toast(msg){$('#toastroot').innerHTML='<div class="toast" role="status">'+safe(msg)+'</div>';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toastroot').innerHTML='',3000)}
+function openTrade(id){const t=trades.find(t=>t.id===id);if(!t)return;detailId=id;$('#modalroot').innerHTML=tradeDetail(t)}
+function setTheme(v){theme=v;document.documentElement.dataset.theme=v;try{localStorage.setItem('td-theme',v)}catch{}render()}
+
+/* ------------------------------------------------------------- events */
+document.addEventListener('click',e=>{
+  const p=e.target.closest('[data-page]');if(p){navigate(p.dataset.page);return}
+  const tr=e.target.closest('[data-trade]');if(tr){openTrade(tr.dataset.trade);return}
+  const day=e.target.closest('[data-day]');if(day){selectedDay=day.dataset.day;render();return}
+  const sort=e.target.closest('[data-sort]');if(sort){sortDir=sortKey===sort.dataset.sort?-sortDir:-1;sortKey=sort.dataset.sort;render();return}
+  const ct=e.target.closest('[data-capturetab]');if(ct){captureTab=ct.dataset.capturetab;renderCapture();return}
+  const stab=e.target.closest('[data-setup]');if(stab){filters.setup=stab.dataset.setup;navigate('trades');return}
+  const tt=e.target.closest('[data-tradetab]');if(tt){tradeTab=tt.dataset.tradetab;render();return}
+  const dt=e.target.closest('[data-detailtab]');if(dt){$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===dt));const t=trades.find(t=>t.id===detailId);$('#detailBody').innerHTML=detailTabContent(t,dt.dataset.detailtab);return}
+  const ub=e.target.closest('[data-undo-batch]');if(ub){undoBatch(ub.dataset.undoBatch);return}
+  const del=e.target.closest('[data-delete-note]');if(del){notes=notes.filter(n=>n.id!==del.dataset.deleteNote);writeStore('td-notes',notes);render();toast('Note deleted.');return}
+  const en=e.target.closest('[data-note]');if(en){const n=notes.find(n=>n.id===en.dataset.note);if(n){editingNoteId=n.id;navigate('notes');$('#noteDate').value=n.date;$('#noteType').value=n.type;$('#noteTitle').value=n.title;$('#noteText').value=n.text;toast('Note loaded. Save to update it.')}return}
+  const at=e.target.closest('[data-action]');if(!at)return;
+  const a=at.dataset.action;
+  switch(a){
+    case'goto-trades':navigate('trades');break;
+    case'reset-filters':filters={period:'all',account:'all',setup:'all',symbol:''};render();break;
+    case'new-trade':newTrade();break;
+    case'close-modal':$('#modalroot').innerHTML='';break;
+    case'export-csv':exportCSV();break;
+    case'sync-now':toast('Demo: a real sync is started by the desk\'s scheduler (IMPORT.md §3.2).');break;
+    case'chart-trade':toast('Chart opens in TradeLab (qp) — coming soon.');break;
+    case'connect-demo':toast('Prototype: connecting needs the production journal and a read-only credential.');break;
+    case'month-prev':calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);render();break;
+    case'month-next':calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);render();break;
+    case'calendar-today':calendarMonth=new Date(today.getFullYear(),today.getMonth(),1);selectedDay=iso;render();break;
+    case'start-upload':startUpload();at.scrollIntoView({behavior:'smooth',block:'center'});break;
+    case'show-connectors':showConnectors();break;
+    case'load-sample':handleCSV(SAMPLE_CSV,'sample-executions.csv');break;
+    case'cancel-upload':importState=null;$('#importWork').innerHTML='';break;
+    case'preview-import':previewImport();break;
+    case'back-mapping':renderMapping();break;
+    case'commit-import':commitImport();break;
+    case'open-import-upload':$('#modalroot').innerHTML='';navigate('import');startUpload();break;
+    case'open-import-connectors':$('#modalroot').innerHTML='';navigate('import');showConnectors();break;
+    case'clear-note':editingNoteId=null;['noteTitle','noteText'].forEach(id=>{if($('#'+id))$('#'+id).value=''});toast('Cleared. Write a new note.');break;
+    case'save-daynote':{const v=$('#daynote').value;if(v.trim())dayNotes[selectedDay]=v;else delete dayNotes[selectedDay];writeStore('td-daynotes',dayNotes);toast('Day note saved in this browser.');break}
+    case'save-note':{const date=$('#noteDate').value||iso,type=$('#noteType').value,title=$('#noteTitle').value||'Untitled note',text=$('#noteText').value;if(!text.trim()){toast('Add a note before saving.');break}if(editingNoteId){const ex=notes.find(n=>n.id===editingNoteId);if(ex)Object.assign(ex,{date,type,title,text});editingNoteId=null}else notes.unshift({id:'N-'+Date.now(),date,type,title,text});writeStore('td-notes',notes);render();toast('Note saved locally.');break}
+    case'reset-demo':if(confirm('Reset the illustrative trades, imports and filters? Saved notes remain.')){trades=buildSeed();batches=[];persistTrades();writeStore('td-batches',batches);filters={period:'all',account:'all',setup:'all',symbol:''};render();toast('Demo workspace reset.')}break;
+    case'save-trade-edit':{const t=trades.find(t=>t.id===at.dataset.id);if(t){t.setup=$('#eSetup').value;t.adherence=$('#eAdh').value;t.emotions=$('#eEmo').value;const stop=parseFloat($('#eStop').value),target=parseFloat($('#eTarget').value),fees=parseFloat($('#eFees').value);t.stop=Number.isFinite(stop)?stop:null;t.target=Number.isFinite(target)?target:null;if(Number.isFinite(fees)){t.fees=fees;if(t.status==='Closed'){t.net=t.gross-fees}}t.notes=$('#eNotes').value;const dir=t.side==='Long'?1:-1;t.initialRisk=t.stop?Math.abs(t.entry-t.stop)*t.qty*(t.mult||1):null;t.r=t.initialRisk&&t.status==='Closed'?t.net/t.initialRisk:null;t.updatedAt=new Date().toISOString();persistTrades();$('#modalroot').innerHTML='';toast('Trade updated in this browser.')}break}
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.matches('[data-filter]')){filters[e.target.dataset.filter]=e.target.value;render()}
+  if(e.target.id==='themeSelect')setTheme(e.target.value);
+  if(e.target.id==='capAsset')syncAssetFields();
+  if(e.target.id==='csvFile'&&e.target.files&&e.target.files[0]){const file=e.target.files[0];const r=new FileReader();r.onload=()=>handleCSV(String(r.result),file.name);r.readAsText(file)}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='tradeSearch'){tradeQuery=e.target.value;const pos=e.target.selectionStart;render();const el=$('#tradeSearch');if(el){el.focus();el.setSelectionRange(pos,pos)}}
+  if(e.target.id==='symbolFilter')filters.symbol=e.target.value;
+});
+document.addEventListener('submit',e=>{if(e.target.id==='newTradeForm'){e.preventDefault();saveNew(e.target)}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#modalroot').innerHTML=''}});
+$('#themeBtn').addEventListener('click',()=>setTheme(theme==='dark'?'light':'dark'));
+$('#newTradeBtn').addEventListener('click',newTrade);
+render();
+})();
+</script>
+</body>
+</html>
