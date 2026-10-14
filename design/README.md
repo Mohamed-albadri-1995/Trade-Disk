@@ -49,6 +49,14 @@ what the level below needs, and no more.
 | **1** | [10-backups/BACKUPS.md](10-backups/BACKUPS.md) | [PDF](../pdf/design/10-backups/BACKUPS.pdf) | the nightly backup, its check, the restore, the monthly rehearsal | written |
 | **1** | [11-alerts/ALERTS.md](11-alerts/ALERTS.md) | [PDF](../pdf/design/11-alerts/ALERTS.pdf) | what reaches the phone, the health page, the outside check | written |
 | **1** | [12-migration/MIGRATION.md](12-migration/MIGRATION.md) | [PDF](../pdf/design/12-migration/MIGRATION.pdf) | from today's desk to the design, step by step | written |
+| **1** | [13-accounts/ACCOUNTS.md](13-accounts/ACCOUNTS.md) | — | accounts, login and admin/user roles (hosted mode) | written |
+| **1** | [14-admin/ADMIN.md](14-admin/ADMIN.md) | — | the admin dashboard: providers, keys, flags, health (hosted mode) | written |
+| **—** | [DATA-MODEL.md](DATA-MODEL.md) | — | the relational data model (all tables), canonical vs read-model, the two modes | written |
+| **—** | [FRONTEND-SUPPORT-AUDIT.md](FRONTEND-SUPPORT-AUDIT.md) | — | the 3-tool design-support reconciliation and the dual-mode decisions | written |
+
+The last four rows are the **dual-mode / commercial** additions (2026-10-14);
+their PDFs are not yet generated. Their supporting material (the adopted schema
+and field maps) lives in [data-model/](data-model/).
 
 **Where it stands:** **every document in the tree is now written** — level 0 (the
 trunk), level 1 (the blocks), level 2 (the parts) and level 3 (the documents

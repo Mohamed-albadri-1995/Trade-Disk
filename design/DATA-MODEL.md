@@ -167,6 +167,30 @@ rules (§2–§4) are **identical in both modes**. Accounts columns exist in bot
 solo mode fills them with one implicit account. This is why "design accounts now,
 build later" costs nothing structural.
 
+### 5.1 Solo ↔ hosted equivalences
+
+The two modes store the same facts under different names. This table is the
+bridge, so neither schema is read as a separate, unreconciled model:
+
+| Concept | Solo mode (box file / shared record) | Hosted mode (this schema) |
+|---|---|---|
+| a stock's identity | implicit in each row | `stock`, `stock_symbol` |
+| the live card | `r0_checkpoint` row ([FILES.md](04-files/FILES.md)) | `stock_card_snapshot` (read model) |
+| the morning photo (R1) | `r1_frozen` / `r1_photos` ([REGISTERS.md](03-desk/tool/REGISTERS.md)) | a `screener_run_result` + the `stock_card_snapshot` it referenced |
+| the market around the photo (R2) | `r2_market_snapshots` / `market_states` | `market_snapshot` (+ its index/sector/model rows) |
+| outcomes (R3) and training (R4) | `r3a`, `r3b` / `r3_outcomes`; R4 a view | **not in this frontend schema** — kept as the learning measure ([REGISTERS.md](03-desk/tool/REGISTERS.md), [LEARNING.md](03-desk/tool/LEARNING.md)); hosted mode adds the outcome/training tables beside it |
+| a screener | `screeners` + `screener_versions` | `screener_definition` + `screener_filter_group` + `screener_condition` + `screener_column` + `screener_schedule_window` |
+| a scan and its matches | the live list + R1 | `screener_run` + `screener_run_result` |
+| the shortlist | `shortlist` / `shortlist_items` | `user_stock_list_item` |
+| shared facts (quote, short interest, news, O'Neil) | `facts`, `facts_latest` | the canonical source/analysis tables (§3.2–3.4) |
+| the market history | `market_states`, `hot_sector_days` | `market_snapshot` and its children |
+
+Solo mode keeps these as the record; hosted mode treats this schema as the
+record and the solo tables as the self-host equivalent. The R3 outcome measure
+and the learning model are **not** part of this frontend-derived schema — they
+remain the registers'/scorecard's design and are added to the hosted database
+beside it.
+
 ---
 
 ## 6. Contracts

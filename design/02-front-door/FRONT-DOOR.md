@@ -112,6 +112,11 @@ The gateway (`src/shell/gateway.js`) holds no state.
 
 ### 3.3 The one login
 
+*Solo mode.* One trader, one password — described here. **In hosted mode** this
+is replaced by accounts, admin/user roles and per-session sign-in
+([ACCOUNTS.md](../13-accounts/ACCOUNTS.md)): the cookie/session mechanics below
+become the auth service's, and every request is scoped to an account.
+
 **One password, one cookie, checked by every program:**
 - the desk (`src/auth/index.js`);
 - the journal (the same module);
