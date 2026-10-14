@@ -248,3 +248,4 @@ replacement in the design:
 | the desk's own file | **to build** (step B, with home and the desk jobs) |
 | retiring the shared JSON files | **to build**, with the research worker switched on (step D) and home in the desk (step B) |
 | dropping `analysis_model` and the dead settings | **to build** (a migration) |
+| hosted mode: no box files — the record is the relational [data model](../DATA-MODEL.md) in a managed Postgres (account-scoped), caches in object storage, secrets in a secret manager | **designed** (§1, [DATA-MODEL.md](../DATA-MODEL.md), [ACCOUNTS.md](../13-accounts/ACCOUNTS.md)); **to build** in the hosted build |
