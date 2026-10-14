@@ -12,6 +12,11 @@ tools stay readable.
 
 ---
 
+## Complete stock card design
+
+- [Interactive full-card prototype](card-design/index.html) — responsive card with all folds, badges, signal tags, score breakdown, shortlist and bias interactions. Values are illustrative.
+- [Complete card specification](CARD-DESIGN-FULL.md) — field hierarchy, all eleven folds, data contracts, source/missing-value rules, color semantics and acceptance checklist.
+
 ## Read in this order
 
 | # | Document | Answers |
