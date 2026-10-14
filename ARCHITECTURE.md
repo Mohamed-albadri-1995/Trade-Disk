@@ -76,9 +76,9 @@ documents of a running tool.
 
 | Constraint | What follows |
 |---|---|
-| **one trader** | one login; no accounts or roles; simple beats scalable |
+| **one trader** *(solo mode)* | one login; no accounts or roles; simple beats scalable. **Hosted mode** adds accounts and admin/user roles ([ACCOUNTS.md](design/13-accounts/ACCOUNTS.md)) |
 | **one small server** with 1 GB of memory | every program has a memory budget, and a tool must cost little |
-| **free data** | free and public sources, two of them unofficial; each can change or fail without notice |
+| **free data** *(solo mode)* | free and public sources, two of them unofficial; each can change or fail without notice. **Hosted mode** uses licensed, swappable providers, chosen from the [admin dashboard](design/14-admin/ADMIN.md) |
 | **New York hours** | the desk works from 04:00 to the close on trading days, and the first hour after the open matters most |
 | **no orders** | the desk finds, explains, measures and records; it never trades |
 
@@ -96,6 +96,26 @@ When two goals pull against each other, the higher one wins.
    for its health.
 6. **Every number explains itself.** Its source, its time and its meaning are
    one tap away.
+
+### Two deployment modes: solo and hosted
+
+The desk was designed for one trader on one box — **solo mode** — and everything
+below describes that. The same design runs commercially as a hosted,
+multi-tenant service — **hosted mode** — which adds four things and changes
+nothing else:
+
+| Added in hosted mode | Document |
+|---|---|
+| **accounts, login and admin/user roles** | [design/13-accounts/ACCOUNTS.md](design/13-accounts/ACCOUNTS.md) |
+| **an admin dashboard** to manage providers, keys, flags and thresholds | [design/14-admin/ADMIN.md](design/14-admin/ADMIN.md) |
+| **a hosted Postgres as the record** (not box files); the data model is the same | [design/DATA-MODEL.md](design/DATA-MODEL.md) |
+| **licensed, swappable data providers** (free sources are not licensed for commercial use) | [design/08-data-sources/DATA-SOURCES.md](design/08-data-sources/DATA-SOURCES.md) |
+
+Solo mode stays free and private; hosted mode is the commercial product.
+Accounts and provider abstraction are **designed now so the build is mode-ready,
+and switched on when commercial** — they cost nothing structural, because the
+data model carries account scoping in both modes
+([DATA-MODEL.md](design/DATA-MODEL.md) §5).
 
 ---
 
@@ -429,7 +449,7 @@ Detail, with each step's check and undo: [design/12-migration/MIGRATION.md](desi
 |---|---|
 | **how the tools run** | **one program for every tool** (by the trader, 2026-10-08). The earlier plan, two programs (one for the pages, one for the jobs), would have had to copy everything a page shows between them all day, and would have loaded the code twice. Why in full: [design/03-desk/DESK.md](design/03-desk/DESK.md) |
 | **where a tool's results are kept** | in the tool's own file on the box, with a copy in the shared record. A record kept only in a remote database would make every scan and every page depend on the network |
-| **the database** | Postgres, for the shared record |
+| **the database** | Postgres, for the shared record — and, in hosted mode, the canonical record ([DATA-MODEL.md](design/DATA-MODEL.md)) |
 | **where the shared record lives** | **open**: on Railway for now. It could move onto the box or to AWS; moving is one restore. The trader decides |
 | **the server** | the 1 GB server; a 2 GB one would remove the squeeze |
 | **the address** | a free domain name with its own certificate |
@@ -438,6 +458,10 @@ Detail, with each step's check and undo: [design/12-migration/MIGRATION.md](desi
 | **merging identical scans across tools** | dropped: every tool's screeners differ, so there is nothing to merge |
 | **one tool's daily record time** (T6) | **open**: its record is taken before its screener starts looking. Move the record later, or start the screener earlier: this decides what the tool measures |
 | **a model** | prepared, not built; the trader may choose one later |
+| **commercial direction** | a hosted, multi-tenant mode beside the solo box (by the trader, 2026-10-14); solo stays free and private |
+| **accounts and roles** | designed now, built when commercial ([ACCOUNTS.md](design/13-accounts/ACCOUNTS.md)) |
+| **the canonical record (hosted)** | the relational data model in a hosted Postgres ([DATA-MODEL.md](design/DATA-MODEL.md)); the uploaded schema is adopted |
+| **commercial data provider** | swappable by design; the licensed provider is chosen later, from the admin dashboard ([DATA-SOURCES.md](design/08-data-sources/DATA-SOURCES.md), [ADMIN.md](design/14-admin/ADMIN.md)) |
 
 ---
 
@@ -493,7 +517,11 @@ ARCHITECTURE.md ................................... the whole desk (this documen
 ├── design/09-shared-record/SHARED-RECORD.md ...... the shared record
 ├── design/10-backups/BACKUPS.md .................. backup and restore
 ├── design/11-alerts/ALERTS.md .................... alerts and the health page
-└── design/12-migration/MIGRATION.md .............. from today's desk to this one
+├── design/12-migration/MIGRATION.md .............. from today's desk to this one
+├── design/13-accounts/ACCOUNTS.md ............... accounts, login and roles (hosted mode)
+├── design/14-admin/ADMIN.md ..................... the admin dashboard (hosted mode)
+├── design/DATA-MODEL.md ......................... the relational data model, all tables
+└── design/FRONTEND-SUPPORT-AUDIT.md ............. the 3-tool design-support reconciliation
 ```
 
 **Where to read them.** Each document has a PDF in [pdf/](pdf), in the same
