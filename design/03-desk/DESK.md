@@ -21,7 +21,8 @@ desk learns) and §6 (a trading day).
 
 **One program that runs every tool.** For each running tool it does what a
 tool's own program does today:
-- serves its pages and its API;
+- answers its **data API** — the data behind the Radar app, which the front door
+  serves as a static app ([WEB.md](WEB.md), [tool/PAGES.md](tool/PAGES.md));
 - runs its screeners on schedule;
 - builds and refreshes its cards;
 - keeps its live list and its shortlist;
@@ -73,8 +74,8 @@ shared read-only; a user's runs and shortlists are their own.
 flowchart TB
   FD["front door"] --> WEB
   subgraph DESK["desk — one Node program"]
-    WEB["<b>web layer</b><br/>a port per tool + the desk's own<br/>login check · page shell<br/>runs each request as its tool"]
-    HOME["<b>home</b> · the desk's own context<br/>landing page · cross-tool lists<br/>Manage tools"]
+    WEB["<b>web layer</b> · the data API<br/>resolves the tool (hosted: account)<br/>sign-in check · runs each request as its tool"]
+    HOME["<b>home</b> · operator · the desk's own context<br/>landing data · cross-tool lists<br/>Manage tools"]
     subgraph RUN["running tools · one context each"]
       direction LR
       T1["T1"]
@@ -163,9 +164,9 @@ comparison: `src/worker/` (step 15b).
 
 | Part | Job | Detail |
 |---|---|---|
-| **web layer** | brings every page and API call to its tool: one listener per tool port (so today's addresses keep working) and the desk's own; the login check; the page shell; live updates to open pages | [WEB.md](WEB.md) |
-| **home** | the landing page; the lists across all tools (the unified shortlist, the screener report, the comparison); Manage tools (add, start, stop, pause, edit, delete, restore) | [HOME.md](HOME.md) |
-| **running tools** | one tool end to end: its screeners and discovery, the card, the live list, the shortlist, the photo, the outcomes, the score, its pages and API | [TOOL.md](TOOL.md) |
+| **web layer** | the data API: brings every `/api/…` call to its tool (legacy tool ports still resolve); the sign-in check; live updates to open screens. The static apps are served by the front door, not rendered here | [WEB.md](WEB.md) |
+| **home** | operator: the landing data; the lists across all tools (the unified shortlist, the screener report, the comparison); Manage tools (add, start, stop, pause, edit, delete, restore) | [HOME.md](HOME.md) |
+| **running tools** | one tool end to end: its screeners and discovery, the card, the live list, the shortlist, the photo, the outcomes, the score, and the data API behind the Radar app | [TOOL.md](TOOL.md) |
 | **stopped tools** | a stopped tool's stored registers and history, read-only, on its own address | [STOPPED-TOOLS.md](STOPPED-TOOLS.md) |
 | **market reader** | the indexes, the regime, the short-, mid- and long-term reads, the 15 sectors and hot sectors: read once per scan for every tool, stamped on every card, kept with its history in the desk's own file (R2 is that history at fixed minutes) | [MARKET.md](MARKET.md) |
 | **scheduler and desk jobs** | the only scheduler: every tool's jobs in its context, and the desk jobs (research runs, the night, the restore test, schedule changes, journal sync, qp's alert cycles with their signals pushed to the phone, the health checks, the heartbeat); every run recorded; failed, missed and hung runs alerted ([ALERTS.md](../11-alerts/ALERTS.md)) | [JOBS.md](JOBS.md) |
@@ -394,7 +395,7 @@ Decided by the trader on 2026-10-08 ([ARCHITECTURE §10](../../ARCHITECTURE.md#1
 | the tool context | **built** (step 15a): one program can hold several tools, each kept apart; tested with two tools in one program |
 | the comparison copy and its daily photo check | **built** (step 15b), in a separate program (`desk-worker`) that starts when a tool is listed in `workerShadow`. As a context of the desk: **to build** (migration step B) |
 | stopped tools served by the desk | **to build** (migration step A): the desk's first job, in place of the archive |
-| the desk running tools for real: pages, API and scans | **to build** (step B): tool by tool, after a clean week of photos |
+| the desk running tools for real: the data API and scans (the Radar app on top) | **to build** (step B): tool by tool, after a clean week of photos |
 | home and the desk jobs in the desk's own context | **to build** (step B, with T1, last) |
 | the market reader | **in shadow** (step 6): one read stored per scan; each tool still reads its own ([MARKET.md](MARKET.md)) |
 | the scheduler | **partly**: run history and alerts built; one scheduler per tool until step B ([JOBS.md](JOBS.md)) |
