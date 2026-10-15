@@ -9,9 +9,27 @@ export const money = n => (n < 0 ? '−' : '') + '$' + fmt(Math.abs(n));
 export const pct = (n, d = 1) => fmt(n, d) + '%';
 export const signed = (n, s) => (n > 0 ? '+' : n < 0 ? '−' : '') + s(Math.abs(n));
 export const fmtDate = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+export const dateISO = d => d.toISOString().slice(0, 10);
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export const ASSETS = { stock: 'Stock / ETF', option: 'Option', future: 'Future', forex: 'Forex', crypto: 'Crypto' };
+export const DEFAULT_FILTERS = { period: 'all', account: 'all', setup: 'all', symbol: '' };
+
+export function filtered(trades, f) {
+  const now = new Date();
+  return trades.filter(t => {
+    if (f.account !== 'all' && t.account !== f.account) return false;
+    if (f.setup !== 'all' && t.setup !== f.setup) return false;
+    if (f.symbol && !t.symbol.toLowerCase().includes(f.symbol.toLowerCase())) return false;
+    if (f.period !== 'all') {
+      const d = new Date(t.date + 'T12:00:00');
+      const days = f.period === '7d' ? 7 : f.period === '30d' ? 30 : f.period === '90d' ? 90 :
+        f.period === 'ytd' ? Math.ceil((now - new Date(now.getFullYear(), 0, 1)) / 864e5) + 1 : 1e9;
+      if ((now - d) / 864e5 >= days) return false;
+    }
+    return true;
+  });
+}
 
 /* ---------- the metric engine (identical to the prototype's stats/advanced) ---------- */
 export function stats(list) {

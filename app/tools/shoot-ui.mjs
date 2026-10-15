@@ -13,10 +13,13 @@ async function gotoReady(url) {
 }
 await gotoReady('http://localhost:8787/');
 await page.waitForSelector('.hero-eq .big', { timeout: 6000 });
-await page.waitForTimeout(400);
-await page.screenshot({ path: OUT + '/react-01-overview.png' });
 
-const net = await page.locator('.hero-eq .big').first().innerText();
-const win = await page.locator('.hero-eq .delta .num').first().innerText();
-console.log('React Overview — Net P&L:', net, '| Win rate:', win);
+const screens = [['Overview', 'r-overview'], ['Trades', 'r-trades'], ['Stats', 'r-stats'],
+  ['Setups', 'r-setups'], ['Calendar', 'r-calendar'], ['Time', 'r-time'], ['Risk', 'r-risk']];
+for (const [nav, name] of screens) {
+  await page.locator('.sidebar button', { hasText: nav }).first().click();
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: `${OUT}/${name}.png` });
+}
+console.log('captured', screens.length, 'screens');
 await browser.close();
