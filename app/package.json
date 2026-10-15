@@ -1,0 +1,13 @@
+{
+  "name": "trade-disk-app",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Trade-Disk — the product build (solo mode: Node + SQLite + static apps). Portable to Postgres/Supabase for hosted mode.",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "seed": "node db/seed.mjs",
+    "start": "node server.mjs",
+    "smoke": "node tools/smoke.mjs"
+  }
+}
