@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { stats, advanced, money, pct, fmt, lineChart, ring, filtered, dateISO, DEFAULT_FILTERS } from './lib.js';
 import { Shell, Head, Btn, Panel, StatBand, FilterBar, demoBanner, TradesTable, AccountsPanel, Html } from './components.jsx';
-import { Trades, Stats, Setups, Calendar, Time, Risk } from './screens.jsx';
+import { Trades, Stats, Setups, Calendar, Time, Risk, Import, Notes, Settings } from './screens.jsx';
+import { NewTradeModal, TradeDetailModal } from './modals.jsx';
+import * as api from './api.js';
 
 function Overview({ ctx }) {
-  const { data, filters, setFilters, onNav } = ctx;
+  const { data, filters, setFilters, onNav, onOpenTrade } = ctx;
   const list = useMemo(() => filtered(data.trades, filters), [data.trades, filters]);
   const s = stats(list), a = advanced(list), open = list.filter(t => t.status === 'Open');
 
@@ -55,7 +57,7 @@ function Overview({ ctx }) {
       <div className="grid sectiongrid" style={{ marginTop: 16 }}>
         <Panel title="Recent trades" desc="Latest activity · select a row to inspect"
           right={<button className="inline-link" onClick={() => onNav('trades')}>View all</button>}>
-          <TradesTable list={list} limit={6} onRow={() => onNav('trades')} />
+          <TradesTable list={list} limit={6} onRow={onOpenTrade} />
         </Panel>
         <Panel title="Where to look" desc="Insights tied to this filtered sample">
           <div className="panelbody">
@@ -69,7 +71,7 @@ function Overview({ ctx }) {
         <AccountsPanel accounts={data.accounts} onNav={onNav} />
         <Panel title="Open positions" desc="Excluded from realized P&L">
           {open.length ? <div className="panelbody">{open.map(t => (
-            <div className="minirow" key={t.id} style={{ cursor: 'pointer' }} onClick={() => onNav('trades')}>
+            <div className="minirow" key={t.id} style={{ cursor: 'pointer' }} onClick={() => onOpenTrade(t)}>
               <div className="miniicon">{t.symbol.slice(0, 1)}</div>
               <div className="minimain"><b>{t.symbol} · {t.side}</b><small>{t.setup} · {t.account}</small></div>
               <div className="minivalue neutral">Open</div>
@@ -81,17 +83,7 @@ function Overview({ ctx }) {
   );
 }
 
-function Stub({ page }) {
-  const titles = { import: 'Three ways in. One engine.', notes: 'Notes & reviews.', settings: 'Settings.', more: 'More.' };
-  return (
-    <>
-      <Head title={titles[page] || 'Journal'} desc="This screen is being ported next — its data and write endpoints come with it." />
-      <div className="empty"><b>Coming up next</b>The analytics screens are done in the React build; {page} (with writes) follows.</div>
-    </>
-  );
-}
-
-const SCREENS = { overview: Overview, trades: Trades, stats: Stats, setups: Setups, calendar: Calendar, time: Time, risk: Risk };
+const SCREENS = { overview: Overview, trades: Trades, stats: Stats, setups: Setups, calendar: Calendar, time: Time, risk: Risk, import: Import, notes: Notes, settings: Settings };
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -103,13 +95,16 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState(() => dateISO(new Date()));
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('td-theme') || 'light'; } catch { return 'light'; } });
+  const [newTradeOpen, setNewTradeOpen] = useState(false);
+  const [detailTrade, setDetailTrade] = useState(null);
+
+  const reload = () => api.getBundle().then(b => setData({ trades: b.trades || [], accounts: b.accounts || [], setups: b.setups || [], dayNotes: b.dayNotes || {}, reviews: b.reviews || [] }));
 
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('td-theme', theme); } catch {} }, [theme]);
+  useEffect(() => { reload().catch(() => setData({ trades: [], accounts: [], setups: [], dayNotes: {}, reviews: [] })); }, []);
   useEffect(() => {
-    fetch('/api/journal/bundle', { headers: { accept: 'application/json' } })
-      .then(r => r.json())
-      .then(b => setData({ trades: b.trades || [], accounts: b.accounts || [], setups: b.setups || [], dayNotes: b.dayNotes || {} }))
-      .catch(() => setData({ trades: [], accounts: [], setups: [], dayNotes: {} }));
+    const onKey = e => { if (e.key === 'Escape') { setNewTradeOpen(false); setDetailTrade(null); } };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   if (!data) return <div className="app"><main className="main"><div className="content"><div className="empty">Loading…</div></div></main></div>;
@@ -119,12 +114,24 @@ export default function App() {
     data, filters, setFilters, onNav,
     tradeQuery, setTradeQuery, tradeTab, setTradeTab, sort, setSort,
     selectedDay, setSelectedDay, calMonth, setCalMonth,
+    theme, onSetTheme: setTheme,
+    onOpenTrade: t => setDetailTrade(t),
+    onNewTrade: () => setNewTradeOpen(true),
+    onSaveDayNote: (day, note) => api.saveDayNote(day, note).then(reload),
+    onAddReview: r => api.addReview(r).then(reload),
+    onDeleteReview: id => api.deleteReview(id).then(reload),
+    onImport: rows => api.importTrades(rows).then(res => { reload(); return res; }),
+    onReset: () => api.resetDemo().then(reload),
   };
-  const Screen = SCREENS[page];
+  const Screen = SCREENS[page] || Overview;
 
   return (
-    <Shell page={page} onNav={onNav} onTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))} onNewTrade={() => onNav('import')}>
-      {Screen ? <Screen ctx={ctx} /> : <Stub page={page} />}
-    </Shell>
+    <>
+      <Shell page={page} onNav={onNav} onTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))} onNewTrade={() => setNewTradeOpen(true)}>
+        <Screen ctx={ctx} />
+      </Shell>
+      {newTradeOpen && <NewTradeModal setups={data.setups} onClose={() => setNewTradeOpen(false)} onAdd={input => api.addTrade(input).then(() => { reload(); setNewTradeOpen(false); })} />}
+      {detailTrade && <TradeDetailModal trade={detailTrade} setups={data.setups} onClose={() => setDetailTrade(null)} onSave={(id, patch) => api.updateTrade(id, patch).then(() => { reload(); setDetailTrade(null); })} />}
+    </>
   );
 }

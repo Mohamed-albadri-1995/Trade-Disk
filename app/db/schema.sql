@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS day_note (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS review_note (
+  id         TEXT PRIMARY KEY,
+  title      TEXT NOT NULL,
+  body       TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_trade_date   ON trade(date);
 CREATE INDEX IF NOT EXISTS idx_trade_setup  ON trade(setup);
 CREATE INDEX IF NOT EXISTS idx_trade_status ON trade(status);

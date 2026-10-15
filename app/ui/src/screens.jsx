@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { fmt, money, pct, fmtDate, dateISO, ASSETS, stats, advanced, filtered, hbars, histogram } from './lib.js';
 import { Head, Btn, Panel, StatBand, FilterBar, demoBanner, TradesTable, AccountsPanel, Html } from './components.jsx';
+
+const CONNECTORS = [
+  { kind: 'Alpaca', auth: 'Read-only API key + secret', transport: 'Poll the activities & orders API', cadence: 'T+1', note: 'Built today — the first connector' },
+  { kind: 'Interactive Brokers', auth: 'Read-only Flex token + Query ID', transport: 'Poll the Flex Web Service', cadence: 'T+1', note: 'Reporting only; cannot place trades' },
+  { kind: 'Tastytrade', auth: 'OAuth (refresh + 15-min access tokens)', transport: 'Poll the read-only endpoints', cadence: 'T+1', note: 'Per-account read-only scope' },
+  { kind: 'MetaTrader 4/5', auth: 'Server + investor (read-only) password', transport: 'MetaApi or FTP export', cadence: 'Near real-time', note: 'Forex / CFD' },
+  { kind: 'Tradovate / NinjaTrader', auth: '—', transport: 'A local file the desk watches', cadence: 'Near real-time', note: 'Futures / prop platforms' },
+];
 
 const Filters = ({ ctx }) => <FilterBar filters={ctx.filters} accounts={ctx.data.accounts} setups={ctx.data.setups} onChange={ctx.setFilters} />;
 
@@ -43,7 +51,7 @@ export function Trades({ ctx }) {
           ))}
         </div>
         <TradesTable list={list} limit={200} sortKey={ctx.sort.key} sortDir={ctx.sort.dir}
-          onSort={k => ctx.setSort(s => ({ key: k, dir: s.key === k ? -s.dir : -1 }))} onRow={() => { }} />
+          onSort={k => ctx.setSort(s => ({ key: k, dir: s.key === k ? -s.dir : -1 }))} onRow={ctx.onOpenTrade} />
         <div className="tablefoot"><span>{list.length} records · synthetic demo data</span><span>Net P&L excludes open positions · % move signed by direction</span></div>
       </section>
     </>
@@ -181,15 +189,13 @@ export function Calendar({ ctx }) {
               <div className="stat"><div className="stat-k">Closed</div><div className="stat-v">{chosen.filter(t => t.status === 'Closed').length}</div></div>
             </div></div>
             {chosen.length ? chosen.map(t => (
-              <div className="minirow" key={t.id} style={{ cursor: 'pointer' }} onClick={() => ctx.onNav('trades')}>
+              <div className="minirow" key={t.id} style={{ cursor: 'pointer' }} onClick={() => ctx.onOpenTrade(t)}>
                 <div className="miniicon">{t.symbol.slice(0, 1)}</div>
                 <div className="minimain"><b>{t.symbol} · {t.side}</b><small>{t.setup} · {t.status}</small></div>
                 <div className={'minivalue ' + (t.status === 'Open' ? 'neutral' : t.net >= 0 ? 'positive' : 'negative')}>{t.status === 'Open' ? 'Open' : money(t.net)}</div>
               </div>
             )) : <div className="empty"><b>No trades on this date</b>Use a day note to record your plan or review.</div>}
-            <div style={{ marginTop: 16 }}><div className="field"><label>Daily plan / review note</label>
-              <textarea placeholder="What was the plan? What did you learn?" defaultValue={ctx.data.dayNotes[ctx.selectedDay] || ''} /></div>
-              <button className="btn primary small" style={{ marginTop: 10 }}>Save day note</button></div>
+            <DayNoteEditor key={ctx.selectedDay} initial={ctx.data.dayNotes[ctx.selectedDay] || ''} onSave={note => ctx.onSaveDayNote(ctx.selectedDay, note)} />
           </div>
         </Panel>
       </div>
@@ -274,6 +280,127 @@ export function Risk({ ctx }) {
         </div>
         <p className="stat-f" style={{ marginTop: 12 }}>R multiples are only meaningful when initial risk is valid and positive.</p>
       </div></Panel>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------ day-note editor */
+function DayNoteEditor({ initial, onSave }) {
+  const [v, setV] = useState(initial);
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="field"><label>Daily plan / review note</label>
+        <textarea placeholder="What was the plan? What did you learn?" value={v} onChange={e => setV(e.target.value)} /></div>
+      <button className="btn primary small" style={{ marginTop: 10 }} onClick={() => onSave(v)}>Save day note</button>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------- IMPORT */
+function parseCsvTrades(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const head = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const idx = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
+  const col = { symbol: idx('symbol', 'ticker'), side: idx('side', 'direction'), qty: idx('qty', 'quantity', 'shares'), entry: idx('entry', 'entry price', 'avg entry'), exit: idx('exit', 'exit price', 'avg exit'), date: idx('date', 'open date'), fees: idx('fees', 'commission'), stop: idx('stop') };
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(','); const sym = (c[col.symbol] || '').trim(); if (!sym) continue;
+    const side = (c[col.side] || 'Long').trim().toLowerCase().startsWith('s') ? 'Short' : 'Long';
+    out.push({ symbol: sym, side, assetType: 'stock', qty: Number(c[col.qty]) || 0, entry: Number(c[col.entry]) || 0,
+      exit: col.exit >= 0 && c[col.exit] ? Number(c[col.exit]) : null, date: (c[col.date] || '').trim() || new Date().toISOString().slice(0, 10),
+      fees: col.fees >= 0 && c[col.fees] ? Number(c[col.fees]) : null, stop: col.stop >= 0 && c[col.stop] ? Number(c[col.stop]) : null,
+      setup: null, adherence: 'Unknown', account: 'Manual / CSV' });
+  }
+  return out;
+}
+
+export function Import({ ctx }) {
+  const [msg, setMsg] = useState(null);
+  const onFile = e => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const rows = parseCsvTrades(String(r.result));
+      if (!rows.length) { setMsg({ warn: true, text: 'No usable rows. Expected columns include symbol, side, qty, entry, exit, date.' }); return; }
+      ctx.onImport(rows).then(res => setMsg({ text: (res.added || rows.length) + ' trades imported to your workspace.' }));
+    };
+    r.readAsText(file); e.target.value = '';
+  };
+  return (
+    <>
+      <Head title="Three ways in. One engine." desc="Read-only broker connectors, file upload with a column-mapping wizard, and manual entry — all feeding one pairing engine with de-dup, split/merge and undo."
+        actions={<Btn cls="ghost" onClick={() => ctx.onNewTrade()}>＋ Manual entry</Btn>} />
+      <div className="notice"><b>Prototype.</b> Connectors are illustrated, not live — a static page holds no credentials. File upload below imports directly: a CSV with symbol, side, qty, entry, exit, date is parsed and saved. The full column-mapping wizard and flat-to-flat pairing engine come next.</div>
+      <AccountsPanel accounts={ctx.data.accounts} onNav={ctx.onNav} />
+      <div className="doors">
+        <div className="door feature"><div className="dk">Door 1</div><h3>Broker connector</h3><p>Connect a read-only broker feed. Trades sync automatically, T+1 — no credential that can place an order.</p><button className="btn">Connect a broker</button></div>
+        <div className="door"><div className="dk">Door 2</div><h3>File upload</h3><p>Drop a CSV or broker export. Map columns once; de-dup and pairing handle the rest.</p><label className="btn ghost" style={{ cursor: 'pointer' }}>Choose a CSV…<input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} /></label></div>
+        <div className="door"><div className="dk">Door 3</div><h3>Manual entry</h3><p>Log a trade by hand with full control over setup, risk and notes.</p><button className="btn ghost" onClick={() => ctx.onNewTrade()}>Add a trade</button></div>
+      </div>
+      {msg && <div className={'notice ' + (msg.warn ? '' : 'info')}><b>{msg.warn ? 'Nothing imported.' : 'Imported.'}</b> {msg.text}</div>}
+      <Panel title="Broker connectors" desc="Read-only direct APIs — no third-party aggregator. Each is illustrated here; connecting needs the production journal.">
+        <div className="tablewrap"><table className="table">
+          <thead><tr><th>Broker</th><th>Auth</th><th>Transport</th><th>Cadence</th><th>Notes</th></tr></thead>
+          <tbody>{CONNECTORS.map(c => <tr key={c.kind}><td><b>{c.kind}</b></td><td>{c.auth}</td><td>{c.transport}</td><td><span className="tag info">{c.cadence}</span></td><td className="muted">{c.note}</td></tr>)}</tbody>
+        </table></div>
+      </Panel>
+    </>
+  );
+}
+
+/* ---------------------------------------------------------------------- NOTES */
+export function Notes({ ctx }) {
+  const [title, setTitle] = useState(''); const [body, setBody] = useState('');
+  const reviews = ctx.data.reviews || [];
+  const add = () => { if (!title.trim()) return; ctx.onAddReview({ title, body }).then(() => { setTitle(''); setBody(''); }); };
+  return (
+    <>
+      <Head title="Notes & reviews." desc="Freeform reviews and lessons, kept alongside your trades and saved to your workspace." />
+      <div className="grid sectiongrid">
+        <Panel title="Your reviews" desc={reviews.length + ' saved'}>
+          <div className="panelbody">
+            {reviews.length ? reviews.map(r => (
+              <div className="insight" key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                <div><b>{r.title}</b><p>{r.body}</p><small className="muted">{new Date(r.createdAt).toLocaleString()}</small></div>
+                <button className="iconbtn" aria-label="Delete review" onClick={() => ctx.onDeleteReview(r.id)}>×</button>
+              </div>
+            )) : <div className="empty"><b>No reviews yet</b>Write your first weekly review on the right.</div>}
+          </div>
+        </Panel>
+        <Panel title="New review" desc="A weekly or post-trade note">
+          <div className="panelbody">
+            <div className="field"><label>Title</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Week of Oct 13" /></div>
+            <div className="field" style={{ marginTop: 10 }}><label>Notes</label><textarea value={body} onChange={e => setBody(e.target.value)} placeholder="What worked, what to change…" /></div>
+            <button className="btn primary" style={{ marginTop: 12 }} onClick={add}>Save review</button>
+          </div>
+        </Panel>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------- SETTINGS */
+export function Settings({ ctx }) {
+  return (
+    <>
+      <Head title="Make the journal yours." desc="Display preferences, and an honest look at what this demo does — and does not — connect to." />
+      <div className="grid sectiongrid">
+        <Panel title="Appearance" desc="Comfortable in light or dark">
+          <div className="panelbody">
+            <div className="minirow"><div className="minimain"><b>Theme</b><small>Applies across the Journal</small></div>
+              <select className="searchbox" value={ctx.theme} onChange={e => ctx.onSetTheme(e.target.value)}><option value="dark">Dark</option><option value="light">Light</option></select></div>
+            <div className="minirow"><div className="minimain"><b>Display timezone</b><small>Times shown in New York; production selection not wired</small></div><span className="tag warn">New York</span></div>
+            <div className="minirow"><div className="minimain"><b>Currency</b><small>Demo uses USD</small></div><span className="tag">USD · $</span></div>
+          </div>
+        </Panel>
+        <Panel title="Workspace" desc="Your demo data">
+          <div className="panelbody">
+            <div className="minirow"><div className="minimain"><b>Reset demo workspace</b><small>Restore the illustrative trades, accounts and setups</small></div><button className="btn ghost small" onClick={() => ctx.onReset()}>Reset</button></div>
+            <div className="minirow"><div className="minimain"><b>Storage</b><small>Saved on the server (SQLite) — not a broker, no real funds</small></div><span className="roflag">Local demo</span></div>
+          </div>
+        </Panel>
+      </div>
     </>
   );
 }
