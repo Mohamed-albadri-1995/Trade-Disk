@@ -1,251 +1,243 @@
 # The data model
 
-**Trunk section:** [§5 The data architecture](../ARCHITECTURE.md#5-the-data-architecture).
+**Above:** [ARCHITECTURE.md](../ARCHITECTURE.md) §5 (how the blocks share data)
+and the **deployment modes** section.
 
-> **Build status (2026-10-08).** Built in Postgres (server `src/facts/index.js`, migrations 001–006): `facts`, `facts_latest`, `source_calls`, `market_states`, `hot_sector_days`, `tools`, `screeners`, `screener_versions`, `r1_photos`, `r3_outcomes`, and `shortlist` (as `shortlist_items`). Also built, though this model did not have them: the parity and run tables (`fact_parity`, `market_parity`, `desk_log`, `research_*`, `discovery_scans`, `engine_runs`, `engine_answers`). Not built: the platform tables (`jobs` and `job_runs` live in each tool's SQLite; the login stays in `auth.json`), `cards`, `tool_cards`, `scan_reports`, `bars_day`, `r4_uploads`, `models`, `scorecards` (computed on request), and the quant and journal tables, which are still in their SQLite files.
-
-Every table of the new desk in one place: its owner (the only writer), its
-key, its columns, and the legacy store it replaces. The domain leaves describe
-what each table means; this leaf is the schema and the map from the old data.
-
-**Built on:** the three legacy data models,
-[screeners](../legacy/screeners/DATA-MODEL.md), [qp](../legacy/qp/DATA-MODEL.md) and
-[journal](../legacy/journal/DATA-MODEL.md), and the contracts section of every
-design leaf.
-
----
-
-## Contents
-
-1. [Conventions](#1-conventions)
-2. [The tables, by domain](#2-the-tables-by-domain)
-3. [The fact families](#3-the-fact-families)
-4. [From the legacy stores](#4-from-the-legacy-stores)
-5. [Retention and size](#5-retention-and-size)
+**Talks to:** every block that stores or reads a fact — the
+[desk](03-desk/DESK.md) and its [card](03-desk/tool/CARD.md),
+[registers](03-desk/tool/REGISTERS.md), [screeners](03-desk/tool/SCREENERS.md)
+and [market reader](03-desk/MARKET.md); [qp](05-qp/QP.md); the
+[journal](07-journal/JOURNAL.md); the
+[research worker](06-research-worker/RESEARCH-WORKER.md); the
+[data sources](08-data-sources/DATA-SOURCES.md); the
+[shared record](09-shared-record/SHARED-RECORD.md); and, in hosted mode,
+[accounts](13-accounts/ACCOUNTS.md) and the [admin dashboard](14-admin/ADMIN.md).
 
 ---
 
-## 1. Conventions
+## 1. What it is
 
-| Rule | Meaning |
+**The one relational model that every stored fact and every read the front end
+makes resolves to.** It was frozen from the approved front end: the field
+catalog and data map were traced to tables, and the result is the schema in
+[`data-model/schema.sql`](data-model/schema.sql) (49 tables), with its prose in
+[`data-model/SCHEMA_DRAFT.md`](data-model/SCHEMA_DRAFT.md), the field→table map in
+[`data-model/FRONTEND_DATA_MAP.md`](data-model/FRONTEND_DATA_MAP.md), the field
+catalog in [`data-model/FRONTEND_FIELD_CATALOG.md`](data-model/FRONTEND_FIELD_CATALOG.md),
+and the write/read lifecycle in
+[`data-model/DATA_LIFECYCLE.md`](data-model/DATA_LIFECYCLE.md). PostgreSQL is the
+chosen dialect, which the [shared record](09-shared-record/SHARED-RECORD.md) already uses.
+
+**What it owns:** the shape of every table, the keys and the relationships, the
+line between a canonical fact and a materialized read, and the rules that keep a
+read coherent.
+
+**What it never does:** compute a value (the enrichers do), decide where the
+record physically lives (the deployment mode does, §5), or hold a secret
+(keys live apart — [BOX.md](01-box/BOX.md) §4.3, [ADMIN.md](14-admin/ADMIN.md)).
+
+---
+
+## 2. Two layers: canonical facts and read models
+
+Every table is one of two kinds. This split is the heart of the model, and the
+reason a card never shows a new price beside a stale score.
+
+| Layer | What it is | Rule |
+|---|---|---|
+| **Canonical** | the authoritative record of one fact family, written by its one producer | normalized; time-aware; never overwritten by a second source ([DATA-SOURCES.md](08-data-sources/DATA-SOURCES.md)) |
+| **Read model** (materialized snapshot) | a denormalized bundle built *from* canonical facts for one frontend surface | the UI reads only these; rebuilt on change; **published atomically** (§4) |
+
+The front end reads a read model and nothing else — it never joins canonical
+tables or computes a metric ([FRONTEND_DATA_MAP.md](data-model/FRONTEND_DATA_MAP.md) §1).
+
+---
+
+## 3. The tables, by domain and producer
+
+Every table already has a producer in the existing design — which is why the
+front end is supported. The producer named is the **solo-mode** writer; in
+hosted mode the same role runs as a service (§5).
+
+### 3.1 Identity & classification — *canonical*
+`stock`, `stock_symbol`, `sector`, `sector_etf`, `stock_sector_membership`,
+`industry_group`, `stock_industry_group_membership`, `theme`,
+`stock_theme_membership`.
+**Producer:** ingestion + normalization. **Key rule:** the immutable internal
+`stock_id` is the foreign key everywhere; the ticker is a mutable,
+exchange-scoped symbol, not a global key.
+
+### 3.2 Raw source observations & fundamentals — *canonical*
+`source_registry`, `ingestion_event`, `raw_stock_observation`,
+`stock_quote_observation`, `stock_ohlcv_bar`, `stock_share_facts`,
+`stock_fundamental_period`, `stock_valuation_observation`, `news_article`,
+`stock_news_link`, `company_event`, `macro_event`, `publication_event`.
+**Producer:** the source [adapters](08-data-sources/DATA-SOURCES.md) (quotes,
+bars, short interest, borrow, news) and the research worker (EDGAR fundamentals).
+**Key rule:** each fact carries source, `as_of`/`known_at` and status; a missing
+value is null + reason, never 0.
+
+### 3.3 Analysis outputs — *canonical (derived / interpretation)*
+`stock_indicator_snapshot`, `stock_technical_level_snapshot`,
+`stock_pattern_snapshot`, `stock_multi_timeframe_snapshot`,
+`stock_canslim_snapshot`, `stock_canslim_factor_evidence`.
+**Producer:** the technical enricher (the [qp library](05-qp/LIBRARY.md), the only
+market math) for indicators/levels/patterns; the
+[research worker](06-research-worker/ONEIL.md) for CAN SLIM.
+**Key rule:** an indicator's identity includes its full parameters, source field
+and timeframe (RSI(14) 1D ≠ RSI(14) 15m); outputs carry a calculation/model
+version.
+
+### 3.4 Market, broad — *canonical*
+`market_snapshot`, `market_index_observation`, `market_model_snapshot`,
+`market_model_signal`, `market_regime_snapshot`, `market_sector_snapshot`,
+`market_industry_group_snapshot`, `market_breadth_snapshot`.
+**Producer:** the [market reader](03-desk/MARKET.md) (indexes, regime, sectors)
+and the research worker (O'Neil M and L, read not computed).
+**Key rule:** one read per snapshot, shared by every stock; a stock never copies
+the global regime into its own sector field (§3.5).
+
+### 3.5 Stock ↔ market link — *canonical*
+`stock_market_context_snapshot`: the selected stock's *own* sector/group context,
+foreign-keyed to the stock, its sector membership and the applicable
+`market_snapshot`/sector row.
+**Producer:** the card pipeline (a projection, not a new calculation).
+**Key rule:** this is the only place a stock's sector bias appears; it is
+reproducible because it names the exact market snapshot it came from.
+
+### 3.6 Screeners, runs & results — *canonical*
+`screener_definition`, `filter_definition`, `screener_filter_group`,
+`screener_condition`, `screener_column`, `screener_schedule_window`,
+`screener_run`, `screener_run_result`.
+**Producer:** the [screeners](03-desk/tool/SCREENERS.md) builder + the scheduler.
+**Key rule:** `T1`/`T2` resolve to a stable `screener_id` and a versioned
+definition; a saved schedule is not a run; each result references the
+`stock_card_snapshot` it was evaluated against.
+
+### 3.7 User — *canonical, account-scoped*
+`user_stock_list_item` (shortlist/favourites); `screener_definition.owner`.
+**Producer:** the user. **Key rule:** per-user, never global (§5 accounts).
+
+### 3.8 Read models — *materialized*
+`stock_card_snapshot` (Overview card + header + compact technical/CAN SLIM/news +
+`stock_market_context_snapshot_id`), `stock_technical_read_snapshot`,
+`stock_fundamental_read_snapshot`, and the `market_snapshot` bundle served by id.
+**Producer:** the materializer. **Key rule:** each carries `snapshot_id`,
+`as_of`, `published_at`, `source_status`, `is_stale`, `schema_version` and the
+upstream snapshot IDs it was built from.
+
+---
+
+## 4. The rules that keep a read coherent
+
+From [DATA_LIFECYCLE.md](data-model/DATA_LIFECYCLE.md), and consistent with the
+registers' photo rule ([REGISTERS.md](03-desk/tool/REGISTERS.md)):
+
+1. **Raw insert ≠ frontend-ready.** A stock existing does not mean every field is
+   ready; readiness is tracked per snapshot/domain; the UI shows a coherent card
+   with explicit missing states.
+2. **Atomic publication.** A read model is never updated field-by-field while the
+   UI reads it. Build a new `snapshot_id`, validate references, then switch the
+   current pointer in one transaction.
+3. **Dependency invalidation.** When a quote, share fact, fundamental period,
+   news item, sector mapping or market snapshot changes, dependent read models
+   are marked stale and only the affected ones are rebuilt. Cadence is
+   deferred — the [admin dashboard](14-admin/ADMIN.md) surfaces it.
+4. **Per-domain time.** A quote's time and a fundamental's period are different
+   `as_of`s and both are kept; never one universal timestamp.
+5. **One producer per table.** No table has two writers (the one-writer rule,
+   [ARCHITECTURE §7](../ARCHITECTURE.md#7-rules-that-apply-everywhere)).
+
+---
+
+## 5. The two deployment modes
+
+The model is one shape; where it physically lives differs by mode
+([ARCHITECTURE deployment modes](../ARCHITECTURE.md)).
+
+| | **Solo mode** (personal box) | **Hosted mode** (commercial) |
+|---|---|---|
+| Authoritative record | each tool's file on the box; the [shared record](09-shared-record/SHARED-RECORD.md) is a copy | **this schema in a hosted Postgres is the record**; no box files |
+| Accounts | one implicit user; no roles | real accounts; admin/user roles ([ACCOUNTS.md](13-accounts/ACCOUNTS.md)) |
+| Tenancy | n/a | `owner`/account columns isolate each tenant's screeners, shortlists and journal; enforced by auth/row policies |
+| Data sources | free/unofficial | licensed, swappable, chosen in the [admin dashboard](14-admin/ADMIN.md) |
+
+The canonical/read-model split, the keys, the relationships and the coherence
+rules (§2–§4) are **identical in both modes**. Accounts columns exist in both;
+solo mode fills them with one implicit account. This is why "design accounts now,
+build later" costs nothing structural.
+
+### 5.1 Solo ↔ hosted equivalences
+
+The two modes store the same facts under different names. This table is the
+bridge, so neither schema is read as a separate, unreconciled model:
+
+| Concept | Solo mode (box file / shared record) | Hosted mode (this schema) |
+|---|---|---|
+| a stock's identity | implicit in each row | `stock`, `stock_symbol` |
+| the live card | `r0_checkpoint` row ([FILES.md](04-files/FILES.md)) | `stock_card_snapshot` (read model) |
+| the morning photo (R1) | `r1_frozen` / `r1_photos` ([REGISTERS.md](03-desk/tool/REGISTERS.md)) | a `screener_run_result` + the `stock_card_snapshot` it referenced |
+| the market around the photo (R2) | `r2_market_snapshots` / `market_states` | `market_snapshot` (+ its index/sector/model rows) |
+| outcomes (R3) and training (R4) | `r3a`, `r3b` / `r3_outcomes`; R4 a view | **not in this frontend schema** — kept as the learning measure ([REGISTERS.md](03-desk/tool/REGISTERS.md), [LEARNING.md](03-desk/tool/LEARNING.md)); hosted mode adds the outcome/training tables beside it |
+| a screener | `screeners` + `screener_versions` | `screener_definition` + `screener_filter_group` + `screener_condition` + `screener_column` + `screener_schedule_window` |
+| a scan and its matches | the live list + R1 | `screener_run` + `screener_run_result` |
+| the shortlist | `shortlist` / `shortlist_items` | `user_stock_list_item` |
+| shared facts (quote, short interest, news, O'Neil) | `facts`, `facts_latest` | the canonical source/analysis tables (§3.2–3.4) |
+| the market history | `market_states`, `hot_sector_days` | `market_snapshot` and its children |
+
+Solo mode keeps these as the record; hosted mode treats this schema as the
+record and the solo tables as the self-host equivalent. The R3 outcome measure
+and the learning model are **not** part of this frontend-derived schema — they
+remain the registers'/scorecard's design and are added to the hosted database
+beside it.
+
+---
+
+## 6. Contracts
+
+| It owns | Where |
 |---|---|
-| one writer | every table names its owner; no other component writes it |
-| instants | `timestamptz`, stored in UTC |
-| trading days | `date`, the New York date |
-| clock times | `HH:MM` New York, only for configuration (capture minutes, windows) |
-| JSON | `jsonb` for documents that are read whole (a card, a strategy, rules) |
-| honest null | a missing value is `NULL` in a column, or a `status` with a `reason` on a fact; never 0 |
-| versions | definitions that change (screeners, strategies, settings, models, the photo) carry a version; results record the version that produced them |
-| migrations | numbered, run once, recorded; never a start-up repair |
-| symbols | canonical ticker (no exchange prefix); `tv_symbol` kept beside it where TradingView needs it |
+| the table shapes, keys, relationships | [`data-model/schema.sql`](data-model/schema.sql) |
+| the canonical ↔ read-model split and the coherence rules | this document, §2–§4 |
+
+| It reads from | For |
+|---|---|
+| the field catalog & data map | which frontend field each table serves ([data-model/](data-model/)) |
+
+The front end reads read models by stable ID (`stock_id`, `screener_id`,
+`market_snapshot_id`, `snapshot_id`); canonical tables are written by their
+producers only.
 
 ---
 
-## 2. The tables, by domain
+## 7. When it fails
 
-### Platform ([PLATFORM.md](PLATFORM.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `trading_calendar` | day | `is_open`, `open_at`, `close_at` (half days), `note` |
-| `users` | id | name, password hash (scrypt), created |
-| `sessions` | id | user, created, expires, last seen, user agent |
-| `jobs` | job | domain, schedule, calendar, depends_on, enabled, expected_within, max_duration |
-| `job_runs` | job, started_at | ended_at, result (`ok`, `failed`, `missed`, `skipped`, `hung`), counts (jsonb), error, stack |
-| `settings` | key, scope | value, type, range, default, description, version |
-| `setting_versions` | key, scope, version | value, changed_at, changed_by |
-| `alerts_sent` | id | signal, sent_at, message, recovered_at |
-| `backups` | night | manifest (jsonb), verified, row counts, size |
-
-### Sources ([SOURCES.md](SOURCES.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `source_calls` | adapter, day | calls, failures, last_error, last_error_at, p50 / p95 duration |
-| `health_checks` | check, at | severity (`ok`, `degraded`, `down`), detail, fix |
-
-Bars live in the Parquet cache (per feed, ticker, timeframe), outside the
-database, with its limits.
-
-### Tools and screeners ([TOOLS-AND-SCREENERS.md](TOOLS-AND-SCREENERS.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `tools` | id | name, description, accent, status (running, paused, archived, deleted), paused_at, paused_reason, capture_r1, entry_a, entry_b, capture_why, role (method, control, benchmark), created_at |
-| `screeners` | tool, key | name, status, mirror_of, purpose (cards, list), direction (long, short, either) |
-| `screener_versions` | tool, key, version | rules (jsonb), sort, limit, run_window, check_window, floor, post_tests (jsonb), created_at, note |
-| `scan_reports` | tool, at | screeners asked, rows, drops by reason (jsonb), candidates, new cards, ms, errors |
-
-### Card ([CARD.md](CARD.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `facts` | subject, family, known_at | value (jsonb), status (`ok`, `none`, `unavailable`), reason, source, as_of, provisional |
-| `facts_latest` | subject, family | the same columns: the newest fact of that family, 5-minute quotes included |
-| `cards` | ticker, day | the latest projection (jsonb) of every family, `market_state_id`, updated_at |
-| `tool_cards` | tool, ticker, day | screener_matches (jsonb: key, version, first match), first_seen, live, last_matched_at, manual_bias, score (jsonb: question, value, model version, sample, interval, breakdown) |
-
-`facts` and `facts_latest` are the fact store of the trunk
-([§5.2](../ARCHITECTURE.md#52-the-fact-store)), shared by the card, market and
-research domains; each family has one writer (§3), which writes both. Every
-fetch updates `facts_latest`; `facts` keeps every fetch except for the
-fast families (`quote`, `derived`, `market_context`), whose history holds only
-discovery, each photo and the close.
-A tool card's star is its `shortlist` row, not a column.
-
-### Market ([MARKET.md](MARKET.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `market_states` | id | at, day, indexes, sectors, short_term, mid_term, long_term, regime, oneil_m, oneil_l_ref, status, definition version (each jsonb where structured) |
-| `hot_sector_days` | sector, day | best_score, days_at_40, days_under_20, hot, hot_since |
-
-### Registers ([REGISTERS.md](REGISTERS.md))
-
-| Table / view | Key | Columns |
-|---|---|---|
-| `r1_photos` | tool, day, ticker | captured_at, late (taken after the capture minute: kept out of training unless included), card (jsonb), tool_card (jsonb), market_state_id, capture_version |
-| `r2_slots` (view) | tool, day, slot | from `market_states` |
-| `bars_day` | ticker, day | 1-minute and daily bars used for outcomes (or a pointer to the Parquet file) |
-| `r3_outcomes` | tool, day, ticker, entry | entry_price, hh, ll, atr14, up_r, down_r, or_high, or_low, result, reason, captured_at |
-| `r4` (view) | tool, day, ticker, entry | `r1_photos ⋈ r3_outcomes` |
-| `r4_uploads` | tool, day, ticker, entry, source | the row (jsonb), uploaded_at |
-| `shortlist` | tool, day, ticker | added_at, method, price, change, sector, score, exported_at |
-
-### Learning ([LEARNING.md](LEARNING.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `models` | tool, question, version | features, coefficients, scaler, training window, sample, walk-forward metrics, published, reason, trained_at |
-| `scorecards` | tool, screener key, screener version, entry, computed_on | cards, days, good %, interval, big %, median R, average R, adverse R, days hit, verdict, thresholds version |
-
-### Quant ([QUANT.md](QUANT.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `strategies` | id | name, current version, stage, tools |
-| `strategy_versions` | id, version | document (jsonb), created_at |
-| `backtests` | id | name, spec (jsonb), strategy versions, status, progress, summary, error, created_at, updated_at |
-| `backtest_trades` | id | backtest, day, symbol, side, entry_at, exit_at, entry, exit, ret, reason, ctx (jsonb: the register columns of its card) |
-| `alerts` | strategy, symbol, bar_at | strategy version, sent_at, pushed |
-| `primitive_approvals` | primitive, commit | approved_by, approved_at, notes (mirrors `approvals.json`) |
-
-### Journal ([JOURNAL.md](JOURNAL.md))
-
-| Table | Key | Columns |
-|---|---|---|
-| `accounts` | id | name, broker, paper, every_minutes, look_back_days, enabled, last_run (jsonb) |
-| `fills` | account, external_id | at, symbol, side, qty, price, fees, order_id, source |
-| `trades` | id | account, symbol, direction, entry_at, exit_at, entry, exit, shares, stop, target, gross, fees, net, status, setup, notes, tags, touched_by_trader |
-| `trade_fills` | trade, fill | portion |
-| `setups` | id | name, description, enabled |
-| `trade_snapshots` | trade | facts as of the entry (jsonb), market_state_id, r1 reference, mae, mfe |
-| `day_notes` | day | note, updated_at |
+| Event | What happens |
+|---|---|
+| a domain is not ready for a stock | its read-model fields are null + status; the rest of the card builds |
+| two as-of times differ | both are preserved and exposed; no false single timestamp |
+| a read model is mid-rebuild | the old `snapshot_id` keeps serving until the new one is published |
+| a ticker changes | `stock_id` is unchanged; `stock_symbol` records the change with validity dates |
 
 ---
 
-## 3. The fact families
+## 8. Built on
 
-Every family is a row type in `facts`. Its writer, its subject and its clock:
-
-| Family | Subject | Writer | Clock |
-|---|---|---|---|
-| `quote` | ticker | card engine | 5 minutes (latest); history at discovery, each photo and the close |
-| `derived` | ticker | card engine | with the quote (history as the quote's) |
-| `short_interest` | ticker | card engine | daily |
-| `borrow` | ticker | card engine | daily |
-| `reg_sho` | ticker | card engine | settlement day |
-| `news` | ticker | card engine | each scan, live cards |
-| `catalyst`, `bias` | ticker | card engine | with news / quote |
-| `themes` | ticker | card engine | daily |
-| `move_tests` | ticker | card engine (discovery) | at discovery |
-| `market_context` | ticker | card engine (from the market state) | each scan (history as the quote's; the market states keep their own) |
-| `bars_universe`, `group_ranking`, `oneil_m` | `market` | research worker | each close; `oneil_m` also every 30 minutes in the session, marked provisional |
-| `rs_rating`, `rs_line`, `sic`, `oneil_l`, `oneil_c`, `oneil_a`, `oneil_s`, `oneil_i`, `oneil_n_base`, `oneil_n_events`, `oneil_ratings` | ticker | research worker | per [ONEIL.md](ONEIL.md) §6.1 |
+- the approved front-end freeze and field catalog (the uploaded design package),
+  traced into tables;
+- the existing fact/producer model ([DATA-SOURCES.md](08-data-sources/DATA-SOURCES.md),
+  [SHARED-RECORD.md](09-shared-record/SHARED-RECORD.md),
+  [REGISTERS.md](03-desk/tool/REGISTERS.md), [CARD.md](03-desk/tool/CARD.md));
+- the reconciliation in [FRONTEND-SUPPORT-AUDIT.md](FRONTEND-SUPPORT-AUDIT.md).
 
 ---
 
-## 4. From the legacy stores
+## 9. Status
 
-Every legacy store, and where its data goes. All of it is imported once,
-running and archived tools alike, and the import is checked by row counts
-([MIGRATION.md](MIGRATION.md)).
-
-### A screener tool's database (`data/tradedesk.db`, `data/t<n>.db`)
-
-| Legacy table | New home |
+| Part | Status |
 |---|---|
-| `screeners` | `screeners` + version 1 of `screener_versions` (later edits unknown: recorded as such) |
-| `settings` (live keys) | `settings` (scope: the tool); `tool.name`, `tool.paused` → `tools` |
-| `settings` (31 dead keys) | not carried |
-| `scheduler_jobs` | `jobs` (custom schedules kept) |
-| `r0_checkpoint` | not carried (a live list; today's comes from tool cards) |
-| `r1_frozen` | `r1_photos` (the card JSON split into card and tool card; no screener versions or market state id for old days: recorded as such) |
-| `r2_market_snapshots` | `market_states` (old days, with the O'Neil status left blank where it was read at export: D-D3) |
-| `r3a`, `r3b` | `r3_outcomes` (entry A, B) |
-| `r4a_train`, `r4b_train` (source `capture`) | not carried: `r4` is a view |
-| `r4a_train`, `r4b_train` (source `upload`) | `r4_uploads` |
-| `shortlist` | `shortlist` (one row per item) |
-| `analysis_model` | not carried (dead) |
-
-### Shared files in `data/`
-
-| Legacy file | New home |
-|---|---|
-| `tools.config.json` + `tools.local.json` | `tools` |
-| `tool-stages.json` | `tools` |
-| `industry-map.json` | `facts` (`sic`), research worker |
-| `oneil-market.json`, `oneil-groups.json`, `oneil-13f.json`, `oneil/` | `facts` (`oneil_*`), rebuilt by the research worker; the latest files imported as of their dates |
-| `shortlist-all.json` | not carried (a query over `shortlist`) |
-| `keys.json`, `r2.json`, `auth.json`, `journal-accounts.json` | the secret store (`auth.json` → `users`) |
-
-### qp
-
-| Legacy store | New home |
-|---|---|
-| `~/.qp/platform.db` `strategies` | `strategies` + `strategy_versions` (version 1) |
-| `backtests`, `backtest_trades` | `backtests`, `backtest_trades` (frozen strategy copies kept in `spec`) |
-| `~/.qp/strategies/*.json` | nightly export (backup) |
-| `chart/seeds/*.json` | versioned migrations |
-| `approvals/approvals.json` | stays in git; mirrored to `primitive_approvals` |
-| `.default-feed` | `settings` |
-| `screener_sources.json` | not carried (registers are read from the database) |
-| oplog | logs |
-| `~/.qp-cache/` (bars) | the Parquet cache |
-| `~/.qp-cache/grouped/`, `sic/`, `f13/`, `canslim/` | rebuilt by the research worker into `facts` |
-
-### The journal (`data/journal/journal.db`)
-
-| Legacy table | New home |
-|---|---|
-| `journal_trades` (Alpaca) | `trades`, re-derived from their fills by the new pairing engine and compared ([JOURNAL.md](JOURNAL.md) §6) |
-| `journal_trades` (file imports, manual) | `trades` (with a note where the legacy pairing is known to be wrong: D-J1, D-J2) |
-| `trading_setups` | `setups` |
-| `journal_daily_notes` | `day_notes` |
-| `journal_fee_profiles` | `accounts` (fee rule) |
-| `journal_technical_snapshots`, `journal_context_snapshots`, `journal_conditions`, `journal_setup_templates`, `trade_cards`, `trade_card_checks`, `check_library`, `setup_check_assignments` | not carried (recomputed from the fact store where wanted) |
-| the old app's tables (`r0`–`r4` copies, `trading_*`, `volume_baseline`, …) | not carried |
-
-### Models
-
-`src/scoring/outputs*` are not imported: the new models are trained from R4.
-
----
-
-## 5. Retention and size
-
-| Data | Kept | Note |
-|---|---|---|
-| `facts` | forever | the fast families keep three or so rows per ticker per day (discovery, photos, close); their 5-minute values live only in `facts_latest` |
-| `facts_latest` | one row per subject and family | overwritten |
-| `cards`, `tool_cards` | forever | about 1–2 MB a day for every tool together (estimate) |
-| `market_states` | 30 days at scan grain, then the R2 slots and the close per day | — |
-| `r1_photos`, `r3_outcomes`, `shortlist` | forever | the research record |
-| `job_runs`, `health_checks`, `source_calls` | 90 days | — |
-| `backtests` | until deleted | — |
-| `trades`, `fills` | forever | — |
-| bars cache | by size and free disk | rebuildable |
-
-The legacy backup was about 17 MB compressed a night for everything; the new
-database starts at roughly the same size and grows mainly with R1 photos (a few
-MB a month per tool) and the day's cards (estimates).
+| the relational schema, canonical ↔ read-model split, coherence rules | **adopted** (this document; `data-model/schema.sql`) |
+| mapping every table to its producer | **done** (§3) |
+| building the tables and the materializer | **to build** (infrastructure step) |
+| accounts/tenancy columns enforced | **designed; enforced in hosted mode** ([ACCOUNTS.md](13-accounts/ACCOUNTS.md)) |
+| refresh cadence, retention/partitioning, licensing limits | **deferred** (surfaced in the [admin dashboard](14-admin/ADMIN.md)) |

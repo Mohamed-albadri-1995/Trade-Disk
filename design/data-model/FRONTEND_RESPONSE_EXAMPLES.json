@@ -1,0 +1,111 @@
+{
+  "contractVersion": "1.0",
+  "disclaimer": "Illustrative shape only; IDs and values are examples, not real market data.",
+  "stockCard": {
+    "stockId": "uuid-stock-123",
+    "snapshotId": "uuid-card-snap-456",
+    "symbol": "EXMP",
+    "companyName": "Example Systems Inc.",
+    "exchange": "NASDAQ",
+    "quote": {
+      "price": 128.4,
+      "previousClose": 125.0,
+      "open": 126.1,
+      "dayHigh": 129.2,
+      "dayLow": 125.3,
+      "changePct": 2.72,
+      "currency": "USD",
+      "asOf": "2026-10-14T15:30:00Z",
+      "sourceStatus": "demo"
+    },
+    "liquidity": {
+      "volume": 12400000,
+      "relativeVolume": 2.4,
+      "averageVolume": 5100000,
+      "floatShares": 82000000,
+      "marketCap": 12500000000,
+      "shortFloatPct": null,
+      "daysToCover": null
+    },
+    "technicalSummary": {
+      "timeframe": "1D",
+      "ema": {
+        "9": 127.9,
+        "13": 127.4,
+        "20": 125.8,
+        "50": 123.5
+      },
+      "atr": { "length": 14, "value": 4.1, "percent": 3.19 },
+      "range52Week": { "low": 45.2, "high": 140.76, "positionPct": 87.1 },
+      "premarket": { "high": 128.9, "low": 127.1, "range": 1.8, "pmAdr": 0.42 }
+    },
+    "sectorContext": {
+      "stockSectorId": "uuid-sector-tech",
+      "stockSectorName": "Technology",
+      "sectorEtf": "XLK",
+      "sectorBias": "BULLISH",
+      "sectorScore": 71,
+      "marketSnapshotId": "uuid-market-snap-789",
+      "marketSectorSnapshotId": "uuid-market-sector-111",
+      "asOf": "2026-10-14T15:00:00Z",
+      "sourceStatus": "demo"
+    },
+    "industryGroupContext": {
+      "industryGroupId": "uuid-group-semi",
+      "industryGroupName": "Semiconductors",
+      "stockGroupRank": null,
+      "stockRelativeStrength": null,
+      "sourceStatus": "unavailable"
+    },
+    "marketContextReference": {
+      "marketSnapshotId": "uuid-market-snap-789",
+      "regime": "EXTENDED_UP",
+      "longTermBias": "BULLISH",
+      "midTermStage": "UPTREND",
+      "shortTermBias": "BEARISH"
+    },
+    "canslim": {
+      "snapshotId": "uuid-canslim-222",
+      "modelVersion": "pending-approved-model",
+      "factorStatuses": { "C": "N/A", "A": "N/A", "N": "N/A", "S": "N/A", "L": "N/A", "I": "N/A", "M": "N/A" }
+    },
+    "themes": ["AI infrastructure", "Cloud software"],
+    "recentNewsPreview": [],
+    "dataQuality": {
+      "sourceStatus": "demo",
+      "asOf": "2026-10-14T15:30:00Z",
+      "publishedAt": "2026-10-14T15:31:00Z",
+      "isStale": false,
+      "schemaVersion": 1,
+      "upstreamSnapshotIds": ["uuid-market-snap-789", "uuid-canslim-222"]
+    }
+  },
+  "screenerSelection": {
+    "screenerId": "uuid-screener-t1",
+    "screenerKey": "T1",
+    "definitionVersion": 3,
+    "filterGroups": [
+      {
+        "joinOperator": "AND",
+        "conditions": [
+          { "filterKey": "price", "operator": "gt", "rightOperand": { "type": "number", "value": 10 } },
+          { "filterKey": "relative_volume", "operator": "gt", "rightOperand": { "type": "number", "value": 2 }, "parameters": { "timeframe": "1D", "lookback": 20, "sessionBasis": "regular" } },
+          { "filterKey": "close_vs_sma_distance_pct", "operator": "gte", "rightOperand": { "type": "number", "value": 10 }, "parameters": { "maType": "SMA", "length": 50, "timeframe": "1D", "source": "close" } }
+        ]
+      }
+    ],
+    "columns": ["symbol", "price", "changePct", "relativeVolume", "sectorBias", "score"],
+    "sort": { "field": "relativeVolume", "direction": "desc" },
+    "scheduleWindows": [
+      { "label": "Regular session", "timezone": "America/New_York", "start": "09:30", "end": "16:00", "intervalMinutes": 5, "enabled": true },
+      { "label": "Pre-market", "timezone": "America/New_York", "start": "04:00", "end": "09:25", "intervalMinutes": 10, "enabled": false }
+    ],
+    "latestRun": {
+      "runId": "uuid-run-333",
+      "status": "not_run_in_demo",
+      "resultCount": null,
+      "startedAt": null,
+      "finishedAt": null
+    }
+  }
+}
