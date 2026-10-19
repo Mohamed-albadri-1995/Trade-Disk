@@ -18,6 +18,7 @@ Then open **http://localhost:8787** — the Station launcher.
 - `/` — the **Station** (launcher)
 - `/journal/` — the **Journal** (working: ledger, calendar, stats, import, notes)
 - `/radar/` — **Radar** (Screener · Shortlist · Market · Settings · 4-tab Analysis)
+- `/admin/` — **Admin** — the data-source feed switch (personal ⇄ commercial, provider per group, keys). Linked from the Station footer.
 
 ## Handy
 - `npm run seed` — reset the demo database (22 trades + 8 radar stocks + market snapshot).

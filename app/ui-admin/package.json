@@ -1,0 +1,10 @@
+{
+  "name": "trade-disk-admin",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Trade-Disk — the admin dashboard (React + Vite). The data-source feed switch: personal vs commercial, provider per group, keys.",
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": { "react": "18.3.1", "react-dom": "18.3.1" },
+  "devDependencies": { "@vitejs/plugin-react": "4.3.4", "vite": "5.4.11" }
+}

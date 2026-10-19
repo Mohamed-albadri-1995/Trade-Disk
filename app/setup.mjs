@@ -7,7 +7,7 @@ import { join } from 'node:path';
 const here = import.meta.dirname;
 // Build order: the tool apps first (each into app/web/<tool>/), the Station last
 // (into app/web/ root; it never empties the subdirs).
-const uis = ['ui', 'ui-radar', 'ui-station'];
+const uis = ['ui', 'ui-radar', 'ui-admin', 'ui-station'];
 const run = (cmd, cwd) => { console.log(`\n$ ${cmd}   (${cwd.replace(here, 'app')})`); execSync(cmd, { cwd, stdio: 'inherit' }); };
 
 for (const u of uis) {

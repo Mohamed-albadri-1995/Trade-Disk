@@ -97,7 +97,7 @@ async function api(req, res, url) {
 
 // Each tool is its own app under app/web/<app>/ and routes client-side within it;
 // the Station launcher owns the root. Rebuilding one app never touches another.
-const APPS = ['journal', 'radar'];
+const APPS = ['journal', 'radar', 'admin'];
 
 async function sendFile(res, file) {
   const body = await readFile(file); // throws if missing

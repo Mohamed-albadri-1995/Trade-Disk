@@ -82,7 +82,7 @@ export default function App() {
         </div>
       </section>
 
-      <footer className="st-foot"><span>© Trade-Disk · The Trading Station</span><span>Journal preview uses synthetic demo trades — never real performance. The Trade-Disk tools place no orders.</span></footer>
+      <footer className="st-foot"><span>© Trade-Disk · The Trading Station · <a href="/admin/" style={{ color: 'inherit' }}>Admin · Data sources</a></span><span>Journal preview uses synthetic demo trades — never real performance. The Trade-Disk tools place no orders.</span></footer>
     </div>
   );
 }
