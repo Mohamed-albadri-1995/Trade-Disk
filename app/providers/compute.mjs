@@ -30,14 +30,22 @@ export function rvol(bars, n = 20) {
   return avg ? +(today / avg).toFixed(2) : null;
 }
 
+const dayUTC = (ms) => new Date(ms).toISOString().slice(0, 10);
+
 // The derived range/indicator fields for one symbol, matching radar_stock columns.
-export function derive(bars) {
+// Volume & range stats use only completed sessions: during market hours the final
+// daily bar is still forming, so counting it would understate relative volume (and
+// range). Price/change and the EMA flags use the live last bar, as a trader expects.
+export function derive(bars, nowMs = Date.now()) {
   const closes = bars.map((b) => b.c);
   const price = closes[closes.length - 1];
+  const last = bars[bars.length - 1];
+  const partial = last && dayUTC(last.t * 1000) === dayUTC(nowMs); // today's bar is in progress
+  const done = partial ? bars.slice(0, -1) : bars;
   const e10 = ema(closes.slice(-60), 10), e20 = ema(closes.slice(-80), 20), e50 = ema(closes.slice(-150), 50);
   return {
-    r: rvol(bars),
-    adr: adrPct(bars),
+    r: rvol(done),
+    adr: adrPct(done),
     // above the key moving averages, and the stack aligned (fast > mid > slow)
     ema: price != null && e20 != null && e50 != null && price > e20 && price > e50,
     stacked: e10 != null && e20 != null && e50 != null && e10 > e20 && e20 > e50,
