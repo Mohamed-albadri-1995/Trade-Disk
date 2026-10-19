@@ -67,8 +67,11 @@ The reason this dashboard exists. It reads the **provider registry**
 ([DATA-SOURCES.md](../08-data-sources/DATA-SOURCES.md)) and lets the admin:
 
 - see every fact family (quotes, bars, short interest, borrow, news,
-  fundamentals, index/sector quotes) and the **providers that can serve it**;
-- choose the **active provider** (and the fallback order) per family — the swap;
+  fundamentals, index/sector quotes) and the **providers that can serve it**
+  — the full field-by-field map is [DATA-CATALOG.md](../08-data-sources/DATA-CATALOG.md);
+- pick the family's **mode** — *prime + backup* (one active provider + an ordered
+  fallback) or *merge* (several sources live at once, de-duplicated, e.g. news and
+  the macro calendar) — and **enable/disable or rank** each source in it;
 - **set and test** each provider's API key; a bad key fails the test loudly and
   the health page names it;
 - read each provider's **licensing / commercial-use flag**.

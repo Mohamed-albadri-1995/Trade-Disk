@@ -125,7 +125,13 @@ pays ([SHARED-RECORD.md](../09-shared-record/SHARED-RECORD.md)).
 | **openfda**, **usaspending** | drug and device approvals; contract awards | none | N events (planned) | — |
 | **broker_files** | uploaded TradingView, TTP and DXtrade files | — | journal fills | one parser per format, each with a sample file ([IMPORT.md](../07-journal/IMPORT.md)) |
 
-### 3.3 Fallback orders
+### 3.3 Fallback orders (and parallel merges)
+
+Each family is served in one of two **modes**, set per family in the
+[admin dashboard](../14-admin/ADMIN.md): **prime + backup** (one active source, an
+ordered fallback — most rows below) or **merge** (several sources live at once,
+de-duplicated — `news`, and the hosted macro calendar). The field-by-field free and
+commercial source for every family is in [DATA-CATALOG.md](DATA-CATALOG.md).
 
 | Family | Order | Rule |
 |---|---|---|
