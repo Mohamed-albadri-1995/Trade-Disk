@@ -73,3 +73,47 @@ CREATE INDEX IF NOT EXISTS idx_trade_date   ON trade(date);
 CREATE INDEX IF NOT EXISTS idx_trade_setup  ON trade(setup);
 CREATE INDEX IF NOT EXISTS idx_trade_status ON trade(status);
 CREATE INDEX IF NOT EXISTS idx_trade_symbol ON trade(symbol);
+
+-- ============================================================================
+-- Radar — the screener / discovery tool. Matched to the approved radar prototype
+-- (frontend-design/radar.html). In the design these are read-model snapshots the
+-- desk publishes (DATA-MODEL.md, CARD.md); in solo demo they are seeded directly.
+-- Portable to Postgres/Supabase for hosted mode, every row scoped to an account.
+-- ============================================================================
+
+-- the screener result cards (one row per stock in the demo universe)
+CREATE TABLE IF NOT EXISTS radar_stock (
+  t          TEXT PRIMARY KEY,         -- ticker
+  n          TEXT NOT NULL,            -- company name
+  p          REAL NOT NULL,            -- price
+  c          REAL,                     -- change %
+  abs        REAL,                     -- change (absolute)
+  s          INTEGER,                  -- score 0–100
+  r          REAL,                     -- relative volume (×)
+  adr        REAL,                     -- average daily range %
+  pm         REAL,                     -- pre-market / ADR (ratio)
+  pm_high    REAL,
+  pm_low     REAL,
+  pm_range   REAL,
+  pm_pct     REAL,
+  cap        TEXT,                     -- market cap (display, e.g. "3.15T")
+  cap_band   TEXT,                     -- large | mid | small | micro
+  sec        TEXT,                     -- sector
+  mark       TEXT,                     -- avatar letter
+  color      TEXT,                     -- avatar accent
+  tags       TEXT,                     -- JSON array
+  ema        INTEGER DEFAULT 0,        -- above key EMAs (bool)
+  stacked    INTEGER DEFAULT 0,        -- MA stack aligned (bool)
+  news       INTEGER DEFAULT 0,        -- has a news catalyst (bool)
+  cs         INTEGER DEFAULT 0,        -- passes a CAN SLIM gate (bool)
+  change_line TEXT,                    -- JSON array of sparkline points
+  sort       INTEGER DEFAULT 0
+);
+
+-- the trader's shortlist (favourites); per-account in hosted mode
+CREATE TABLE IF NOT EXISTS radar_shortlist (
+  ticker    TEXT PRIMARY KEY REFERENCES radar_stock(t),
+  added_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_radar_stock_sort ON radar_stock(sort);

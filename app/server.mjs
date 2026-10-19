@@ -8,6 +8,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, normalize, extname } from 'node:path';
 import { openDb } from './lib/db.mjs';
 import * as journal from './api/journal.mjs';
+import * as radar from './api/radar.mjs';
 
 const PORT = process.env.PORT || 8787;
 const WEB = join(import.meta.dirname, 'web');
@@ -61,6 +62,16 @@ async function api(req, res, url) {
         return json(res, journal.saveDayNote(db, decodeURIComponent(seg[3]), body.note || ''));
       }
       if (m === 'DELETE' && sub === 'reviews' && seg[3]) return json(res, journal.deleteReview(db, decodeURIComponent(seg[3])));
+    }
+
+    if (seg[1] === 'radar') {
+      const sub = seg[2];
+      if (m === 'GET') {
+        if (sub === 'bundle') return json(res, radar.bundle(db));
+        if (sub === 'stocks') return json(res, radar.stocks(db));
+        if (sub === 'shortlist') return json(res, radar.shortlist(db));
+      }
+      if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, radar.toggleShortlist(db, decodeURIComponent(seg[3])));
     }
     return json(res, { error: 'not found', path: p, method: m }, 404);
   } catch (e) {
