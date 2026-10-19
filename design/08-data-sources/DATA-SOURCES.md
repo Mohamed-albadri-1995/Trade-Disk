@@ -239,6 +239,38 @@ licensed provider from the dashboard; the adapter contract (§3.1) is unchanged.
 The selection is stored as provider config in the data model
 ([DATA-MODEL.md](../DATA-MODEL.md), [ADMIN.md](../14-admin/ADMIN.md)).
 
+**Candidate licensed providers (hosted).** From a provider survey; confirm each
+provider's current terms — above all real-time entitlement and redistribution —
+before it is made live:
+
+- **News / catalysts:** **Benzinga** (true real-time push, the professional
+  standard) or **Polygon.io** (news endpoint, Benzinga-sourced). Lower-cost and
+  polled: Finnhub, EODHD, Marketaux, Alpha Vantage, FMP.
+- **Quotes · index · sector ETFs · fundamentals** (the CAN SLIM inputs — EPS and
+  sales growth, margins, ROE): **Polygon.io**, **Finnhub**, **FMP (enterprise)**,
+  **EODHD**, **Tiingo**, **Intrinio**, **Nasdaq Data Link / Sharadar**, **Alpaca**.
+- **Confirmed not licensable for a sold product:** Yahoo and the TradingView
+  scrape (personal-use only, already flagged above), NewsAPI.org's free tier
+  (development only), and IEX Cloud (retired 2024).
+
+**OpenBB as an adapter reference (optional).** The open-source **OpenBB Platform**
+(Apache-2.0 on current releases — it was AGPL in the v4 era, so a hosted build pins
+a current Apache release) is a multi-provider abstraction over most of the
+providers above. Its shape — one standardized model plus a transform-extract-
+transform fetcher per provider, registered by provider name — is the same shape as
+§3.1 and is worth mirroring. It can also be run as a **Python REST sidecar** the box
+calls over HTTP, keys held server-side, if we prefer adopting it over writing every
+adapter natively. Either way the data license is still ours to obtain per provider:
+OpenBB licenses software, not data.
+
+**The one gap no provider above fills: O'Neil / IBD industry-group rankings** (the
+Market tab's group leadership and CAN SLIM's **L** factor). The ~197-group IBD
+ranking is proprietary to IBD / MarketSurge and is in none of these feeds. Hosted
+mode therefore either **licenses IBD** or **computes its own** relative-strength and
+group-ranking proxy from the licensed universe — the research worker's job
+([ONEIL.md](../06-research-worker/ONEIL.md)). Recorded as a known provider gap, not
+an oversight.
+
 ---
 
 ## 4. Contracts
