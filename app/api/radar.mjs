@@ -5,6 +5,8 @@
 
 import { all, one, run } from '../lib/db.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
+import * as tv from '../providers/tradingview.mjs';
+import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 
 const J = v => { try { return v ? JSON.parse(v) : []; } catch { return []; } };
 
@@ -37,7 +39,22 @@ function feedInfo(db) {
   return { mode: getMode(db), provider: first.id, live, at };
 }
 
-export const bundle = db => ({ stocks: stocks(db), shortlist: shortlist(db), feed: feedInfo(db) });
+export const bundle = db => ({ stocks: stocks(db), shortlist: shortlist(db), feed: feedInfo(db), screeners: listScreeners() });
+
+// The live screeners available in the view (name + one-line note).
+export const screeners = () => listScreeners();
+
+// Run one screener against the active screener engine and return cards. Personal
+// mode uses TradingView (personal-use only); commercial awaits a licensed engine.
+export async function scan(db, key, limit = 50) {
+  const def = getScreener(key);
+  if (!def) return { error: `unknown screener "${key}"` };
+  if (getMode(db) !== 'personal') {
+    return { screener: def.name, key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
+  }
+  const { totalCount, rows } = await tv.scan({ filters: def.filters, columns: COLUMNS, sort: def.sort, range: [0, limit] });
+  return { screener: def.name, key, provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard) };
+}
 
 // The materialized market_snapshot read model: one global read the Market screen
 // renders and never recomputes (MARKET.md §3.5).

@@ -74,6 +74,8 @@ async function api(req, res, url) {
         if (sub === 'stocks') return json(res, radar.stocks(db));
         if (sub === 'shortlist') return json(res, radar.shortlist(db));
         if (sub === 'market') return json(res, radar.market(db));
+        if (sub === 'screeners') return json(res, radar.screeners());
+        if (sub === 'scan' && seg[3]) return json(res, await radar.scan(db, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, radar.toggleShortlist(db, decodeURIComponent(seg[3])));
     }
