@@ -79,25 +79,40 @@ async function api(req, res, url) {
   }
 }
 
-// static files; a bare directory serves its index.html; unknown non-file paths
-// fall back to index.html (SPA client routing, though this app routes in-memory)
+// Each tool is its own app under app/web/<app>/ and routes client-side within it;
+// the Station launcher owns the root. Rebuilding one app never touches another.
+const APPS = ['journal', 'radar'];
+
+async function sendFile(res, file) {
+  const body = await readFile(file); // throws if missing
+  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+  res.end(body);
+}
+
+// static files; a bare directory serves its index.html; unknown non-file paths fall
+// back to the owning app's index.html (SPA client routing). The root serves the
+// Station launcher once it exists, otherwise it sends users to the Journal.
 async function serveStatic(res, url) {
   let rel = decodeURIComponent(url.pathname);
+
+  if (rel === '/') {
+    try { return await sendFile(res, join(WEB, 'index.html')); }
+    catch { res.writeHead(302, { location: '/journal/' }); return res.end(); }
+  }
+
   if (rel.endsWith('/')) rel += 'index.html';
   const path = normalize(join(WEB, rel));
   if (!path.startsWith(WEB)) return json(res, { error: 'forbidden' }, 403);
   try {
     const s = await stat(path);
-    const file = s.isDirectory() ? join(path, 'index.html') : path;
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
-    res.end(body);
+    return await sendFile(res, s.isDirectory() ? join(path, 'index.html') : path);
   } catch {
-    try {
-      const body = await readFile(join(WEB, 'index.html'));
-      res.writeHead(200, { 'content-type': 'text/html' });
-      res.end(body);
-    } catch { json(res, { error: 'not found', path: rel }, 404); }
+    const seg = rel.split('/').filter(Boolean);
+    if (APPS.includes(seg[0])) {
+      try { return await sendFile(res, join(WEB, seg[0], 'index.html')); } catch { /* fall through */ }
+    }
+    try { return await sendFile(res, join(WEB, 'index.html')); }
+    catch { return json(res, { error: 'not found', path: rel }, 404); }
   }
 }
 

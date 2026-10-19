@@ -81,14 +81,23 @@ flowchart TB
 
 ### 3.1 Screener — the result cards
 
-The landing screen: today's cards for the selected screener(s), with the filters
-(search, screener, news, catalyst, aligned) and the sort (score, change, RVOL,
-live first, newest found). It is kept fresh by the live channel rather than
-showing cards as old as the last load ([WEB.md](../WEB.md), D-S15). The filters
-narrow the list once, and every screen draws from that narrowed list; the open
-screen is remembered in the browser. Each card and its fields:
-[CARD.md](CARD.md). The screener selector offers the tool's built-in presets
-(T1/T2/T7) and the account's own screeners ([SCREENERS.md](SCREENERS.md)).
+The landing screen: today's cards for the selected screener(s). Its filter panel
+is the approved screener layout — **Market** (US Stocks / NASDAQ / NYSE), the
+**Active Screener** selector (the built-in presets T1 — Big Move / T2 — Momentum /
+T7 — Breakout, and Custom; picking a preset sets its own minimum score and relative
+volume), **Min Model Score** (a 40–95 slider), **Min Relative Volume**, a **Price
+Range** ($ low–high), **Market Cap** (Any / below $2B / $2B–$10B / above $10B),
+**Sector**, and a checklist of catalyst/alignment toggles (Pre-Market Movers,
+Earnings Catalyst, CAN SLIM Setup, Above 20 EMA, 9 > 13 > 20 > 50 EMA, Hot Stocks,
+News in last 24h). **Apply Filters** narrows the list once and every screen draws
+from that narrowed list; **Reset** restores the defaults, and **Saved Screens** are
+one-tap shortcuts back to a preset. The results header names the active scanner and
+carries the **sort** — Score ↓, Change ↓, or Ticker A–Z. It is kept fresh by the
+live channel rather than showing cards as old as the last load
+([WEB.md](../WEB.md), D-S15); the open screen is remembered in the browser. Each
+card and its fields: [CARD.md](CARD.md). The screener selector offers the tool's
+built-in presets (T1/T2/T7) and the account's own screeners
+([SCREENERS.md](SCREENERS.md)).
 
 ### 3.2 Shortlist
 
