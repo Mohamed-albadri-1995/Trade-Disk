@@ -112,7 +112,7 @@ export default function App() {
 
   return (
     <>
-      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} feed={feed} />
+      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} feed={feed} onNav={nav} />
       <main>
         {screen === 'screener' && (
           <Screener

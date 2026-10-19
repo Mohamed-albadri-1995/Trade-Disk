@@ -18,7 +18,7 @@ const STATION_LINK = {
   textDecoration: 'none', fontSize: '13px', fontWeight: 650, marginRight: '10px',
 };
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
-export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed }) {
+export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed, onNav }) {
   const live = !!feed?.live;
   return (
     <header className="appbar">
@@ -30,6 +30,7 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed }) {
           ? <span className="demo" style={LIVE_BADGE} title={feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : ''}>● LIVE · {String(feed.provider).toUpperCase()}</span>
           : <span className="demo">● DEMO DATA · NOT LIVE</span>}
         <button className="iconbtn" aria-label="Search" onClick={onSearch}>⌕</button>
+        <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
         <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>
       </div>
     </header>
