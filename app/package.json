@@ -8,6 +8,7 @@
   "scripts": {
     "setup": "node setup.mjs",
     "seed": "node db/seed.mjs",
+    "refresh": "node core/ingest.mjs",
     "start": "node server.mjs",
     "smoke": "node tools/smoke.mjs"
   }

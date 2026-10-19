@@ -200,6 +200,12 @@
 .mode-toggle button{background:#071725;border:0;color:var(--muted);padding:10px 20px;font-weight:750;font-size:13px}
 .mode-toggle button.on{background:linear-gradient(180deg,#1683ff,#0864dc);color:#fff}
 .admin-err{border:1px solid #673c4a;background:#261823;color:#ff9ca8;padding:10px 13px;border-radius:9px;font-size:12px;margin-bottom:12px}
+.refresh-panel{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 18px;margin:0 0 14px}
+.refresh-panel h2{margin:0 0 3px;font-size:16px}
+.refresh-ctl{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.refresh-msg{font-size:12px;color:var(--muted);max-width:380px}
+.refreshbtn{background:linear-gradient(180deg,#1683ff,#0864dc);border:0;color:#fff;padding:10px 18px;border-radius:10px;font-weight:750;font-size:13px;cursor:pointer;white-space:nowrap}
+.refreshbtn:disabled{opacity:.55;cursor:default}
 .src-group{padding:15px 16px;margin-bottom:11px}
 .src-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .src-head h3{margin:0;font-size:15px}

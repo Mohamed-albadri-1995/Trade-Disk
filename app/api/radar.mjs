@@ -4,6 +4,7 @@
 // read-models arrive with their screens in later pieces.
 
 import { all, one, run } from '../lib/db.mjs';
+import { activeFor, getMode } from '../core/sources.mjs';
 
 const J = v => { try { return v ? JSON.parse(v) : []; } catch { return []; } };
 
@@ -27,7 +28,16 @@ export function toggleShortlist(db, ticker) {
   return { ticker, saved: !exists };
 }
 
-export const bundle = db => ({ stocks: stocks(db), shortlist: shortlist(db) });
+// The feed the Price group is on, so the view can show a live/demo badge honestly.
+// `live` means a real provider is active and usable (not the seeded demo).
+function feedInfo(db) {
+  const first = activeFor(db, 'price')[0] || { id: 'demo' };
+  const live = first.id !== 'demo' && first.usable && !(first.needsKey && !first.hasKey);
+  const at = one(db, `SELECT value FROM app_setting WHERE key='radar_refreshed_at'`)?.value || null;
+  return { mode: getMode(db), provider: first.id, live, at };
+}
+
+export const bundle = db => ({ stocks: stocks(db), shortlist: shortlist(db), feed: feedInfo(db) });
 
 // The materialized market_snapshot read model: one global read the Market screen
 // renders and never recomputes (MARKET.md §3.5).

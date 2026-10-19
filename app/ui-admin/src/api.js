@@ -12,4 +12,5 @@ export const api = {
   setMode: (mode) => post('/api/admin/mode', { mode }),
   setGroup: (id, mode, active) => post(`/api/admin/group/${id}`, { mode, active }),
   setKey: (id, provider, key) => post(`/api/admin/key/${id}`, { provider, key }),
+  refresh: () => post('/api/admin/refresh', {}),
 };

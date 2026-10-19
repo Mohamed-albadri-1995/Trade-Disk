@@ -101,6 +101,22 @@ export function config(db) {
   return { mode, groups };
 }
 
+// The providers currently feeding a group, in active order, each tagged for the
+// running mode. Ingestion (core/ingest.mjs) uses this to pick the live feed.
+export function activeFor(db, groupId) {
+  const g = byId[groupId];
+  if (!g) return [];
+  const mode = getMode(db);
+  const r = rowFor(db, groupId);
+  const keys = J(r.keys, {});
+  return J(r.active, ['demo']).map((id) => {
+    const p = prov(g, id);
+    if (!p) return { id, missing: true, usable: false };
+    return { id, tier: p.tier, needsKey: p.needsKey, hasKey: !!keys[id], commercialOk: p.commercialOk,
+      usable: mode === 'commercial' ? p.commercialOk : true, key: keys[id] || null };
+  });
+}
+
 export function setGroup(db, groupId, { mode, active }) {
   const g = byId[groupId];
   if (!g) throw new Error('unknown group ' + groupId);

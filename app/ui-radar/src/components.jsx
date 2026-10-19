@@ -17,14 +17,18 @@ const STATION_LINK = {
   border: '1px solid rgba(120,160,200,.22)', borderRadius: '9px', color: '#a9c1d3',
   textDecoration: 'none', fontSize: '13px', fontWeight: 650, marginRight: '10px',
 };
-export function Appbar({ theme, onToggleTheme, onSearch, onToast }) {
+const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
+export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed }) {
+  const live = !!feed?.live;
   return (
     <header className="appbar">
       <div className="brand"><span className="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></div>
       <div className="app-actions">
         <a href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={STATION_LINK}>← Station</a>
         <button className="iconbtn" id="themeBtn" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" onClick={onToggleTheme}>{theme === 'dark' ? '☾' : '☀'}</button>
-        <span className="demo">● DEMO DATA · NOT LIVE</span>
+        {live
+          ? <span className="demo" style={LIVE_BADGE} title={feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : ''}>● LIVE · {String(feed.provider).toUpperCase()}</span>
+          : <span className="demo">● DEMO DATA · NOT LIVE</span>}
         <button className="iconbtn" aria-label="Search" onClick={onSearch}>⌕</button>
         <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>
       </div>
@@ -164,7 +168,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, onAp
         ))}
       </div>
       <button className="primary" onClick={onApply}>Apply Filters</button>
-      <div className="countline"><span id="filterSummary">{visibleCount} demo stocks match</span><span>Illustrative</span></div>
+      <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Score &amp; tags illustrative</span></div>
       <div className="saved">
         <div className="panel-title"><h3>Saved Screens</h3><button className="linkbtn" onClick={() => onToast('Save-screen management is not part of this prototype.')}>＋</button></div>
         <div className="savedrow"><span>My T1 Setup</span><button onClick={() => onLoadSaved('T1 — Big Move')}>↗</button></div>

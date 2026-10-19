@@ -10,6 +10,7 @@ import { openDb } from './lib/db.mjs';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as sources from './core/sources.mjs';
+import * as ingest from './core/ingest.mjs';
 
 const PORT = process.env.PORT || 8787;
 const WEB = join(import.meta.dirname, 'web');
@@ -85,6 +86,7 @@ async function api(req, res, url) {
         if (m === 'POST' && sub === 'mode') return json(res, sources.setMode(db, (await readBody(req)).mode));
         if (m === 'POST' && sub === 'group' && seg[3]) return json(res, sources.setGroup(db, decodeURIComponent(seg[3]), await readBody(req)));
         if (m === 'POST' && sub === 'key' && seg[3]) { const b = await readBody(req); return json(res, sources.setKey(db, decodeURIComponent(seg[3]), b.provider, b.key)); }
+        if (m === 'POST' && sub === 'refresh') return json(res, await ingest.refresh(db)); // pull live data for the active feed
       } catch (e) {
         return json(res, { error: String(e && e.message || e) }, 400); // guard / validation
       }

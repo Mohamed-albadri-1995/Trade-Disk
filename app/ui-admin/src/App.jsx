@@ -36,6 +36,8 @@ export default function App() {
   const [cfg, setCfg] = useState(null);
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
 
   useEffect(() => { api.sources().then(setCfg).catch((e) => setErr(String(e.message))); }, []);
 
@@ -51,6 +53,13 @@ export default function App() {
     run(api.setGroup(g.id, g.mode, active));
   };
   const setKey = (id, provider, key) => api.setKey(id, provider, key).then(() => api.sources().then(setCfg)).catch((e) => setErr(String(e.message)));
+  const refresh = () => {
+    setBusy(true); setMsg('');
+    api.refresh()
+      .then((r) => { setMsg(r.error || r.note || `Updated ${r.updated} stock${r.updated === 1 ? '' : 's'} from ${r.provider}.`); return api.sources().then(setCfg); })
+      .catch((e) => setMsg(String(e.message)))
+      .finally(() => setBusy(false));
+  };
 
   return (
     <>
@@ -82,6 +91,17 @@ export default function App() {
             </section>
 
             <div className="notice">The <b>demo</b> provider serves the seeded sample data — the default today, so nothing needs a real feed yet. Groups <b>1·2·3·4·7</b> work on free sources; going commercial is the licensed tier of the same feed. Groups <b>5·6·8</b> need a licensed provider (paste a key).</div>
+
+            <section className="panel refresh-panel">
+              <div>
+                <h2>Live data</h2>
+                <p className="subtitle">Pull real quotes for the Radar watchlist from the Price group's active source. Demo stays until you switch Price to a live provider (e.g. Yahoo).</p>
+              </div>
+              <div className="refresh-ctl">
+                {msg ? <span className="refresh-msg">{msg}</span> : null}
+                <button className="refreshbtn" disabled={busy} onClick={refresh}>{busy ? 'Refreshing…' : '↻ Refresh data'}</button>
+              </div>
+            </section>
 
             {cfg.groups.map((g) => (
               <section className={`panel src-group ${g.blocked ? '' : ''}`} key={g.id}>

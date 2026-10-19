@@ -16,6 +16,7 @@ export default function App() {
   const [stocks, setStocks] = useState([]);
   const [shortlist, setShortlist] = useState(() => new Set());
   const [market, setMarket] = useState(null);
+  const [feed, setFeed] = useState(null);
   const [visible, setVisible] = useState([]);
   const [filters, setFilters] = useState(() => structuredClone(DEFAULT_FILTERS));
   const [sort, setSort] = useState('score');
@@ -28,10 +29,11 @@ export default function App() {
   // Load the screener universe + the saved shortlist. The view renders all stocks
   // until the trader applies a filter, exactly like the prototype.
   useEffect(() => {
-    api.bundle().then(({ stocks, shortlist }) => {
+    api.bundle().then(({ stocks, shortlist, feed }) => {
       setStocks(stocks);
       setVisible(stocks);
       setShortlist(new Set(shortlist));
+      setFeed(feed);
       setLoaded(true);
     }).catch(() => setLoaded(true));
     api.market().then(setMarket).catch(() => {});
@@ -93,7 +95,7 @@ export default function App() {
 
   return (
     <>
-      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} />
+      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} feed={feed} />
       <main>
         {screen === 'screener' && (
           <Screener
