@@ -181,6 +181,14 @@ In the commercial front end this builder is **Radar's Settings / custom screener
 presets (T1/T2/T7) are shared read-only ([DESK.md §1](../DESK.md),
 [ACCOUNTS.md](../../13-accounts/ACCOUNTS.md)).
 
+**Where a custom screener is kept.** In **solo mode** the Settings builder keeps a
+user's custom screeners on the **device** (the browser), exactly as the prototype
+shows ("Saved on this device") — there is no server-side scanner consuming them
+yet, so the builder is configuration only. In **hosted mode** they are persisted
+**per-account server-side** and run on the licensed provider; moving from solo to
+hosted carries the same definition shape (name, conditions, running windows,
+timezone) up to the account.
+
 ---
 
 ## 5. Contracts

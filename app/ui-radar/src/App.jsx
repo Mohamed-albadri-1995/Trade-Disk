@@ -5,6 +5,7 @@ import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS } from './lib.j
 import { Appbar, BottomNav, Footer, Toast } from './components.jsx';
 import { Screener, Shortlist, StepPlaceholder } from './screens.jsx';
 import { Market } from './market.jsx';
+import { Settings } from './settings.jsx';
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 700;
 
@@ -104,7 +105,8 @@ export default function App() {
           <Shortlist saved={savedCards} shortlist={shortlist} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} />
         )}
         {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} />}
-        {(screen === 'settings' || screen === 'analysis') && (
+        {screen === 'settings' && <Settings onToast={toast} />}
+        {screen === 'analysis' && (
           <StepPlaceholder screen={screen} selectedTicker={selectedTicker} onNav={nav} />
         )}
         <Footer />
