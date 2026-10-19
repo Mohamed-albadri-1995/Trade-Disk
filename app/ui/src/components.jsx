@@ -21,7 +21,7 @@ export function Shell({ page, onNav, onTheme, onNewTrade, children }) {
     <div className="app">
       <aside className="sidebar">
         <div className="brand"><div className="brandmark">◆</div><div><span className="bn">Trade-Disk</span><span className="bt">THE TRADING STATION</span></div></div>
-        <button className="tohome" onClick={() => onNav('home')}>← Trade-Disk home</button>
+        <button className="tohome" onClick={() => { window.location.href = '/'; }}>← Trade-Disk home</button>
         <div className="navlabel">Journal</div>
         <nav className="nav">{NAV_MAIN.map(NavBtn)}</nav>
         <div className="navlabel">Workspace</div>

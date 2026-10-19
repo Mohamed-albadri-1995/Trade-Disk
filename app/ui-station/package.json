@@ -1,0 +1,20 @@
+{
+  "name": "trade-disk-station",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Trade-Disk — the Station launcher (React + Vite). The home page at /, linking to each tool. Reproduces the approved prototype's station home.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.4",
+    "vite": "5.4.11"
+  }
+}
