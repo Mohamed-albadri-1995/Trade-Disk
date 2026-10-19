@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { money } from './lib.js';
 import { Overview } from './analysis-overview.jsx';
 import { Technical } from './analysis-technical.jsx';
+import { Canslim } from './analysis-canslim.jsx';
+import { Fundamental } from './analysis-fundamental.jsx';
 
 // The stock hero — identity, price, after-hours, chips, favourite and model score.
 // openStock in the prototype updates identity/price/score only; the chips and
@@ -32,16 +34,6 @@ function Hero({ s, saved, onToggleStar, onToast }) {
 
 const TABS = [['overview', 'Overview'], ['technical', 'Technical'], ['canslim', 'CAN SLIM'], ['fundamental', 'Fundamentals & News']];
 
-// Panes still to come in Radar piece F.
-function StepPane({ id, eyebrow, h1, subtitle }) {
-  return (
-    <div id={id} className="pane">
-      <div className="page-head"><div><div className="eyebrow">{eyebrow}</div><h2>{h1}</h2><p className="subtitle">{subtitle}</p></div><span className="tag">Built in the next Radar step</span></div>
-      <section className="panel results"><div className="empty"><b>Built in the next Radar step</b>This tab ({h1}) is reproduced from the approved prototype in piece F. Overview and Technical are live now.</div></section>
-    </div>
-  );
-}
-
 // The analysis workspace — a stock in four tabs. Opened from a stock card.
 export function Analysis({ stock, saved, onToggleStar, onNav, onToast }) {
   const [tab, setTab] = useState('overview');
@@ -64,8 +56,8 @@ export function Analysis({ stock, saved, onToggleStar, onNav, onToast }) {
       </div>
       {tab === 'overview' && <Overview stock={stock} onToast={onToast} setTab={setTab} onNav={onNav} />}
       {tab === 'technical' && <Technical stock={stock} onNav={onNav} onToast={onToast} />}
-      {tab === 'canslim' && <StepPane id="canslim" eyebrow="William J. O’Neil framework" h1="CAN SLIM / O’Neil Analysis" subtitle="Seven-factor evidence review · all figures are fictional and for illustration only." />}
-      {tab === 'fundamental' && <StepPane id="fundamental" eyebrow="Company performance, valuation & catalysts" h1="Fundamentals & News" subtitle="Understand the company’s financial health, valuation, earnings/events and stock-specific news." />}
+      {tab === 'canslim' && <Canslim stock={stock} />}
+      {tab === 'fundamental' && <Fundamental onNav={onNav} />}
     </section>
   );
 }
