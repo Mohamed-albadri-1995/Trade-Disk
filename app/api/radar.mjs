@@ -28,3 +28,10 @@ export function toggleShortlist(db, ticker) {
 }
 
 export const bundle = db => ({ stocks: stocks(db), shortlist: shortlist(db) });
+
+// The materialized market_snapshot read model: one global read the Market screen
+// renders and never recomputes (MARKET.md §3.5).
+export function market(db) {
+  const r = one(db, `SELECT snapshot FROM radar_market WHERE id = 1`);
+  return r ? JSON.parse(r.snapshot) : null;
+}

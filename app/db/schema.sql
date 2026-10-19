@@ -116,4 +116,14 @@ CREATE TABLE IF NOT EXISTS radar_shortlist (
   added_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- the Market dashboard's materialized market_snapshot (MARKET.md §3.5): one global
+-- read, published atomically, that the Market screen renders and never recomputes.
+-- Solo mode keeps the whole snapshot as one JSON document; hosted mode publishes it
+-- per the licensed provider, shared across accounts (the market is global).
+CREATE TABLE IF NOT EXISTS radar_market (
+  id        INTEGER PRIMARY KEY CHECK (id = 1),
+  snapshot  TEXT NOT NULL,   -- the market_snapshot read model (JSON)
+  as_of     TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_radar_stock_sort ON radar_stock(sort);

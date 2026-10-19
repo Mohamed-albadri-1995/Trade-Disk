@@ -15,4 +15,6 @@ export const api = {
   // Toggle a ticker in the shortlist; returns { ticker, saved }.
   toggleShortlist: (ticker) =>
     j(`/api/radar/shortlist/${encodeURIComponent(ticker)}`, { method: 'POST' }),
+  // The materialized market_snapshot the Market dashboard renders.
+  market: () => j('/api/radar/market'),
 };

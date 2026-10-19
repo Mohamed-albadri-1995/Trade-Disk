@@ -4,6 +4,7 @@ import { getTheme, toggleTheme } from './theme.js';
 import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS } from './lib.js';
 import { Appbar, BottomNav, Footer, Toast } from './components.jsx';
 import { Screener, Shortlist, StepPlaceholder } from './screens.jsx';
+import { Market } from './market.jsx';
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 700;
 
@@ -12,6 +13,7 @@ export default function App() {
   const [screen, setScreen] = useState('screener');
   const [stocks, setStocks] = useState([]);
   const [shortlist, setShortlist] = useState(() => new Set());
+  const [market, setMarket] = useState(null);
   const [visible, setVisible] = useState([]);
   const [filters, setFilters] = useState(() => structuredClone(DEFAULT_FILTERS));
   const [sort, setSort] = useState('score');
@@ -30,6 +32,7 @@ export default function App() {
       setShortlist(new Set(shortlist));
       setLoaded(true);
     }).catch(() => setLoaded(true));
+    api.market().then(setMarket).catch(() => {});
   }, []);
 
   const toast = (msg) => {
@@ -100,7 +103,8 @@ export default function App() {
         {screen === 'shortlist' && (
           <Shortlist saved={savedCards} shortlist={shortlist} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} />
         )}
-        {(screen === 'market' || screen === 'settings' || screen === 'analysis') && (
+        {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} />}
+        {(screen === 'settings' || screen === 'analysis') && (
           <StepPlaceholder screen={screen} selectedTicker={selectedTicker} onNav={nav} />
         )}
         <Footer />

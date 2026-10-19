@@ -70,6 +70,7 @@ async function api(req, res, url) {
         if (sub === 'bundle') return json(res, radar.bundle(db));
         if (sub === 'stocks') return json(res, radar.stocks(db));
         if (sub === 'shortlist') return json(res, radar.shortlist(db));
+        if (sub === 'market') return json(res, radar.market(db));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, radar.toggleShortlist(db, decodeURIComponent(seg[3])));
     }
