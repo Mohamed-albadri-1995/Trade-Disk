@@ -17,6 +17,8 @@ export default function App() {
   const [shortlist, setShortlist] = useState(() => new Set());
   const [market, setMarket] = useState(null);
   const [feed, setFeed] = useState(null);
+  const [screeners, setScreeners] = useState([]);
+  const [scanInfo, setScanInfo] = useState(null);
   const [visible, setVisible] = useState([]);
   const [filters, setFilters] = useState(() => structuredClone(DEFAULT_FILTERS));
   const [sort, setSort] = useState('score');
@@ -26,15 +28,21 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
   const toastTimer = useRef(null);
 
-  // Load the screener universe + the saved shortlist. The view renders all stocks
-  // until the trader applies a filter, exactly like the prototype.
+  // Load the available screeners + the saved shortlist. In Personal mode we run the
+  // first screener live (TradingView) so the view opens on real market results; in
+  // Commercial mode (no licensed engine yet) we fall back to the seeded demo set.
   useEffect(() => {
-    api.bundle().then(({ stocks, shortlist, feed }) => {
-      setStocks(stocks);
-      setVisible(stocks);
+    api.bundle().then(({ stocks, shortlist, feed, screeners }) => {
       setShortlist(new Set(shortlist));
       setFeed(feed);
-      setLoaded(true);
+      setScreeners(screeners || []);
+      const firstKey = screeners?.[0]?.key;
+      if (firstKey) setFilters((f) => ({ ...f, preset: firstKey }));
+      if (feed?.mode === 'personal' && firstKey) {
+        runScan(firstKey);
+      } else {
+        setStocks(stocks); setVisible(stocks); setLoaded(true);
+      }
     }).catch(() => setLoaded(true));
     api.market().then(setMarket).catch(() => {});
   }, []);
@@ -69,14 +77,23 @@ export default function App() {
     setVisible(stocks);
   };
 
-  // changePreset(): set this preset's score/rvol, then apply.
-  const onChangePreset = (preset) => {
-    const next = { ...filters, preset, ...(preset === 'Custom' ? {} : presetValues(preset)) };
-    setFilters(next);
-    setVisible(filterStocks(stocks, next));
+  // Selecting a screener runs it live against the active engine (Personal → the
+  // TradingView scanner) and shows ALL its matches; the sidebar filters then refine
+  // those results locally. The server-side screener has already done the real work,
+  // so we don't auto-apply the numeric filters on top.
+  const runScan = (key) => {
+    setLoaded(false);
+    api.scan(key)
+      .then((res) => {
+        setScanInfo(res);
+        if (res && res.stocks) { setStocks(res.stocks); setVisible(res.stocks); }
+        else { setStocks([]); setVisible([]); if (res?.error) toast(res.error); }
+        setLoaded(true);
+      })
+      .catch(() => { setLoaded(true); toast('Could not reach the screener.'); });
   };
-
-  const onLoadSaved = (preset) => onChangePreset(preset);
+  const onChangePreset = (key) => { setFilters((f) => ({ ...f, preset: key })); runScan(key); };
+  const onLoadSaved = (key) => onChangePreset(key);
 
   const onToggleFilters = () => setCollapsed((c) => !c);
 
@@ -100,6 +117,7 @@ export default function App() {
         {screen === 'screener' && (
           <Screener
             filters={filters} setFilters={setFilters} visibleSorted={visibleSorted} visibleCount={visible.length}
+            screeners={screeners} scanInfo={scanInfo}
             sort={sort} setSort={setSort} shortlist={shortlist} selectedTicker={selectedTicker} screen={screen}
             collapsed={collapsed} loading={!loaded}
             onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}

@@ -112,7 +112,7 @@ const CHECK_LABELS = {
 };
 
 // The left filter panel — the approved screener layout, controlled by App state.
-export function FilterPanel({ filters, setFilters, visibleCount, collapsed, onApply, onReset, onChangePreset, onLoadSaved, onToast }) {
+export function FilterPanel({ filters, setFilters, visibleCount, collapsed, screeners, onApply, onReset, onChangePreset, onLoadSaved, onToast }) {
   const set = (patch) => setFilters({ ...filters, ...patch });
   const setCheck = (id, v) => setFilters({ ...filters, checks: { ...filters.checks, [id]: v } });
   return (
@@ -127,12 +127,11 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, onAp
       <div className="field">
         <label htmlFor="preset">ACTIVE SCREENER</label>
         <select id="preset" className="select" value={filters.preset} onChange={(e) => onChangePreset(e.target.value)}>
-          <option value="T1 — Big Move">T1 — Big Move</option>
-          <option value="T2 — Momentum">T2 — Momentum</option>
-          <option value="T7 — Breakout">T7 — Breakout</option>
-          <option value="Custom">Custom</option>
+          {(screeners && screeners.length)
+            ? screeners.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)
+            : <option value={filters.preset}>Loading…</option>}
         </select>
-        <small className="subtitle">Switch between screening tools</small>
+        <small className="subtitle">Live market scan — pick a screener to run it</small>
       </div>
       <div className="field">
         <div className="rangehead"><label htmlFor="score">Min Model Score</label><strong id="scoreVal">{filters.score}</strong></div>
@@ -171,8 +170,8 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, onAp
       <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Score &amp; tags illustrative</span></div>
       <div className="saved">
         <div className="panel-title"><h3>Saved Screens</h3><button className="linkbtn" onClick={() => onToast('Save-screen management is not part of this prototype.')}>＋</button></div>
-        <div className="savedrow"><span>My T1 Setup</span><button onClick={() => onLoadSaved('T1 — Big Move')}>↗</button></div>
-        <div className="savedrow"><span>Earnings + Volume</span><button onClick={() => onLoadSaved('T2 — Momentum')}>↗</button></div>
+        <div className="savedrow"><span>Trend Leaders</span><button onClick={() => onLoadSaved('trend-leaders')}>↗</button></div>
+        <div className="savedrow"><span>Growth Pullback</span><button onClick={() => onLoadSaved('growth-pullback')}>↗</button></div>
       </div>
     </aside>
   );

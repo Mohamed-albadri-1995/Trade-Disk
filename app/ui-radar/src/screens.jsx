@@ -2,7 +2,9 @@ import React from 'react';
 import { StockCard, FilterPanel, FiltersToggle, presetTitle } from './components.jsx';
 
 // Screener — the landing screen: the filter panel + the result cards.
-export function Screener({ filters, setFilters, visibleSorted, visibleCount, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
+export function Screener({ filters, setFilters, visibleSorted, visibleCount, screeners, scanInfo, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
+  const current = (screeners || []).find((s) => s.key === filters.preset);
+  const matched = scanInfo && Number.isFinite(scanInfo.totalCount) ? scanInfo.totalCount : null;
   return (
     <section id="screener" className="screen active">
       <div className="page-head">
@@ -20,13 +22,13 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, sor
       <FiltersToggle checks={filters.checks} collapsed={collapsed} onToggle={onToggleFilters} />
       <div className="layout">
         <FilterPanel
-          filters={filters} setFilters={setFilters} visibleCount={visibleCount} collapsed={collapsed}
+          filters={filters} setFilters={setFilters} visibleCount={visibleCount} collapsed={collapsed} screeners={screeners}
           onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved} onToast={onToast} />
         <section className="panel results">
           <div className="results-top">
             <div>
-              <h2 id="presetTitle">{presetTitle(filters.preset)}</h2>
-              <p>Real-time-style demo opportunities with momentum and catalysts</p>
+              <h2 id="presetTitle">{current ? current.name : 'Screener'}</h2>
+              <p>{scanInfo?.error ? scanInfo.error : (current?.note || 'Live market screener')}</p>
             </div>
             <div className="result-tools">
               <select id="sort" className="sort" value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -37,7 +39,7 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, sor
             </div>
           </div>
           <div className="countline">
-            <span id="resultCount">Results · {visibleSorted.length} stock{visibleSorted.length === 1 ? '' : 's'}</span>
+            <span id="resultCount">Results · {visibleSorted.length} stock{visibleSorted.length === 1 ? '' : 's'}{matched != null && matched > visibleSorted.length ? ` · ${matched} matched` : ''}</span>
             <span>Tap a stock to analyze →</span>
           </div>
           <div className="stocklist" id="stocks" aria-live="polite">
@@ -46,9 +48,9 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, sor
                 selected={screen === 'analysis' && selectedTicker === s.t}
                 onToggleStar={onToggleStar} onOpen={onOpen} />
             )) : loading ? (
-              <div className="empty"><b>Loading the demo universe…</b>Reading the screener records from the API.</div>
+              <div className="empty"><b>Scanning the market…</b>Running {current ? current.name : 'the screener'} against the live feed.</div>
             ) : (
-              <div className="empty"><b>No demo stocks match these filters</b>Try lowering the minimum score or relative-volume filter, or reset your filters.</div>
+              <div className="empty"><b>No matches right now</b>{scanInfo?.error ? scanInfo.error : 'This screener found nothing at the moment — try another screener, or check back when the market is active.'}</div>
             )}
           </div>
         </section>
