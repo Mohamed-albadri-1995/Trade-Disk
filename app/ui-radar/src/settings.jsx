@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   FILTER_LIBRARY, OPERATORS, TIMEFRAMES, SOURCES, VARIANTS, SESSIONS, EVERY_OPTIONS, TIMEZONES,
   newCondition, newWindow, fieldVisibility, buildConditionPreview, conditionIncomplete,
-  filterSummary, scheduleSummary, loadConfigs, saveConfigs, newScreenerId,
+  filterSummary, scheduleSummary,
 } from './screener-builder.js';
+import { api } from './api.js';
 
 const MetricOptions = () => FILTER_LIBRARY.map((g) => (
   <optgroup key={g.category} label={g.category}>
@@ -113,14 +114,59 @@ function SavedScreener({ c, onEdit, onDelete }) {
   );
 }
 
-// The Settings screen: the saved-screeners overview and the on-demand editor.
+// One built-in screener's scan schedule — its rules are fixed, so only the windows
+// and timezone are editable. Saved to the server per screener key.
+function BuiltinSchedule({ s, schedule, onSave, onToast }) {
+  const [windows, setWindows] = useState(() => (schedule?.windows?.length ? schedule.windows : [newWindow()]).map((w) => newWindow(w)));
+  const [timezone, setTimezone] = useState(schedule?.timezone || 'device');
+  const [saving, setSaving] = useState(false);
+  // Pick up the server's stored schedule once it arrives.
+  useEffect(() => {
+    if (schedule) {
+      setWindows((schedule.windows?.length ? schedule.windows : [newWindow()]).map((w) => newWindow(w)));
+      setTimezone(schedule.timezone || 'device');
+    }
+  }, [schedule]);
+  const save = () => {
+    if (!windows.length || windows.some((w) => !w.start || !w.end || w.start >= w.end)) { onToast('Each window needs a valid start and end time.'); return; }
+    setSaving(true);
+    onSave(s.key, { windows, timezone }).catch(() => {}).finally(() => setSaving(false));
+  };
+  return (
+    <div className="saved-screener" style={{ display: 'block' }}>
+      <div className="saved-screener-title" style={{ marginBottom: '4px' }}><strong>{s.name}</strong><span className="settings-pill">BUILT-IN</span></div>
+      <small>{s.note}</small>
+      <div className="schedule-window-list" style={{ marginTop: '10px' }}>
+        {windows.map((w) => (
+          <ScheduleWindow key={w.id} w={w}
+            onChange={(nw) => setWindows((ws) => ws.map((x) => (x.id === w.id ? nw : x)))}
+            onRemove={() => setWindows((ws) => (ws.length > 1 ? ws.filter((x) => x.id !== w.id) : ws))} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+        <button type="button" className="add-window" onClick={() => setWindows((ws) => [...ws, newWindow()])}>＋ Add window</button>
+        <select className="select" style={{ maxWidth: '180px' }} value={timezone} onChange={(e) => setTimezone(e.target.value)}>{TIMEZONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <button className="primary" style={{ marginLeft: 'auto' }} disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save schedule'}</button>
+      </div>
+    </div>
+  );
+}
+
+// The Settings screen: the built-in screeners' schedules, the custom-screener
+// overview, and the on-demand editor. All server-persisted.
 export function Settings({ onToast }) {
-  const [configs, setConfigs] = useState(loadConfigs);
+  const [configs, setConfigs] = useState([]);
+  const [schedules, setSchedules] = useState({});
+  const [builtins, setBuiltins] = useState([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', conditions: [], windows: [], timezone: 'device' });
   const editorRef = useRef(null);
 
+  useEffect(() => {
+    api.configs().then(({ custom, schedules }) => { setConfigs(custom || []); setSchedules(schedules || {}); }).catch(() => {});
+    api.screeners().then(setBuiltins).catch(() => {});
+  }, []);
   useEffect(() => { if (editorOpen && editorRef.current) editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [editorOpen]);
 
   const openCreate = () => {
@@ -134,7 +180,7 @@ export function Settings({ onToast }) {
     setEditingId(c.id);
     setForm({
       name: c.name, description: c.description || '',
-      conditions: (c.conditions || (c.filters || []).map((metric) => ({ metric }))).map((x) => newCondition(x)),
+      conditions: (c.conditions && c.conditions.length ? c.conditions : (c.filters || []).map((metric) => ({ metric }))).map((x) => newCondition(x)),
       windows: (c.windows && c.windows.length ? c.windows : [{}]).map((w) => newWindow(w)),
       timezone: c.timezone || 'device',
     });
@@ -152,23 +198,21 @@ export function Settings({ onToast }) {
     if (!conditions.length || conditions.some(conditionIncomplete)) { onToast('Complete each condition or remove the empty row.'); return; }
     if (!form.windows.length) { onToast('Add at least one running window.'); return; }
     if (form.windows.some((w) => !w.start || !w.end || w.start >= w.end)) { onToast('Each running window needs a valid start and end time.'); return; }
-    const cfg = { id: editingId || newScreenerId(), name, description: form.description.trim(), conditions, filters: conditions.map((c) => c.metric), windows: form.windows, timezone: form.timezone };
-    setConfigs((prev) => {
-      const idx = prev.findIndex((x) => x.id === cfg.id);
-      const next = idx >= 0 ? prev.map((x) => (x.id === cfg.id ? cfg : x)) : [cfg, ...prev];
-      saveConfigs(next);
-      return next;
-    });
-    setEditorOpen(false);
-    onToast('Screener configuration saved on this device. Background scanning is not connected yet.');
+    const cfg = { id: editingId || undefined, name, description: form.description.trim(), conditions, windows: form.windows, timezone: form.timezone };
+    api.saveConfig(cfg)
+      .then(({ custom }) => { setConfigs(custom || []); setEditorOpen(false); onToast('Screener saved to your workspace.'); })
+      .catch((e) => onToast(String(e.message)));
   };
 
   const del = (id) => {
     const c = configs.find((x) => x.id === id);
     if (!c || !window.confirm('Delete "' + c.name + '"? This cannot be undone.')) return;
-    setConfigs((prev) => { const next = prev.filter((x) => x.id !== id); saveConfigs(next); return next; });
-    onToast('Screener configuration removed.');
+    api.deleteConfig(id).then(({ custom }) => { setConfigs(custom || []); onToast('Screener removed.'); }).catch((e) => onToast(String(e.message)));
   };
+
+  const saveSchedule = (key, body) => api.saveSchedule(key, body)
+    .then(({ schedules }) => { setSchedules(schedules || {}); onToast('Scan schedule saved.'); })
+    .catch((e) => { onToast(String(e.message)); throw e; });
 
   return (
     <section id="settings" className="screen active">
@@ -176,21 +220,32 @@ export function Settings({ onToast }) {
         <div>
           <div className="eyebrow">Your screening workspace</div>
           <h1>Settings</h1>
-          <p className="subtitle">Manage your screening tools and their schedules.</p>
+          <p className="subtitle">Manage your screening tools and their scan schedules.</p>
         </div>
-        <span className="tag">Saved on this device</span>
+        <span className="tag">Saved to your workspace</span>
       </div>
-      <div className="settings-note"><strong>Configuration only:</strong> settings are stored in this browser. Scheduled scanning and live market data are not connected yet.</div>
+      <div className="settings-note"><strong>Saved on the server</strong> — your screeners and schedules live in your workspace, not just this browser, so they follow you across devices. Automatic background scanning on these schedules is wired in a later step; for now the schedule is stored and the Screener tab runs on demand.</div>
 
       <section className="panel settings-overview">
         <div className="settings-overview-head">
-          <div><h2>Your screeners</h2><p className="subtitle">Review what you already have. Create another screener only when you need one.</p></div>
+          <div><h2>Built-in screeners</h2><p className="subtitle">The five live screeners. Set when each one should scan — its rules are fixed.</p></div>
+        </div>
+        <div id="builtinScheduleList">
+          {builtins.length ? builtins.map((s) => (
+            <BuiltinSchedule key={s.key} s={s} schedule={schedules[s.key]} onSave={saveSchedule} onToast={onToast} />
+          )) : <div className="settings-empty"><b>Loading…</b>Reading the live screeners.</div>}
+        </div>
+      </section>
+
+      <section className="panel settings-overview">
+        <div className="settings-overview-head">
+          <div><h2>Your custom screeners</h2><p className="subtitle">Build your own rules and schedule. Create one only when you need it.</p></div>
           <button className="primary create-screener-btn" onClick={openCreate}>＋ Create screener</button>
         </div>
-        <div className="settings-summary"><span><b id="savedScreenerCount">{configs.length}</b> saved screeners</span><span>Manage names, filters and running windows</span></div>
+        <div className="settings-summary"><span><b id="savedScreenerCount">{configs.length}</b> saved</span><span>Names, filters and running windows</span></div>
         <div id="savedScreenerList">
           {configs.length ? configs.map((c) => <SavedScreener key={c.id} c={c} onEdit={openEdit} onDelete={del} />)
-            : <div className="settings-empty"><b>No custom screeners yet</b>Your built-in screeners remain in the Screener tab. Create a custom screen when you want your own rules or schedule.</div>}
+            : <div className="settings-empty"><b>No custom screeners yet</b>Your built-in screeners are above. Create a custom screen when you want your own rules.</div>}
         </div>
       </section>
 
@@ -201,7 +256,7 @@ export function Settings({ onToast }) {
             <button className="iconbtn" aria-label="Close editor" onClick={close}>✕</button>
           </div>
           <div className="settings-form-grid">
-            <div className="field"><label htmlFor="scrName">SCREENER NAME</label><input className="input" id="scrName" maxLength={60} placeholder="e.g. T1 — Breakout Watch" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="field"><label htmlFor="scrName">SCREENER NAME</label><input className="input" id="scrName" maxLength={60} placeholder="e.g. My Breakout Watch" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="field"><label htmlFor="scrDescription">DESCRIPTION (OPTIONAL)</label><input className="input" id="scrDescription" maxLength={120} placeholder="What should this screener find?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           </div>
 

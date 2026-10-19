@@ -20,4 +20,9 @@ export const api = {
   // The live screeners available, and running one against the active engine.
   screeners: () => j('/api/radar/screeners'),
   scan: (key, limit) => j(`/api/radar/scan/${encodeURIComponent(key)}${limit ? `?limit=${limit}` : ''}`),
+  // Server-persisted screener configs (custom) + built-in scan schedules.
+  configs: () => j('/api/radar/configs'),
+  saveConfig: (cfg) => j('/api/radar/config', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(cfg) }),
+  deleteConfig: (id) => j(`/api/radar/config/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  saveSchedule: (key, body) => j(`/api/radar/schedule/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
 };

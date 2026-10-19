@@ -56,6 +56,49 @@ export async function scan(db, key, limit = 50) {
   return { screener: def.name, key, provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard) };
 }
 
+// ── screener configs + scan schedules (server-persisted; was browser localStorage) ──
+// Returns the trader's custom screeners and the built-in screeners' schedules.
+export function screenerConfigs(db) {
+  const rows = all(db, `SELECT * FROM radar_screener ORDER BY sort, updated_at`);
+  const custom = rows.filter((r) => r.kind === 'custom').map((r) => {
+    const conditions = J(r.conditions);
+    return { id: r.id, name: r.name, description: r.description || '', conditions,
+      filters: conditions.map((c) => c.metric), windows: J(r.windows), timezone: r.timezone };
+  });
+  const schedules = {};
+  for (const r of rows) if (r.kind === 'builtin') schedules[r.id] = { windows: J(r.windows), timezone: r.timezone };
+  return { custom, schedules };
+}
+
+export function saveScreenerConfig(db, cfg) {
+  if (!cfg || !String(cfg.name || '').trim()) throw new Error('a screener name is required');
+  const id = cfg.id || ('scr-' + Date.now());
+  run(db, `INSERT INTO radar_screener (id,kind,name,description,conditions,windows,timezone,sort,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,datetime('now'))
+           ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.description,
+             conditions=excluded.conditions, windows=excluded.windows, timezone=excluded.timezone, updated_at=excluded.updated_at`,
+    id, 'custom', String(cfg.name).trim(), cfg.description || '', JSON.stringify(cfg.conditions || []),
+    JSON.stringify(cfg.windows || []), cfg.timezone || 'device', cfg.sort || 0);
+  return screenerConfigs(db);
+}
+
+export function deleteScreenerConfig(db, id) {
+  run(db, `DELETE FROM radar_screener WHERE id=? AND kind='custom'`, id);
+  return screenerConfigs(db);
+}
+
+// The scan schedule for one built-in screener (its rule set is fixed; only the
+// windows + timezone are the trader's to set).
+export function saveSchedule(db, key, body) {
+  const def = getScreener(key);
+  if (!def) throw new Error('unknown screener ' + key);
+  run(db, `INSERT INTO radar_screener (id,kind,name,description,conditions,windows,timezone,updated_at)
+           VALUES (?,?,?,?,?,?,?,datetime('now'))
+           ON CONFLICT(id) DO UPDATE SET name=excluded.name, windows=excluded.windows, timezone=excluded.timezone, updated_at=excluded.updated_at`,
+    key, 'builtin', def.name, '', '[]', JSON.stringify(body?.windows || []), body?.timezone || 'device');
+  return screenerConfigs(db);
+}
+
 // The materialized market_snapshot read model: one global read the Market screen
 // renders and never recomputes (MARKET.md §3.5).
 export function market(db) {

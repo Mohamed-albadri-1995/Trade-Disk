@@ -147,3 +147,20 @@ CREATE TABLE IF NOT EXISTS source_group (
   active  TEXT NOT NULL DEFAULT '["demo"]', -- JSON: ordered provider ids
   keys    TEXT NOT NULL DEFAULT '{}'        -- JSON: { providerId: apiKey }
 );
+
+-- A trader's custom screeners and the built-in screeners' scan schedules. These
+-- used to live in the browser (localStorage); they belong on the server, so they
+-- survive across browsers/devices and, in hosted mode, scope to an account (add an
+-- account key per row — the config/schedule shape does not change). Solo mode is a
+-- single owner, so there is one set of rows.
+CREATE TABLE IF NOT EXISTS radar_screener (
+  id          TEXT PRIMARY KEY,              -- custom id ('scr-…') or a built-in screener key ('trend-leaders')
+  kind        TEXT NOT NULL,                 -- 'custom' | 'builtin'
+  name        TEXT,
+  description TEXT,
+  conditions  TEXT NOT NULL DEFAULT '[]',    -- JSON: the custom rule rows (custom only)
+  windows     TEXT NOT NULL DEFAULT '[]',    -- JSON: the scan-schedule windows
+  timezone    TEXT NOT NULL DEFAULT 'device',
+  sort        INTEGER NOT NULL DEFAULT 0,
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);

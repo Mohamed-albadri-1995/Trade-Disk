@@ -76,8 +76,16 @@ async function api(req, res, url) {
         if (sub === 'market') return json(res, radar.market(db));
         if (sub === 'screeners') return json(res, radar.screeners());
         if (sub === 'scan' && seg[3]) return json(res, await radar.scan(db, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
+        if (sub === 'configs') return json(res, radar.screenerConfigs(db));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, radar.toggleShortlist(db, decodeURIComponent(seg[3])));
+      try {
+        if (m === 'POST' && sub === 'config') return json(res, radar.saveScreenerConfig(db, await readBody(req)), 201);
+        if (m === 'POST' && sub === 'schedule' && seg[3]) return json(res, radar.saveSchedule(db, decodeURIComponent(seg[3]), await readBody(req)));
+        if (m === 'DELETE' && sub === 'config' && seg[3]) return json(res, radar.deleteScreenerConfig(db, decodeURIComponent(seg[3])));
+      } catch (e) {
+        return json(res, { error: String(e && e.message || e) }, 400);
+      }
     }
 
     // the dual-mode feed switch (the admin dashboard reads/writes this)
