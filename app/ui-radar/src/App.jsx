@@ -3,9 +3,10 @@ import { api } from './api.js';
 import { getTheme, toggleTheme } from './theme.js';
 import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS } from './lib.js';
 import { Appbar, BottomNav, Footer, Toast } from './components.jsx';
-import { Screener, Shortlist, StepPlaceholder } from './screens.jsx';
+import { Screener, Shortlist } from './screens.jsx';
 import { Market } from './market.jsx';
 import { Settings } from './settings.jsx';
+import { Analysis } from './analysis.jsx';
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 700;
 
@@ -88,6 +89,7 @@ export default function App() {
 
   const visibleSorted = useMemo(() => sortStocks(visible, sort), [visible, sort]);
   const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
+  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
 
   return (
     <>
@@ -107,7 +109,7 @@ export default function App() {
         {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} />}
         {screen === 'settings' && <Settings onToast={toast} />}
         {screen === 'analysis' && (
-          <StepPlaceholder screen={screen} selectedTicker={selectedTicker} onNav={nav} />
+          <Analysis stock={selectedStock} saved={!!selectedStock && shortlist.has(selectedStock.t)} onToggleStar={onToggleStar} onNav={nav} onToast={toast} />
         )}
         <Footer />
       </main>

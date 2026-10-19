@@ -90,31 +90,3 @@ export function Shortlist({ saved, shortlist, onToggleStar, onOpen, onNav }) {
   );
 }
 
-// Screens that later Radar steps fill in. Honest about the incremental build; the
-// page-head matches each screen's approved heading so the shell stays coherent.
-const STEP = {
-  market: { eyebrow: 'Broad-market context', h1: 'Market', subtitle: 'A structured view of major-index direction, market stage, final regime and sector leadership.', step: 'step C' },
-  settings: { eyebrow: 'Your screening workspace', h1: 'Settings', subtitle: 'Manage your screening tools and their schedules.', step: 'step D' },
-  analysis: { eyebrow: 'Analysis workspace', h1: 'Analysis', subtitle: 'Overview, Technical, CAN SLIM and Fundamentals for the selected stock.', step: 'steps E–F' },
-};
-export function StepPlaceholder({ screen, selectedTicker, onNav }) {
-  const m = STEP[screen];
-  return (
-    <section id={screen} className="screen active">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">{m.eyebrow}</div>
-          <h1>{m.h1}{screen === 'analysis' && selectedTicker ? <span style={{ color: 'var(--muted)', fontWeight: 500 }}> · {selectedTicker}</span> : null}</h1>
-          <p className="subtitle">{m.subtitle}</p>
-        </div>
-        <button className="ghost" onClick={() => onNav('screener')}>← Back to Screener</button>
-      </div>
-      <section className="panel results">
-        <div className="empty">
-          <b>Built in the next Radar step</b>
-          This screen ({m.h1}) is reproduced from the approved prototype in {m.step}. The Screener and Shortlist are live now.
-        </div>
-      </section>
-    </section>
-  );
-}
