@@ -9,10 +9,12 @@ import { join, normalize, extname } from 'node:path';
 import { openDb } from './lib/db.mjs';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
+import * as sources from './core/sources.mjs';
 
 const PORT = process.env.PORT || 8787;
 const WEB = join(import.meta.dirname, 'web');
 const db = openDb();
+sources.ensureSeeded(db); // the dual-mode feed registry (defaults: personal, all demo)
 
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
@@ -73,6 +75,19 @@ async function api(req, res, url) {
         if (sub === 'market') return json(res, radar.market(db));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, radar.toggleShortlist(db, decodeURIComponent(seg[3])));
+    }
+
+    // the dual-mode feed switch (the admin dashboard reads/writes this)
+    if (seg[1] === 'admin') {
+      const sub = seg[2];
+      try {
+        if (m === 'GET' && sub === 'sources') return json(res, sources.config(db));
+        if (m === 'POST' && sub === 'mode') return json(res, sources.setMode(db, (await readBody(req)).mode));
+        if (m === 'POST' && sub === 'group' && seg[3]) return json(res, sources.setGroup(db, decodeURIComponent(seg[3]), await readBody(req)));
+        if (m === 'POST' && sub === 'key' && seg[3]) { const b = await readBody(req); return json(res, sources.setKey(db, decodeURIComponent(seg[3]), b.provider, b.key)); }
+      } catch (e) {
+        return json(res, { error: String(e && e.message || e) }, 400); // guard / validation
+      }
     }
     return json(res, { error: 'not found', path: p, method: m }, 404);
   } catch (e) {

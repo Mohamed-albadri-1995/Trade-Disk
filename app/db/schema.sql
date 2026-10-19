@@ -127,3 +127,23 @@ CREATE TABLE IF NOT EXISTS radar_market (
 );
 
 CREATE INDEX IF NOT EXISTS idx_radar_stock_sort ON radar_stock(sort);
+
+-- ============================ Dual-mode data sourcing ======================
+-- The feed switch (DATA-CATALOG.md, DATA-SOURCES.md §3.7). The platform runs in
+-- 'personal' (free sources) or 'commercial' (licensed) mode; each of the eight
+-- data groups picks its provider(s). 'demo' is the provider that serves the seeded
+-- demo data — the active default today, so nothing depends on a real feed yet.
+CREATE TABLE IF NOT EXISTS app_setting (
+  key    TEXT PRIMARY KEY,
+  value  TEXT
+);
+
+-- One row per data group: the merge/prime+backup mode, the ordered active provider
+-- ids, and (solo only) any API keys. Keys live in plaintext here because solo mode
+-- is a single local box; hosted mode keeps them in the platform secret store.
+CREATE TABLE IF NOT EXISTS source_group (
+  id      TEXT PRIMARY KEY,                 -- 'price','volume','range',...
+  mode    TEXT NOT NULL DEFAULT 'prime',    -- 'prime' (prime+backup) | 'merge'
+  active  TEXT NOT NULL DEFAULT '["demo"]', -- JSON: ordered provider ids
+  keys    TEXT NOT NULL DEFAULT '{}'        -- JSON: { providerId: apiKey }
+);
