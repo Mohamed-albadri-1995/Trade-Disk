@@ -76,42 +76,18 @@ export function Market({ snapshot, onNav, onToast }) {
       </section>
 
       <section className="market-block">
-        <div className="block-head"><div><h2>M · O’Neil Market Model — Should You Be Buying at All?</h2><p className="subtitle">Short-term bias, mid-term trend structure, long-term direction and final regime are separate assessments.</p></div></div>
-        <div className="market-layer-grid">
-          {['short', 'mid', 'long'].map((k) => {
-            const L = m.model[k];
-            return (
-              <article className="card market-layer" key={k}>
-                <div className="layer-kicker">{L.kicker}</div>
-                <h3>{L.title}</h3>
-                <div className={`regime-value ${L.valueClass}`}>{L.value}</div>
-                <p>{L.note}</p>
-                <div className="signal-list">
-                  {L.signals.map(([label, value, cls], i) => (
-                    <div key={i}><span>{label}</span><b className={cls || undefined}>{value}</b></div>
-                  ))}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="market-block">
-        <div className="block-head"><div><h2>Final Market Regime</h2><p className="subtitle">Final classification combines long-term bias and mid-term stage{live ? ', computed from SPY moving averages and Bollinger position.' : '; this demo shows the documented output, not a browser calculation.'}</p></div></div>
-        <article className="card final-regime">
-          <div>
-            <span className="layer-kicker">REGIME MATRIX OUTPUT</span>
-            <h2 className={m.regime.outputClass}>{m.regime.output}</h2>
-            <p>{m.regime.terms.map(([label, value], i) => (
-              <React.Fragment key={i}>{i > 0 ? ' + ' : ''}{label} <b>{value}</b></React.Fragment>
-            ))}</p>
+        <div className="block-head"><div><h2>Market Regime</h2><p className="subtitle">{live ? 'Long-term bias, mid-term stage and the final regime — computed from SPY moving averages and Bollinger position.' : 'Long-term bias, mid-term stage and the final regime.'}</p></div></div>
+        <article className="card market-summary" style={{ padding: '15px' }}>
+          <div className="market-context-regime">
+            <span className="market-context-dot" style={m.regime.bias === 'LONG' ? { background: '#7ab63e', borderColor: '#5d9e31' } : m.regime.bias === 'SHORT' ? { background: '#e06a6a', borderColor: '#bf484d' } : { background: '#e3ad5a', borderColor: '#b5812a' }}></span>
+            <div><strong className={m.regime.outputClass} style={{ fontSize: '26px', letterSpacing: '-.4px', display: 'block', lineHeight: 1.1 }}>{m.regime.output}</strong><small style={{ color: 'var(--muted)' }}>{m.regime.bias} bias · {live ? 'live' : 'demo'}</small></div>
           </div>
-          <div className="regime-bias">
-            <span>Directional bias</span>
-            <strong className={m.regime.biasClass}>{m.regime.bias}</strong>
-            <small>{m.regime.confidence}</small>
-          </div>
+          <div className="market-context-row"><span>Long term</span><strong className={m.model.long.valueClass}>{m.model.long.value}</strong></div>
+          <div className="market-context-row"><span>Mid term</span><strong className={m.model.mid.valueClass}>{m.model.mid.value}</strong></div>
+          <div className="market-context-row"><span>Short term</span><strong className={m.model.short.valueClass}>{m.model.short.value}</strong></div>
+          <div className="market-context-row"><span>Bollinger</span><strong>{(m.regime.terms.find((t) => t[0] === 'Bollinger position') || [])[1] || '—'}</strong></div>
+          <div className="market-context-row"><span>Directional bias</span><strong className={m.regime.biasClass}>{m.regime.bias}</strong></div>
+          <p className="market-context-note">{m.regime.confidence}</p>
         </article>
       </section>
 
