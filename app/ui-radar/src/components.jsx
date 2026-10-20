@@ -108,7 +108,7 @@ const CHECK_LABELS = {
 };
 
 // The left filter panel — the approved screener layout, controlled by App state.
-export function FilterPanel({ filters, setFilters, visibleCount, collapsed, screeners, onApply, onReset, onChangePreset, onLoadSaved, onToast }) {
+export function FilterPanel({ filters, setFilters, visibleCount, collapsed, screeners, onApply, onReset, onChangePreset, onLoadSaved, onRunScan, loading, onToast }) {
   const set = (patch) => setFilters({ ...filters, ...patch });
   const setCheck = (id, v) => setFilters({ ...filters, checks: { ...filters.checks, [id]: v } });
   return (
@@ -127,8 +127,11 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
             ? screeners.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)
             : <option value={filters.preset}>Loading…</option>}
         </select>
-        <small className="subtitle">Live market scan — pick a screener to run it</small>
+        <small className="subtitle">Live market scan — pick a screener, then run it.</small>
       </div>
+      <button className="primary runbtn" onClick={onRunScan} disabled={loading}>
+        {loading ? 'Scanning the market…' : '▶ Run screener'}
+      </button>
       <div className="field">
         <div className="rangehead"><label htmlFor="score">Min Model Score</label><strong id="scoreVal">{filters.score}</strong></div>
         <input className="range" id="score" type="range" min="40" max="95" value={filters.score} onChange={(e) => set({ score: +e.target.value })} />

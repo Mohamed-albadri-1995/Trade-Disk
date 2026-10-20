@@ -23,7 +23,8 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, scr
       <div className="layout">
         <FilterPanel
           filters={filters} setFilters={setFilters} visibleCount={visibleCount} collapsed={collapsed} screeners={screeners}
-          onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved} onToast={onToast} />
+          onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
+          onRunScan={onRunScan} loading={loading} onToast={onToast} />
         <section className="panel results">
           <div className="results-top">
             <div>
