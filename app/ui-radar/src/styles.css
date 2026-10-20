@@ -221,3 +221,19 @@
 @media(max-width:1050px){.hero-top{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px 18px}.hero-aside{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:stretch}.hero-aside .hero-controls{flex:1 1 auto}.hero-aside .hero-market{flex:2 1 320px;width:auto}}
 @media(max-width:700px){.hero-top{grid-template-columns:1fr;gap:12px}.hero-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-aside{flex-direction:column}.hero-aside .hero-market{flex:auto}.hero-controls{justify-content:space-between}}
 @media(max-width:420px){.hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Analysis hero: the folded-in Overview summary (CAN SLIM factor strip + themes) as a full-width row under the three zones. The price chart lives in Technical, not here. */
+.hero-summary{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px 22px;border-top:1px solid var(--line);margin-top:4px;padding-top:12px}
+.hero-sub{min-width:0}
+.hero-sub-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--cyan);font-weight:800;margin-bottom:8px}
+.hero-sub-title .linkbtn{font-size:10px;text-transform:none;letter-spacing:0}
+.hero-factors{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%;background:transparent;border:0;padding:0;cursor:pointer}
+.hero-factors:hover{filter:brightness(1.08)}
+[data-theme=light] .hero-summary{border-top-color:#e0e8f1}
+@media(max-width:700px){.hero-summary{grid-template-columns:1fr;gap:12px}}
+
+/* News & Catalysts: each item links to its original source (Yahoo headline or SEC filing). */
+a.news-item{color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
+.news-mark{font-size:15px;text-transform:uppercase}
+[data-theme=light] a.news-item:hover{border-color:#0a6fff}

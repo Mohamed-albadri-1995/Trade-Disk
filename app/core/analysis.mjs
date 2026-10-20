@@ -10,6 +10,7 @@
 import * as yahoo from '../providers/yahoo.mjs';
 import { technicals } from './technicals.mjs';
 import * as edgar from '../providers/edgar.mjs';
+import { news } from '../providers/news.mjs';
 
 const TTL_MS = 8 * 60 * 1000;
 const cache = new Map(); // ticker → { at, snap }
@@ -45,10 +46,16 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
   const cached = cache.get(t);
   if (cached && Date.now() - cached.at < TTL_MS) return cached.snap;
 
-  const { bars } = await yahoo.chart(t, { range: '1y', interval: '1d' });
+  const [{ bars }, fund] = await Promise.all([
+    yahoo.chart(t, { range: '1y', interval: '1d' }),
+    edgar.fundamentals(t).catch(() => ({ available: false })),
+  ]);
   if (!bars || !bars.length) throw new Error(`no price bars for ${t}`);
   const tech = technicals(bars);
-  const fund = await edgar.fundamentals(t).catch(() => ({ available: false }));
+  // Fresh, stock-specific news (≤48h) from free sources — needs the resolved CIK and
+  // name for exact matching, so it runs after fundamentals rather than alongside.
+  const newsRes = await news(t, { name: scan?.n || fund?.name || t, cik: fund?.cik || null, maxAgeHours: 48, limit: 12 })
+    .catch(() => ({ available: false, maxAgeHours: 48, items: [] }));
 
   const price = tech.price;
   const shares = fund?.sharesDiluted || null;
@@ -101,6 +108,7 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
       annualEps: fund?.eps?.annual || [], annualRevenue: fund?.revenue?.annual || [],
       quarterlyEps: q, quarterlyRevenue: fund?.revenue?.quarterly || [],
       nextEarnings: null, source: fund?.source || 'SEC EDGAR', asOf: fund?.asOf || null,
+      news: newsRes,
     },
 
     canslim: {

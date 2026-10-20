@@ -113,17 +113,41 @@ export function Fundamental({ a, loading, onNav }) {
           <p className="subtitle">This page does not repeat or independently classify the overall market. The seven-factor O’Neil interpretation lives in CAN SLIM.</p>
         </article>
 
-        <article className="card detailcard" style={{ gridColumn: '1/-1' }}>
-          <div className="results-top"><div><h3>News &amp; Catalysts</h3><p className="subtitle">Headline, source, publication time, catalyst category and relevance.</p></div><span className="tag">No live news feed</span></div>
-          <div className="empty"><b>No per-ticker news feed connected</b>Free filings don’t carry a news stream. A news provider (headline, source, timestamp, catalyst label) would populate this honestly — until then it stays empty rather than showing invented headlines.</div>
-        </article>
+        {(() => {
+          const nw = fnd.news || {}; const items = nw.items || []; const win = nw.maxAgeHours || 48;
+          return (
+            <article className="card detailcard" style={{ gridColumn: '1/-1' }}>
+              <div className="results-top">
+                <div><h3>News &amp; Catalysts</h3><p className="subtitle">Headlines that name this stock, and material SEC filings, from the last {win} hours — freshest first. Generic “market movers” lists are filtered out.</p></div>
+                {items.length ? <span className="demo" style={{ color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' }}>● LIVE · {items.length}</span> : <span className="tag">No fresh items</span>}
+              </div>
+              {items.length ? (
+                <div className="news-list">
+                  {items.map((it, i) => (
+                    <a className="news-item" key={i} href={it.url || undefined} target="_blank" rel="noopener noreferrer">
+                      <div className={`news-mark ${it.kind === 'filing' ? 'gold' : ''}`}>{it.kind === 'filing' ? '§' : (it.source || '•').slice(0, 1).toUpperCase()}</div>
+                      <div className="news-copy">
+                        <div className="news-meta"><span>{it.source}</span><span>{it.ageText}</span></div>
+                        <h4>{it.title}</h4>
+                        {it.related && it.related.length ? <div className="news-tags">{it.related.map((r, j) => <span className="chip" key={j}>{r}</span>)}</div> : null}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty"><b>No stock-specific headlines in the last {win}h</b>Only fresh news that names this company is shown; broad market-mover lists are excluded. A paid feed (Finnhub) can widen coverage in commercial mode.</div>
+              )}
+              <div className="notice">Links open the original source. Free sources: Yahoo Finance headlines + SEC EDGAR filings, filtered to this ticker within {win}h — never invented.</div>
+            </article>
+          );
+        })()}
 
         <article className="card detailcard" style={{ gridColumn: '1/-1' }}>
           <h3>Data Provenance &amp; Confidence</h3>
           <div className="detailgrid">
             <div className="metric"><small>Company financials</small><strong>{fnd.available ? 'SEC EDGAR · live' : 'Not available'}</strong></div>
             <div className="metric"><small>Market cap &amp; price</small><strong>Yahoo · live</strong></div>
-            <div className="metric"><small>News source</small><strong>Not connected</strong></div>
+            <div className="metric"><small>News source</small><strong>{fnd.news && fnd.news.items && fnd.news.items.length ? 'Yahoo + SEC EDGAR · live' : 'Yahoo + SEC EDGAR'}</strong></div>
             <div className="metric"><small>As-of</small><strong>{fnd.asOf || a.asOf || '—'}</strong></div>
           </div>
           <p>This tab owns company fundamentals and valuation, computed from SEC filings and the live price. Market-wide data belongs to the Market tab; cash flow, balance sheet, forward estimates and news need feeds beyond free filings.</p>

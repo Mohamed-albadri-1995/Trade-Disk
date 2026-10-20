@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { money } from './lib.js';
 import { api } from './api.js';
-import { Overview } from './analysis-overview.jsx';
 import { Technical } from './analysis-technical.jsx';
 import { Canslim } from './analysis-canslim.jsx';
 import { Fundamental } from './analysis-fundamental.jsx';
@@ -54,11 +53,37 @@ function HeroStats({ t, f }) {
   );
 }
 
-// The stock hero — identity + live price/change on the left, a live key-stats grid in
-// the centre, and the model score + live market snapshot on the right. Price and daily
-// change come from the live Yahoo bars once loaded (a.technical); until then the card's
-// own values fill in so the header never flashes empty.
-function Hero({ s, a, saved, onToggleStar, onNav, onToast }) {
+const CS_LABELS = { C: 'Earn.', A: 'Annual', N: 'New', S: 'Supply', L: 'Leader', I: 'Funds', M: 'Market' };
+
+// The decision summary that used to be the Overview tab, now living under the hero:
+// the seven-factor CAN SLIM strip (a tap opens the full evidence review) and the
+// theme chips. The price chart moved to Technical, so it isn't repeated here.
+function HeroSummary({ a, setTab }) {
+  const strip = a?.canslim?.strip || [];
+  const themes = a?.overview?.themes || [];
+  if (!strip.length && !themes.length) return null;
+  return (
+    <div className="hero-summary">
+      <div className="hero-sub">
+        <div className="hero-sub-title"><span>CAN SLIM · O’Neil</span><button className="linkbtn" onClick={() => setTab('canslim')}>Evidence →</button></div>
+        <button type="button" className="hero-factors" onClick={() => setTab('canslim')} title="Open the CAN SLIM evidence review">
+          {strip.map(([x, , warn]) => <span key={x} className={`factor ${warn ? 'warn' : ''}`}><b>{x}</b><small>{CS_LABELS[x] || x}</small></span>)}
+        </button>
+      </div>
+      <div className="hero-sub">
+        <div className="hero-sub-title"><span>Themes</span></div>
+        <div className="themechips">{themes.length ? themes.map((t, i) => <span key={i}>{t}</span>) : <span>—</span>}</div>
+      </div>
+    </div>
+  );
+}
+
+// The stock hero — now the whole decision summary (the Overview tab folded in):
+// identity + live price (left), a live key-stats grid (centre), the model score +
+// live market snapshot (right), and a full-width summary row underneath with the
+// CAN SLIM factor strip and themes. Price and daily change come from the live Yahoo
+// bars once loaded (a.technical); until then the card's own values fill in.
+function Hero({ s, a, saved, onToggleStar, onNav, onToast, setTab }) {
   const live = a?.technical;
   const price = live && live.price != null ? live.price : s.p;
   const prev = live?.prevClose;
@@ -89,22 +114,23 @@ function Hero({ s, a, saved, onToggleStar, onNav, onToast }) {
           </div>
           {a?.overview?.market ? <HeroMarket mkt={a.overview.market} onNav={onNav} /> : null}
         </div>
+        <HeroSummary a={a} setTab={setTab} />
       </div>
     </section>
   );
 }
 
-const TABS = [['overview', 'Overview'], ['technical', 'Technical'], ['canslim', 'CAN SLIM'], ['fundamental', 'Fundamentals & News']];
+const TABS = [['technical', 'Technical'], ['canslim', 'CAN SLIM'], ['fundamental', 'Fundamentals & News']];
 
 // The analysis workspace — a stock in four tabs. Opened from a stock card. The deep
 // per-stock data is fetched live (Yahoo + SEC EDGAR) and handed to each tab.
 export function Analysis({ stock, saved, onToggleStar, onNav, onToast }) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('technical');
   const [a, setA] = useState(null);     // the live analysis snapshot
   const [err, setErr] = useState(null);
   const t = stock && stock.t;
 
-  useEffect(() => { setTab('overview'); }, [t]);
+  useEffect(() => { setTab('technical'); }, [t]);
   useEffect(() => {
     if (!t) return;
     let live = true;
@@ -129,14 +155,13 @@ export function Analysis({ stock, saved, onToggleStar, onNav, onToast }) {
             ? <span className="demo">DATA UNAVAILABLE</span>
             : <span className="demo">Loading live data…</span>}
       </div>
-      <Hero s={stock} a={a} saved={saved} onToggleStar={onToggleStar} onNav={onNav} onToast={onToast} />
+      <Hero s={stock} a={a} saved={saved} onToggleStar={onToggleStar} onNav={onNav} onToast={onToast} setTab={setTab} />
       <div className="tabs" role="tablist">
         {TABS.map(([id, label]) => (
           <button key={id} className={`tab${tab === id ? ' active' : ''}`} data-tab={id} onClick={() => { setTab(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{label}</button>
         ))}
       </div>
       {err ? <div className="empty"><b>Couldn’t load live data for {stock.t}</b>{err} — try again shortly.</div> : null}
-      {tab === 'overview' && <Overview stock={stock} a={a} loading={loading} onToast={onToast} setTab={setTab} onNav={onNav} />}
       {tab === 'technical' && <Technical stock={stock} a={a} loading={loading} onNav={onNav} onToast={onToast} />}
       {tab === 'canslim' && <Canslim stock={stock} a={a} loading={loading} />}
       {tab === 'fundamental' && <Fundamental stock={stock} a={a} loading={loading} onNav={onNav} />}
