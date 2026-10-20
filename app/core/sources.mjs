@@ -1,12 +1,12 @@
 // Trade-Disk — the dual-mode feed switch (DATA-CATALOG.md, DATA-SOURCES.md §3.7).
 // The platform runs 'personal' (free sources) or 'commercial' (licensed). Each of
-// the eight data groups (the Radar screener's filter categories) picks its
-// provider(s): one active with an ordered fallback ('prime'), or several merged
-// ('merge'). 'demo' serves the seeded demo data and is the default today, so the
-// built app needs no real feed yet. Switching free↔paid is config only — the app's
-// screens, API shape and look do not change.
-
-import { all, one, run } from '../lib/db.mjs';
+// the eight data groups picks its provider(s): one active with an ordered fallback
+// ('prime'), or several merged ('merge'). 'demo' serves seeded demo data. Switching
+// free↔paid is config only — the app's screens, API shape and look do not change.
+//
+// The config is global/operator state in Supabase (source_group + app_setting),
+// read by any signed-in user and written only by an owner/admin (enforced by RLS).
+// Every function takes a per-request Supabase client `sb`.
 
 // Provider shorthands. commercialOk = may be used in a sold product. Government
 // sources (EDGAR/FRED) are free AND redistributable; free personal-use feeds
@@ -26,8 +26,6 @@ const fmp = { id: 'fmp', name: 'FMP (enterprise)', tier: 'commercial', commercia
 const intrinio = { id: 'intrinio', name: 'Intrinio', tier: 'commercial', commercialOk: true, needsKey: true };
 const benzinga = { id: 'benzinga', name: 'Benzinga', tier: 'commercial', commercialOk: true, needsKey: true };
 
-// The eight data groups. `band` = whether it works on free feeds today ('free-now')
-// or needs a new paid feed ('paid-feed'). `defaultMode` = merge or prime+backup.
 export const GROUPS = [
   { id: 'price', n: 1, name: 'Price & trading', band: 'free-now', defaultMode: 'prime',
     note: 'Quote, change, open/close, day range — free from Yahoo/TradingView; paid is the licensed tier of the same feed.',
@@ -57,39 +55,34 @@ export const GROUPS = [
 
 const byId = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
 const prov = (g, id) => g.providers.find((p) => p.id === id);
-const J = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 
-// Create default rows the first time (idempotent): personal mode, every group on demo.
-export function ensureSeeded(db) {
-  if (!one(db, `SELECT key FROM app_setting WHERE key='mode'`)) {
-    run(db, `INSERT INTO app_setting (key,value) VALUES ('mode','personal')`);
-  }
-  for (const g of GROUPS) {
-    if (!one(db, `SELECT id FROM source_group WHERE id=?`, g.id)) {
-      run(db, `INSERT INTO source_group (id,mode,active,keys) VALUES (?,?,?,?)`, g.id, g.defaultMode, '["demo"]', '{}');
-    }
-  }
+export async function getMode(sb) {
+  const data = chk(await sb.from('app_setting').select('value').eq('key', 'mode').limit(1));
+  return (data[0]?.value) || 'personal';
 }
 
-export const getMode = (db) => (one(db, `SELECT value FROM app_setting WHERE key='mode'`)?.value) || 'personal';
-
-export function setMode(db, mode) {
+export async function setMode(sb, mode) {
   if (mode !== 'personal' && mode !== 'commercial') throw new Error('mode must be personal or commercial');
-  run(db, `INSERT INTO app_setting (key,value) VALUES ('mode',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, mode);
-  return config(db);
+  chk(await sb.from('app_setting').upsert({ key: 'mode', value: mode }, { onConflict: 'key' }));
+  return config(sb);
 }
 
-const rowFor = (db, id) => one(db, `SELECT * FROM source_group WHERE id=?`, id) || { id, mode: byId[id]?.defaultMode || 'prime', active: '["demo"]', keys: '{}' };
+async function rowFor(sb, id) {
+  const data = chk(await sb.from('source_group').select('*').eq('id', id).limit(1));
+  return data[0] || { id, mode: byId[id]?.defaultMode || 'prime', active: ['demo'], keys: {} };
+}
 
 // The full config: the run mode and, per group, its providers (with status), the
-// active selection, and whether the current mode blocks it (a non-commercial-ok
-// provider active while commercial).
-export function config(db) {
-  const mode = getMode(db);
+// active selection, and whether the current mode blocks it.
+export async function config(sb) {
+  const mode = await getMode(sb);
+  const rows = chk(await sb.from('source_group').select('*'));
+  const byRow = Object.fromEntries(rows.map((r) => [r.id, r]));
   const groups = GROUPS.map((g) => {
-    const r = rowFor(db, g.id);
-    const active = J(r.active, ['demo']);
-    const keys = J(r.keys, {});
+    const r = byRow[g.id] || { mode: g.defaultMode, active: ['demo'], keys: {} };
+    const active = Array.isArray(r.active) ? r.active : ['demo'];
+    const keys = r.keys || {};
     const providers = g.providers.map((p) => ({
       id: p.id, name: p.name, tier: p.tier, commercialOk: p.commercialOk, needsKey: p.needsKey,
       hasKey: !!keys[p.id], active: active.includes(p.id),
@@ -101,15 +94,15 @@ export function config(db) {
   return { mode, groups };
 }
 
-// The providers currently feeding a group, in active order, each tagged for the
-// running mode. Ingestion (core/ingest.mjs) uses this to pick the live feed.
-export function activeFor(db, groupId) {
+// The providers feeding a group, in active order, tagged for the running mode.
+export async function activeFor(sb, groupId) {
   const g = byId[groupId];
   if (!g) return [];
-  const mode = getMode(db);
-  const r = rowFor(db, groupId);
-  const keys = J(r.keys, {});
-  return J(r.active, ['demo']).map((id) => {
+  const mode = await getMode(sb);
+  const r = await rowFor(sb, groupId);
+  const keys = r.keys || {};
+  const active = Array.isArray(r.active) ? r.active : ['demo'];
+  return active.map((id) => {
     const p = prov(g, id);
     if (!p) return { id, missing: true, usable: false };
     return { id, tier: p.tier, needsKey: p.needsKey, hasKey: !!keys[id], commercialOk: p.commercialOk,
@@ -117,10 +110,10 @@ export function activeFor(db, groupId) {
   });
 }
 
-export function setGroup(db, groupId, { mode, active }) {
+export async function setGroup(sb, groupId, { mode, active }) {
   const g = byId[groupId];
   if (!g) throw new Error('unknown group ' + groupId);
-  const appMode = getMode(db);
+  const appMode = await getMode(sb);
   const ids = Array.isArray(active) ? active : [active];
   if (!ids.length) throw new Error('at least one provider must be active');
   for (const id of ids) {
@@ -128,20 +121,18 @@ export function setGroup(db, groupId, { mode, active }) {
     if (!p) throw new Error(`provider ${id} is not available for ${groupId}`);
     if (appMode === 'commercial' && !p.commercialOk) throw new Error(`${p.name} is not licensed for commercial use — pick a licensed provider`);
   }
-  const m = mode === 'merge' ? 'merge' : 'prime';
-  run(db, `INSERT INTO source_group (id,mode,active,keys) VALUES (?,?,?, COALESCE((SELECT keys FROM source_group WHERE id=?),'{}'))
-           ON CONFLICT(id) DO UPDATE SET mode=excluded.mode, active=excluded.active`, groupId, m, JSON.stringify(ids), groupId);
-  return config(db);
+  const r = await rowFor(sb, groupId);
+  chk(await sb.from('source_group').upsert({ id: groupId, mode: mode === 'merge' ? 'merge' : 'prime', active: ids, keys: r.keys || {} }, { onConflict: 'id' }));
+  return config(sb);
 }
 
-export function setKey(db, groupId, providerId, key) {
+export async function setKey(sb, groupId, providerId, key) {
   const g = byId[groupId];
   if (!g) throw new Error('unknown group ' + groupId);
   if (!prov(g, providerId)) throw new Error(`provider ${providerId} is not available for ${groupId}`);
-  const r = rowFor(db, groupId);
-  const keys = J(r.keys, {});
+  const r = await rowFor(sb, groupId);
+  const keys = r.keys || {};
   if (key) keys[providerId] = key; else delete keys[providerId];
-  run(db, `INSERT INTO source_group (id,mode,active,keys) VALUES (?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET keys=excluded.keys`, groupId, r.mode, r.active || '["demo"]', JSON.stringify(keys));
+  chk(await sb.from('source_group').upsert({ id: groupId, mode: r.mode, active: Array.isArray(r.active) ? r.active : ['demo'], keys }, { onConflict: 'id' }));
   return { ok: true, groupId, providerId, hasKey: !!key };
 }

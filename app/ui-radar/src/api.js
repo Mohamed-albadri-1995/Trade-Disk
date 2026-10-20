@@ -1,8 +1,11 @@
 // Trade-Disk — Radar API client. One origin: the Node server serves this app and
-// its /api routes. Solo mode today; the same shape is what hosted mode exposes.
+// its /api routes. Every request carries the signed-in user's token, so the server
+// serves and writes only this account's data.
+import { authHeader } from './auth.js';
 
-async function j(path, opts) {
-  const res = await fetch(path, opts);
+async function j(path, opts = {}) {
+  const auth = await authHeader();
+  const res = await fetch(path, { ...opts, headers: { ...(opts.headers || {}), ...auth } });
   if (!res.ok) throw new Error(`${opts?.method || 'GET'} ${path} → ${res.status}`);
   return res.json();
 }
