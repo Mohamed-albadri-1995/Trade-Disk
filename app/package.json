@@ -11,6 +11,7 @@
     "setup": "node setup.mjs",
     "seed": "node db/seed.mjs",
     "refresh": "node core/ingest.mjs",
+    "build": "node build.mjs",
     "start": "node server.mjs",
     "smoke": "node tools/smoke.mjs"
   },
