@@ -31,7 +31,7 @@ export function deriveTrade(t) {
   };
 }
 
-const SEED_ROWS = [
+export const SEED_ROWS = [
   ['NVDA', 'Long', 'Breakout retest', 'stock', 60, 124.2, 127.4, 0.8, '2026-10-13', 'Closed', 'Good'],
   ['AAPL', 'Long', 'VWAP pullback', 'stock', 100, 246.4, 248.4, 1.2, '2026-10-12', 'Closed', 'Average'],
   ['TSLA', 'Short', 'Opening range breakout', 'stock', 50, 452.0, 447.8, 1.4, '2026-10-11', 'Closed', 'Good'],

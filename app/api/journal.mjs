@@ -1,13 +1,15 @@
-// Trade-Disk — the Journal's data API (reads + writes).
-// Reads serve the exact record the approved view consumes; writes persist manual
-// entry, edits, day notes, reviews and import to SQLite. The view's own
-// stats()/advanced() compute the metrics, so there is one metric definition.
+// Trade-Disk — the Journal's data API (reads + writes), on Supabase.
+// Every call runs through a per-user Supabase client (`sb`), so row-level security
+// scopes reads to the signed-in account automatically; writes stamp owner_id
+// (`uid`). The view's own stats()/advanced() compute the metrics, so there is one
+// metric definition. Table `journal_account` holds the trader's broker/file
+// accounts (named apart from the auth account).
 
-import { all } from '../lib/db.mjs';
-import { deriveTrade, insertTrade, seedDemo } from '../db/seed-data.mjs';
+import { deriveTrade, SETUPS, SEED_ROWS } from '../db/seed-data.mjs';
 
-const parseTags = v => { try { return v ? JSON.parse(v) : []; } catch { return []; } };
 const round = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 
 function mapTrade(r) {
   return {
@@ -15,28 +17,55 @@ function mapTrade(r) {
     qty: r.qty, entry: r.entry, exit: r.exit, risk: r.risk, date: r.date, status: r.status,
     adherence: r.adherence, fees: r.fees, net: r.net, gross: r.gross, mult: r.mult,
     movePct: r.move_pct, r: r.r, account: r.account, source: r.source, duration: r.duration,
-    tags: parseTags(r.tags), thesis: r.thesis, notes: r.notes, stop: r.stop, target: r.target,
+    tags: Array.isArray(r.tags) ? r.tags : [], thesis: r.thesis, notes: r.notes, stop: r.stop, target: r.target,
     plannedRR: r.planned_rr, initialRisk: r.initial_risk, emotions: r.emotions, batch: r.batch,
     createdAt: r.created_at, updatedAt: r.updated_at, entrySnapshot: null,
   };
 }
 
+// app-shape trade → DB row (snake_case + owner_id). jsonb columns take JS values.
+const toRow = (t, uid) => ({
+  owner_id: uid, id: t.id, symbol: t.symbol, side: t.side, setup: t.setup, asset_type: t.assetType,
+  qty: t.qty, entry: t.entry, exit: t.exit, risk: t.risk, date: t.date, status: t.status,
+  adherence: t.adherence || 'Unknown', fees: t.fees || 0, net: t.net, gross: t.gross, mult: t.mult,
+  move_pct: t.movePct, r: t.r, account: t.account, source: t.source, duration: t.duration,
+  tags: t.tags || [], thesis: t.thesis, notes: t.notes, stop: t.stop, target: t.target,
+  planned_rr: t.plannedRR, initial_risk: t.initialRisk, emotions: t.emotions, batch: t.batch,
+  created_at: t.createdAt, updated_at: t.updatedAt,
+});
+
 /* ---------- reads ---------- */
-export const trades = db => all(db, `SELECT * FROM trade ORDER BY date DESC, id DESC`).map(mapTrade);
-export const accounts = db => all(db, `SELECT id,name,door,kind,status,last,note FROM account ORDER BY sort, rowid`);
-export const setups = db => all(db, `SELECT name FROM setup ORDER BY id`).map(r => r.name);
-export function dayNotes(db) { const o = {}; for (const r of all(db, `SELECT day,note FROM day_note`)) o[r.day] = r.note; return o; }
-export const reviews = db => all(db, `SELECT id,title,body,created_at AS createdAt FROM review_note ORDER BY created_at DESC`);
-export const bundle = db => ({ trades: trades(db), accounts: accounts(db), setups: setups(db), dayNotes: dayNotes(db), reviews: reviews(db) });
+export async function trades(sb) {
+  return chk(await sb.from('trade').select('*').order('date', { ascending: false }).order('id', { ascending: false })).map(mapTrade);
+}
+export async function accounts(sb) {
+  return chk(await sb.from('journal_account').select('id,name,door,kind,status,last,note').order('sort'));
+}
+export async function setups(sb) {
+  return chk(await sb.from('setup').select('name').order('name')).map((r) => r.name);
+}
+export async function dayNotes(sb) {
+  const o = {};
+  for (const r of chk(await sb.from('day_note').select('day,note'))) o[r.day] = r.note;
+  return o;
+}
+export async function reviews(sb) {
+  return chk(await sb.from('review_note').select('id,title,body,created_at').order('created_at', { ascending: false }))
+    .map((r) => ({ id: r.id, title: r.title, body: r.body, createdAt: r.created_at }));
+}
+export async function bundle(sb) {
+  const [t, a, s, d, r] = await Promise.all([trades(sb), accounts(sb), setups(sb), dayNotes(sb), reviews(sb)]);
+  return { trades: t, accounts: a, setups: s, dayNotes: d, reviews: r };
+}
 
 /* ---------- writes ---------- */
-const nextId = db => {
-  const row = all(db, `SELECT id FROM trade WHERE id LIKE 'TD-%' ORDER BY id DESC LIMIT 1`)[0];
-  const n = row ? parseInt(row.id.slice(3), 10) : 1000;
+async function nextId(sb) {
+  const data = chk(await sb.from('trade').select('id').like('id', 'TD-%').order('id', { ascending: false }).limit(1));
+  const n = data[0] ? parseInt(data[0].id.slice(3), 10) : 1000;
   return 'TD-' + String(n + 1).padStart(4, '0');
-};
+}
 
-export function addTrade(db, input) {
+export async function addTrade(sb, uid, input) {
   const now = new Date().toISOString();
   const t = deriveTrade({
     symbol: String(input.symbol || '').toUpperCase(), side: input.side === 'Short' ? 'Short' : 'Long',
@@ -51,21 +80,19 @@ export function addTrade(db, input) {
     adherence: input.adherence || 'Unknown',
   });
   const full = {
-    ...t, id: nextId(db), plannedRR: input.plannedRR != null ? Number(input.plannedRR) : 2,
+    ...t, id: await nextId(sb), plannedRR: input.plannedRR != null ? Number(input.plannedRR) : 2,
     account: input.account || 'Manual / CSV', source: input.source || 'Manual entry',
     duration: input.duration != null ? Number(input.duration) : null, tags: input.tags || [],
     thesis: input.thesis || '', notes: input.notes || '', emotions: input.emotions || 'Unknown',
     batch: input.batch || null, createdAt: now, updatedAt: now,
   };
-  insertTrade(db, full);
-  return mapTrade(all(db, `SELECT * FROM trade WHERE id=?`, full.id)[0]);
+  return mapTrade(chk(await sb.from('trade').insert(toRow(full, uid)).select().single()));
 }
 
-export function updateTrade(db, id, patch) {
-  const cur = all(db, `SELECT * FROM trade WHERE id=?`, id)[0];
+export async function updateTrade(sb, id, patch) {
+  const cur = chk(await sb.from('trade').select('*').eq('id', id).limit(1))[0];
   if (!cur) return null;
   const t = mapTrade(cur);
-  // editable fields (mirrors the prototype's trade-detail edit)
   if (patch.setup !== undefined) t.setup = patch.setup;
   if (patch.adherence !== undefined) t.adherence = patch.adherence;
   if (patch.emotions !== undefined) t.emotions = patch.emotions;
@@ -73,42 +100,71 @@ export function updateTrade(db, id, patch) {
   if (patch.stop !== undefined) t.stop = patch.stop === '' || patch.stop == null ? null : Number(patch.stop);
   if (patch.target !== undefined) t.target = patch.target === '' || patch.target == null ? null : Number(patch.target);
   if (patch.fees !== undefined && patch.fees !== '' && patch.fees != null) t.fees = Number(patch.fees);
-  // recompute realized fields from the (possibly changed) stop + fees
   const dir = t.side === 'Long' ? 1 : -1, mult = t.mult || 1;
   if (t.status === 'Closed') { t.gross = round((t.exit - t.entry) * t.qty * mult * dir); t.net = round(t.gross - t.fees); }
   t.initialRisk = t.stop != null ? round(Math.abs(t.entry - t.stop) * t.qty * mult) : null;
   t.r = t.initialRisk && t.status === 'Closed' ? round(t.net / t.initialRisk, 4) : null;
   t.updatedAt = new Date().toISOString();
-  db.prepare(`UPDATE trade SET setup=?, adherence=?, emotions=?, notes=?, stop=?, target=?, fees=?, net=?, gross=?, initial_risk=?, r=?, updated_at=? WHERE id=?`)
-    .run(t.setup, t.adherence, t.emotions, t.notes, t.stop, t.target, t.fees, t.net, t.gross, t.initialRisk, t.r, t.updatedAt, id);
-  return mapTrade(all(db, `SELECT * FROM trade WHERE id=?`, id)[0]);
+  const upd = {
+    setup: t.setup, adherence: t.adherence, emotions: t.emotions, notes: t.notes, stop: t.stop, target: t.target,
+    fees: t.fees, net: t.net, gross: t.gross, initial_risk: t.initialRisk, r: t.r, updated_at: t.updatedAt,
+  };
+  return mapTrade(chk(await sb.from('trade').update(upd).eq('id', id).select().single()));
 }
 
-export function saveDayNote(db, day, note) {
+export async function saveDayNote(sb, uid, day, note) {
   if (note && note.trim()) {
-    db.prepare(`INSERT INTO day_note (day,note,updated_at) VALUES (?,?,datetime('now'))
-      ON CONFLICT(day) DO UPDATE SET note=excluded.note, updated_at=excluded.updated_at`).run(day, note);
+    chk(await sb.from('day_note').upsert({ owner_id: uid, day, note, updated_at: new Date().toISOString() }, { onConflict: 'owner_id,day' }));
   } else {
-    db.prepare(`DELETE FROM day_note WHERE day=?`).run(day);
+    chk(await sb.from('day_note').delete().eq('day', day));
   }
   return { day, note: note || '' };
 }
 
-export function addReview(db, input) {
+export async function addReview(sb, uid, input) {
   const id = 'rev-' + Date.now().toString(36);
-  db.prepare(`INSERT INTO review_note (id,title,body) VALUES (?,?,?)`).run(id, input.title || 'Review', input.body || '');
-  return all(db, `SELECT id,title,body,created_at AS createdAt FROM review_note WHERE id=?`, id)[0];
+  const r = chk(await sb.from('review_note').insert({ owner_id: uid, id, title: input.title || 'Review', body: input.body || '' }).select().single());
+  return { id: r.id, title: r.title, body: r.body, createdAt: r.created_at };
 }
-export function deleteReview(db, id) { db.prepare(`DELETE FROM review_note WHERE id=?`).run(id); return { ok: true }; }
+export async function deleteReview(sb, id) { chk(await sb.from('review_note').delete().eq('id', id)); return { ok: true }; }
 
-export function importTrades(db, rows) {
-  const now = new Date().toISOString(), batch = 'imp-' + Date.now().toString(36);
+export async function importTrades(sb, uid, rows) {
+  const batch = 'imp-' + Date.now().toString(36);
   let added = 0;
-  for (const input of rows || []) {
-    addTrade(db, { ...input, source: input.source || 'File import', batch });
-    added++;
-  }
+  for (const input of rows || []) { await addTrade(sb, uid, { ...input, source: input.source || 'File import', batch }); added++; }
   return { ok: true, added, batch };
 }
 
-export function reset(db) { return { ok: true, trades: seedDemo(db) }; }
+// Seed (or re-seed) the signed-in account's demo workspace: clears their journal
+// rows, then inserts the sample accounts, setups, trades and a day note.
+export async function seedDemo(sb, uid) {
+  for (const tbl of ['trade', 'journal_account', 'setup', 'day_note', 'review_note']) {
+    chk(await sb.from(tbl).delete().eq('owner_id', uid));
+  }
+  const accts = [
+    ['acc-alpaca', 'Alpaca — Paper', 'Broker connector', 'Alpaca', 'connected', 'T+1 · synced ' + todayISO(), 'Activities + orders API'],
+    ['acc-ibkr', 'Interactive Brokers', 'Broker connector', 'IBKR Flex', 'not-connected', 'Reporting only — cannot trade or move funds', 'Flex Web Service'],
+    ['acc-manual', 'Manual / CSV', 'File upload + manual', 'File', 'file', 'Column-mapping wizard', 'CSV · XLSX · broker exports'],
+  ].map((a, i) => ({ owner_id: uid, id: a[0], name: a[1], door: a[2], kind: a[3], status: a[4], last: a[5], note: a[6], sort: i }));
+  chk(await sb.from('journal_account').insert(accts));
+  chk(await sb.from('setup').insert(SETUPS.map((name, i) => ({ owner_id: uid, id: String(i + 1), name }))));
+
+  const rows = SEED_ROWS.map((x, i) => {
+    const [symbol, side, setup, assetType, qty, entry, exit, risk, date, status, adherence] = x;
+    const acct = (assetType === 'forex' || assetType === 'future') ? 'Interactive Brokers' : (i % 4 === 0) ? 'Manual / CSV' : 'Alpaca — Paper';
+    const t = deriveTrade({ symbol, side, setup, assetType, qty, entry, exit, risk, date, status, adherence });
+    return toRow({
+      ...t, id: 'TD-' + String(1032 - i).padStart(4, '0'),
+      account: acct, source: acct === 'Manual / CSV' ? 'File import (demo)' : 'Broker connector (demo)',
+      duration: Math.round(12 + ((i * 17) % 250)), tags: i % 3 === 0 ? ['planned'] : i % 3 === 1 ? ['late entry'] : ['clean execution'],
+      thesis: 'Illustrative thesis: waited for price to confirm the planned setup and respected the risk level.',
+      notes: 'Demo note. Replace with your own trade observations.', plannedRR: 2, emotions: 'Focused', batch: 'seed',
+      createdAt: date + 'T14:30:00Z', updatedAt: date + 'T20:00:00Z',
+    }, uid);
+  });
+  chk(await sb.from('trade').insert(rows));
+  chk(await sb.from('day_note').insert({ owner_id: uid, day: '2026-10-02', note: 'Chop; sized down and respected stops. Demo note.' }));
+  return rows.length;
+}
+
+export async function reset(sb, uid) { return { ok: true, trades: await seedDemo(sb, uid) }; }

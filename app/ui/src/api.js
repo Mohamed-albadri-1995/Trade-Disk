@@ -1,12 +1,21 @@
-// Trade-Disk — Journal API client. One place that talks to /api/journal/*.
-const H = { 'content-type': 'application/json', accept: 'application/json' };
-const j = r => r.json();
+// Trade-Disk — Journal API client. One place that talks to /api/journal/*. Every
+// request carries the signed-in user's token, so the server serves (and writes)
+// only this account's data.
+import { authHeader } from './auth.js';
 
-export const getBundle = () => fetch('/api/journal/bundle', { headers: { accept: 'application/json' } }).then(j);
-export const addTrade = t => fetch('/api/journal/trades', { method: 'POST', headers: H, body: JSON.stringify(t) }).then(j);
-export const updateTrade = (id, patch) => fetch('/api/journal/trades/' + encodeURIComponent(id), { method: 'PATCH', headers: H, body: JSON.stringify(patch) }).then(j);
-export const saveDayNote = (day, note) => fetch('/api/journal/day-notes/' + encodeURIComponent(day), { method: 'PUT', headers: H, body: JSON.stringify({ note }) }).then(j);
-export const addReview = r => fetch('/api/journal/reviews', { method: 'POST', headers: H, body: JSON.stringify(r) }).then(j);
-export const deleteReview = id => fetch('/api/journal/reviews/' + encodeURIComponent(id), { method: 'DELETE', headers: H }).then(j);
-export const importTrades = trades => fetch('/api/journal/import', { method: 'POST', headers: H, body: JSON.stringify({ trades }) }).then(j);
-export const resetDemo = () => fetch('/api/journal/reset', { method: 'POST', headers: H }).then(j);
+const JSON_H = { 'content-type': 'application/json' };
+
+async function req(path, opts = {}) {
+  const auth = await authHeader();
+  const res = await fetch(path, { ...opts, headers: { accept: 'application/json', ...(opts.headers || {}), ...auth } });
+  return res.json();
+}
+
+export const getBundle = () => req('/api/journal/bundle');
+export const addTrade = (t) => req('/api/journal/trades', { method: 'POST', headers: JSON_H, body: JSON.stringify(t) });
+export const updateTrade = (id, patch) => req('/api/journal/trades/' + encodeURIComponent(id), { method: 'PATCH', headers: JSON_H, body: JSON.stringify(patch) });
+export const saveDayNote = (day, note) => req('/api/journal/day-notes/' + encodeURIComponent(day), { method: 'PUT', headers: JSON_H, body: JSON.stringify({ note }) });
+export const addReview = (r) => req('/api/journal/reviews', { method: 'POST', headers: JSON_H, body: JSON.stringify(r) });
+export const deleteReview = (id) => req('/api/journal/reviews/' + encodeURIComponent(id), { method: 'DELETE' });
+export const importTrades = (trades) => req('/api/journal/import', { method: 'POST', headers: JSON_H, body: JSON.stringify({ trades }) });
+export const resetDemo = () => req('/api/journal/reset', { method: 'POST' });
