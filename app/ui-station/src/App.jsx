@@ -8,14 +8,23 @@ import React from 'react';
 const HERO_PATH_FILL = 'M0 126 C32 118 44 124 70 102 S112 110 138 85 S188 99 212 76 S254 88 282 59 S324 80 352 53 S398 70 418 39 S458 52 482 31 S520 44 544 15 L560 10 L560 150 L0 150Z';
 const HERO_PATH_LINE = 'M0 126 C32 118 44 124 70 102 S112 110 138 85 S188 99 212 76 S254 88 282 59 S324 80 352 53 S398 70 418 39 S458 52 482 31 S520 44 544 15 L560 10';
 
-export default function App() {
+export default function App({ session, onSignOut } = {}) {
   return (
     <div className="station">
       <header className="st-header">
         <a className="st-brand" href="/" aria-label="Trade-Disk home"><span className="brandmark">◆</span><span><span className="bn">Trade-Disk</span><small>THE TRADING STATION</small></span></a>
         <nav className="st-links" aria-label="Main navigation"><a href="#tools">Products</a><a href="#workflow">Workflow</a><a href="#journal">The Journal</a></nav>
-        <a className="st-login" href="/journal/">Sign in</a>
-        <a className="st-cta" href="/journal/">Get started <span className="ar">→</span></a>
+        {session ? (
+          <>
+            <span className="st-login" style={{ cursor: 'default' }} title={session.user.email}>{session.user.email}</span>
+            <button className="st-cta" style={{ border: 0, cursor: 'pointer' }} onClick={onSignOut}>Sign out</button>
+          </>
+        ) : (
+          <>
+            <a className="st-login" href="/journal/">Sign in</a>
+            <a className="st-cta" href="/journal/">Get started <span className="ar">→</span></a>
+          </>
+        )}
       </header>
 
       <section className="st-hero">
