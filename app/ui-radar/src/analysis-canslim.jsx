@@ -78,7 +78,7 @@ export function Canslim({ stock, a, loading }) {
         <div className="cs-topline">
           <div className="cs-markethead">
             <div>
-              <div className="cs-market-price" id="csPrice">${n(tech.price ?? s.p)} <small className={up ? 'positive' : 'negative'}>{up ? '+' : '−'}{Math.abs(s.abs ?? 0).toFixed(2)} ({up ? '+' : '−'}{Math.abs(s.c ?? 0).toFixed(2)}%)</small></div>
+              <div className="cs-market-price" id="csPrice">${n(price)} <small className={up ? 'positive' : 'negative'}>{up ? '+' : '−'}{Math.abs(abs).toFixed(2)} ({up ? '+' : '−'}{Math.abs(chgPct).toFixed(2)}%)</small></div>
               <div className="cs-market-meta">{a.name || s.n} &nbsp;|&nbsp; {s.sec || 'US equity'} &nbsp;|&nbsp; {a.source || 'Yahoo + SEC EDGAR'}{a.asOf ? `  ·  ${a.asOf}` : ''}</div>
             </div>
             <svg className="cs-sparkline" viewBox="0 0 320 70" preserveAspectRatio="none"><path d={pathOf(a.overview?.chart)} fill="none" stroke={up ? '#20e5a4' : '#ff6374'} strokeWidth="2.5" /></svg>

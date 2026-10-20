@@ -31,10 +31,33 @@ function HeroMarket({ mkt, onNav }) {
   );
 }
 
-// The stock hero — identity, live price/change, tags, favourite, model score, and the
-// live market snapshot in the right column. Price and daily change come from the live
-// Yahoo bars once loaded (a.technical); until then the card's own values fill in so the
-// header never flashes empty.
+// A compact grid of the most-glanced-at live numbers, filling the centre of the hero
+// so the header reads as one organised block instead of two clusters with a gap.
+function HeroStats({ t, f }) {
+  const num = (v, d, suf = '') => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d) + suf);
+  const signed = (v) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + (+v).toFixed(1) + '%');
+  const tone = (v) => (v == null || !isFinite(v) ? undefined : v >= 0 ? 'positive' : 'negative');
+  const items = [
+    ['Market cap', t.marketCapStr || '—'],
+    ['P/E · TTM', f?.pe != null ? num(f.pe, 1, '×') : '—'],
+    ['Rev · YoY', signed(f?.revenueYoyPct), tone(f?.revenueYoyPct)],
+    ['RSI (14)', num(t.rsi14, 0)],
+    ['Rel vol', num(t.rvol20, 1, '×')],
+    ['3-mo return', signed(t.mom3mPct), tone(t.mom3mPct)],
+  ];
+  return (
+    <div className="hero-stats">
+      {items.map(([label, val, cls]) => (
+        <div className="hero-stat" key={label}><small>{label}</small><strong className={cls || undefined}>{val}</strong></div>
+      ))}
+    </div>
+  );
+}
+
+// The stock hero — identity + live price/change on the left, a live key-stats grid in
+// the centre, and the model score + live market snapshot on the right. Price and daily
+// change come from the live Yahoo bars once loaded (a.technical); until then the card's
+// own values fill in so the header never flashes empty.
 function Hero({ s, a, saved, onToggleStar, onNav, onToast }) {
   const live = a?.technical;
   const price = live && live.price != null ? live.price : s.p;
@@ -57,6 +80,7 @@ function Hero({ s, a, saved, onToggleStar, onNav, onToast }) {
             </div>
           </div>
         </div>
+        {live ? <HeroStats t={live} f={a?.fundamental} /> : <div className="hero-stats hero-stats-loading" aria-hidden="true"></div>}
         <div className="hero-aside">
           <div className="hero-controls">
             <button className="iconbtn" id="favoriteBtn" aria-label="Toggle favorite" style={{ color: saved ? 'var(--yellow)' : undefined }} onClick={() => onToggleStar(s.t)}>{saved ? '★' : '☆'}</button>

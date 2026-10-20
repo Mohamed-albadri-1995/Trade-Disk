@@ -45,7 +45,7 @@ export function BottomNav({ screen, onNav }) {
 }
 
 export const Footer = () => (
-  <footer className="footer">Trade-Disk design prototype · fictional illustrative data · no backend or API connection · not investment advice</footer>
+  <footer className="footer">Trade-Disk · live prices from Yahoo, company financials from SEC EDGAR · personal-use · informational only, not investment advice</footer>
 );
 
 const TOAST_STYLE = {

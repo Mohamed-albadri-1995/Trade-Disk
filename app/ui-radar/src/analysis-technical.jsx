@@ -62,7 +62,7 @@ export function Technical({ stock, a, loading, onNav }) {
         <div className="tech-work-grid">
           <article className="card tech-card wide">
             <div className="results-top">
-              <div><h3>{a.ticker} · Price &amp; Trend</h3><p className="subtitle">Price {f(p)} · daily change {pct(stock.c)} · {a.overview?.chart?.length || 0} sessions, live from Yahoo.</p></div>
+              <div><h3>{a.ticker} · Price &amp; Trend</h3><p className="subtitle">Price {f(p)} · daily change {d.prevClose ? pct((p / d.prevClose - 1) * 100) : '—'} · {a.overview?.chart?.length || 0} sessions, live from Yahoo.</p></div>
               <div className="tech-timeframe" id="techTimeframes">{TIMEFRAMES.map((t) => <button key={t} className={t === tf ? 'active' : ''} onClick={() => setTf(t)}>{t}</button>)}</div>
             </div>
             <svg className="mini-chart" style={{ height: '240px' }} viewBox="0 0 900 240" preserveAspectRatio="none" aria-label={`Price chart for ${a.ticker}`}>

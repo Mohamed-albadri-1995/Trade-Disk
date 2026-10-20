@@ -192,8 +192,17 @@
 [data-theme=light] .schedule-window .remove-window{background:#fdecef;border-color:#f0b9c4;color:#c23050}
 [data-theme=light] .stockcard .stock-detail{border-color:#e6edf4}
 
-/* Analysis hero: compact live market snapshot moved into the hero's right column (out of the Overview tab). Additive — desktop identity/score untouched. */
-.hero-aside{display:flex;flex-direction:column;align-items:stretch;gap:10px;flex:0 0 clamp(205px,23vw,248px);min-width:0}
+/* Analysis hero: three organised zones that fill the width — identity + live price on
+   the left, a live key-stats grid in the centre, the model score + live market snapshot
+   on the right — instead of two clusters with a dead gap between them. */
+.hero-top{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,1.3fr) 244px;gap:14px 22px;align-items:start}
+.hero-identity{min-width:0}
+.hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:start}
+.hero-stats-loading{min-height:1px}
+.hero-stat{border:1px solid var(--line);background:#081726;border-radius:9px;padding:8px 10px;min-width:0}
+.hero-stat small{display:block;font-size:10px;color:var(--muted)}
+.hero-stat strong{display:block;font-size:16px;margin-top:3px;letter-spacing:-.2px;overflow-wrap:anywhere}
+.hero-aside{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0}
 .hero-controls{justify-content:flex-end}
 .hero-market{display:block;width:100%;text-align:left;border:1px solid var(--line2);background:linear-gradient(150deg,#0b2233,#081726);border-radius:11px;padding:11px;color:inherit;transition:border-color .15s,transform .15s}
 .hero-market:hover{border-color:var(--blue);transform:translateY(-1px)}
@@ -205,6 +214,10 @@
 .hero-market-rows b{font-weight:750;margin-left:4px}
 .hero-market-rows b:not(.positive):not(.negative){color:var(--text)}
 .hero-market-link{font-size:11px;color:var(--cyan);font-weight:750}
+[data-theme=light] .hero-stat{background:#f4f7fb;border-color:#e0e8f1}
 [data-theme=light] .hero-market{background:#f4f8fc;border-color:#cfdbe8}
 [data-theme=light] .hero-market:hover{border-color:#0a6fff}
-@media(max-width:700px){.hero-top{flex-direction:column}.hero-aside{flex-basis:auto;width:100%}.hero-controls{justify-content:space-between}}
+/* Tablet: drop the aside under the identity+stats row, keep stats filling the top. */
+@media(max-width:1050px){.hero-top{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px 18px}.hero-aside{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:stretch}.hero-aside .hero-controls{flex:1 1 auto}.hero-aside .hero-market{flex:2 1 320px;width:auto}}
+@media(max-width:700px){.hero-top{grid-template-columns:1fr;gap:12px}.hero-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-aside{flex-direction:column}.hero-aside .hero-market{flex:auto}.hero-controls{justify-content:space-between}}
+@media(max-width:420px){.hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
