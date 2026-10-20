@@ -120,9 +120,11 @@ export default function App() {
     const liveScan = scanInfo && !scanInfo.error && scanInfo.provider;
     if ((screen === 'screener' || screen === 'analysis') && liveScan)
       return { live: true, label: `LIVE · ${String(scanInfo.provider).toUpperCase()}`, title: 'Live screener results from TradingView' };
+    if (screen === 'market' && market?.live)
+      return { live: true, label: 'LIVE · YAHOO', title: market.asOf ? `Market snapshot · ${market.asOf}` : 'Live market snapshot' };
     const what = screen === 'market' ? 'DEMO SNAPSHOT' : screen === 'shortlist' ? 'DEMO WATCHLIST' : 'DEMO DATA';
     return { live: false, label: what, title: 'Seeded demo data until a live feed is wired' };
-  }, [screen, scanInfo, feed]);
+  }, [screen, scanInfo, feed, market]);
 
   return (
     <>

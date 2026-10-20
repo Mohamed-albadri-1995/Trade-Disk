@@ -336,7 +336,8 @@ a{color:inherit;text-decoration:none}
   .app,.main,.content,#content{width:100%;max-width:100%;min-width:0;margin-left:0}
   .sidebar{display:none}
   .main{margin-left:0;padding-bottom:76px}
-  .topbar{height:54px;padding:0 15px}
+  .topbar{height:54px;padding:0 13px;gap:10px}
+  .topbar .livedot{display:none}
   .content{padding:20px 14px 30px}
   .pagehead{display:block;margin-bottom:18px}
   .pagehead .sub{margin-top:8px}
