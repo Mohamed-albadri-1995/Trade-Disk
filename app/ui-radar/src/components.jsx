@@ -18,8 +18,8 @@ const STATION_LINK = {
   textDecoration: 'none', fontSize: '13px', fontWeight: 650, marginRight: '10px',
 };
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
-export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed, onNav }) {
-  const live = !!feed?.live;
+export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }) {
+  const live = !!badge?.live;
   return (
     <header className="appbar">
       <div className="brand"><span className="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></div>
@@ -27,8 +27,8 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, feed, onNav })
         <a href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={STATION_LINK}>← Station</a>
         <button className="iconbtn" id="themeBtn" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" onClick={onToggleTheme}>{theme === 'dark' ? '☾' : '☀'}</button>
         {live
-          ? <span className="demo" style={LIVE_BADGE} title={feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : ''}>● LIVE · {String(feed.provider).toUpperCase()}</span>
-          : <span className="demo">● DEMO DATA · NOT LIVE</span>}
+          ? <span className="demo" style={LIVE_BADGE} title={badge.title || ''}>● {badge.label}</span>
+          : <span className="demo" title={badge?.title || ''}>● {badge?.label || 'DEMO DATA'}</span>}
         <button className="iconbtn" aria-label="Search" onClick={onSearch}>⌕</button>
         <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
         <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>

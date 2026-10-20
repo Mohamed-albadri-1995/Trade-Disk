@@ -110,9 +110,23 @@ export default function App() {
   const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
   const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
 
+  // The header badge tells the truth about what's on screen. The Screener (and the
+  // analysis opened from one of its cards) runs live on TradingView in Personal
+  // mode, so it reads LIVE; the watchlist and market are the seeded demo set until a
+  // live price feed is wired, so they read DEMO. A wired Price feed (feed.live) is
+  // the global truth and wins everywhere.
+  const badge = useMemo(() => {
+    if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
+    const liveScan = scanInfo && !scanInfo.error && scanInfo.provider;
+    if ((screen === 'screener' || screen === 'analysis') && liveScan)
+      return { live: true, label: `LIVE · ${String(scanInfo.provider).toUpperCase()}`, title: 'Live screener results from TradingView' };
+    const what = screen === 'market' ? 'DEMO SNAPSHOT' : screen === 'shortlist' ? 'DEMO WATCHLIST' : 'DEMO DATA';
+    return { live: false, label: what, title: 'Seeded demo data until a live feed is wired' };
+  }, [screen, scanInfo, feed]);
+
   return (
     <>
-      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} feed={feed} onNav={nav} />
+      <Appbar theme={theme} onToggleTheme={onToggleTheme} onSearch={onSearch} onToast={toast} badge={badge} onNav={nav} />
       <main>
         {screen === 'screener' && (
           <Screener
