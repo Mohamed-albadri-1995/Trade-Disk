@@ -85,8 +85,10 @@ a{color:inherit;text-decoration:none}
 /* ---- main + topbar ---- */
 .main{margin-left:244px;min-height:100vh;min-width:0;width:calc(100% - 244px)}
 .topbar{height:68px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:color-mix(in srgb,var(--ink) 82%,transparent);backdrop-filter:blur(10px);position:sticky;top:0;z-index:10}
-.crumb{color:var(--muted);font-size:var(--fs-sm)}
-.crumb b{color:var(--text);font-weight:600}
+.crumb{color:var(--muted);font-size:var(--fs-sm);display:flex;align-items:center;gap:8px;min-width:0}
+.crumb b{color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb-home{color:var(--brand);font-weight:600;white-space:nowrap;border:1px solid color-mix(in srgb,var(--brand) 30%,transparent);background:var(--brand-soft);padding:4px 10px;border-radius:99px;transition:background var(--dur) var(--ease)}
+.crumb-home:hover{background:color-mix(in srgb,var(--brand) 16%,var(--panel))}
 .topactions{display:flex;align-items:center;gap:10px}
 .livedot{font-size:var(--fs-xs);color:var(--muted);display:inline-flex;align-items:center;gap:7px}
 .livedot::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 3px color-mix(in srgb,var(--pos) 22%,transparent)}

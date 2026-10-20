@@ -33,7 +33,7 @@ export function Shell({ page, onNav, onTheme, onNewTrade, children }) {
       </aside>
       <main className="main">
         <header className="topbar">
-          <div className="crumb">Trading Station <span className="muted">/</span> <b>{CRUMB[page] || 'Journal'}</b></div>
+          <div className="crumb"><a className="crumb-home" href="/" title="Back to the Trading Station">◆ Station</a> <span className="muted">/</span> <b>{CRUMB[page] || 'Journal'}</b></div>
           <div className="topactions">
             <span className="livedot">Demo data</span>
             <button className="iconbtn" onClick={onTheme} title="Toggle light and dark theme" aria-label="Toggle theme">☀</button>

@@ -64,9 +64,8 @@ export default function App() {
   return (
     <>
       <header className="appbar">
-        <div className="brand"><span className="logo">↗</span><span>Trade-Disk <em>· Admin</em></span></div>
+        <a className="brand" href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={{ textDecoration: 'none', color: 'inherit' }}><span className="logo">↗</span><span>Trade-Disk <em>· Admin</em></span></a>
         <div className="app-actions">
-          <a href="/" title="Back to the Trading Station" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 13px', border: '1px solid rgba(120,160,200,.22)', borderRadius: '9px', color: '#a9c1d3', textDecoration: 'none', fontSize: '13px', fontWeight: 650, marginRight: '10px' }}>← Station</a>
           <button className="iconbtn" aria-label="Toggle theme" onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? '☾' : '☀'}</button>
           <span className="demo">● SOLO · LOCAL</span>
         </div>

@@ -166,8 +166,8 @@ export async function buildSnapshot() {
   const boll = s20 == null ? 'MIDDLE' : close > s20 + 1.5 * sd ? 'UPPER' : close < s20 - 1.5 * sd ? 'LOWER' : 'MIDDLE';
   const bias = longVal === 'BULLISH' && midVal === 'UPTREND' ? 'LONG'
     : longVal === 'BEARISH' && midVal === 'DOWNTREND' ? 'SHORT' : 'NEUTRAL';
-  const regimeOut = bias === 'LONG' ? (boll === 'UPPER' ? 'EXTENDED_UP' : 'UPTREND')
-    : bias === 'SHORT' ? (boll === 'LOWER' ? 'EXTENDED_DOWN' : 'DOWNTREND') : 'RANGE_BOUND';
+  const regimeOut = bias === 'LONG' ? (boll === 'UPPER' ? 'EXTENDED UP' : 'UPTREND')
+    : bias === 'SHORT' ? (boll === 'LOWER' ? 'EXTENDED DOWN' : 'DOWNTREND') : 'RANGE-BOUND';
 
   const model = {
     short: { kicker: 'SHORT TERM', title: 'Market Bias', value: shortVal, valueClass: shortVal === 'BULLISH' ? 'positive' : shortVal === 'BEARISH' ? 'negative' : '',
