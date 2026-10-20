@@ -11,20 +11,15 @@ export function Spark({ points }) {
   );
 }
 
-// The top bar: brand, back-to-Station, theme toggle, the demo badge, search, bell.
-const STATION_LINK = {
-  display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 13px',
-  border: '1px solid rgba(120,160,200,.22)', borderRadius: '9px', color: '#a9c1d3',
-  textDecoration: 'none', fontSize: '13px', fontWeight: 650, marginRight: '10px',
-};
+// The top bar: brand (also the way back to the Station), theme toggle, the live/demo
+// badge, search, bell. The brand is a link home, so no separate Station button.
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
 export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }) {
   const live = !!badge?.live;
   return (
     <header className="appbar">
-      <div className="brand"><span className="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></div>
+      <a className="brand" href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={{ textDecoration: 'none', color: 'inherit' }}><span className="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></a>
       <div className="app-actions">
-        <a href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={STATION_LINK}>← Station</a>
         <button className="iconbtn" id="themeBtn" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" onClick={onToggleTheme}>{theme === 'dark' ? '☾' : '☀'}</button>
         {live
           ? <span className="demo" style={LIVE_BADGE} title={badge.title || ''}>● {badge.label}</span>

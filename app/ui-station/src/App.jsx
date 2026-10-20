@@ -68,9 +68,37 @@ export default function App({ session, onSignOut } = {}) {
           </div>
         </div>
         <div className="st-trio">
-          <a className="st-tool radar" href="/radar/" style={{ display: 'block' }}><div className="ti">⌕</div><h3>Radar</h3><p>Find high-probability opportunities with powerful screening tools and watchlists.</p><span className="soon" style={{ color: 'var(--warn)', borderColor: 'color-mix(in srgb,var(--warn) 42%,var(--line))' }}>Preview →</span></a>
-          <div className="st-tool lab"><div className="ti">▥</div><h3>TradeLab</h3><p>Professional charting, indicators, strategy development and backtesting.</p><span className="soon">Coming soon</span></div>
-          <div className="st-tool pilot"><div className="ti">✦</div><h3>TradePilot</h3><p>Algorithmic trading, strategy automation and execution controls.</p><span className="soon">Coming soon</span></div>
+          <a className="st-tool radar" href="/radar/">
+            <div className="tool-head"><div className="ti">⌕</div><span className="badge">Live now</span></div>
+            <h3>Radar</h3>
+            <p>Find high-probability setups with live screeners, watchlists and deep stock analysis.</p>
+            <div className="tmini">
+              <div className="trow"><span>Live scans</span><b className="pos">TradingView</b></div>
+              <div className="trow"><span>Screeners</span><b>5 built-in</b></div>
+              <div className="trow"><span>Analysis</span><b>CAN SLIM</b></div>
+            </div>
+            <span className="st-cta tool-cta">Open Radar <span className="ar">→</span></span>
+          </a>
+          <div className="st-tool lab">
+            <div className="tool-head"><div className="ti">▥</div><span className="soon">Coming soon</span></div>
+            <h3>TradeLab</h3>
+            <p>Professional charting, indicators, strategy development and backtesting.</p>
+            <div className="tmini">
+              <div className="trow"><span>Charting</span><b>Multi-timeframe</b></div>
+              <div className="trow"><span>Backtesting</span><b>Strategy engine</b></div>
+              <div className="trow"><span>Indicators</span><b>Custom</b></div>
+            </div>
+          </div>
+          <div className="st-tool pilot">
+            <div className="tool-head"><div className="ti">✦</div><span className="soon">Coming soon</span></div>
+            <h3>TradePilot</h3>
+            <p>Algorithmic trading, strategy automation and execution controls.</p>
+            <div className="tmini">
+              <div className="trow"><span>Automation</span><b>Rule-based</b></div>
+              <div className="trow"><span>Execution</span><b>Broker API</b></div>
+              <div className="trow"><span>Risk</span><b>Guardrails</b></div>
+            </div>
+          </div>
         </div>
       </section>
 
