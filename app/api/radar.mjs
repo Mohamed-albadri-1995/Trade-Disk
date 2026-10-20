@@ -7,6 +7,7 @@
 import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
+import { getMarket } from '../core/market.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 
@@ -59,10 +60,9 @@ export async function scan(sb, key, limit = 50) {
   return { screener: def.name, key, provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard) };
 }
 
-// The materialized market_snapshot read model.
+// The market snapshot read model — live from Yahoo, lazily refreshed (core/market.mjs).
 export async function market(sb) {
-  const data = chk(await sb.from('radar_market').select('snapshot').eq('id', 1).limit(1));
-  return data[0] ? data[0].snapshot : null;
+  return getMarket(sb);
 }
 
 // ── screener configs + scan schedules (per account) ──

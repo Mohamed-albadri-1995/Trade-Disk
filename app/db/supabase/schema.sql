@@ -117,12 +117,29 @@ alter table public.radar_shortlist enable row level security;
 create policy radar_shortlist_own on public.radar_shortlist for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 alter table public.radar_screener enable row level security;
 create policy radar_screener_own on public.radar_screener for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
--- global: read for any authenticated user; writes go through the service-role API
+-- global config / shared tables: any authenticated user may read; only an owner/admin
+-- may write (the server does so on their behalf — e.g. the live market snapshot
+-- refresh and the feed-switch config). Operator membership is read from profile.role.
+-- (The _admin policies' using/with check both are the EXISTS clause shown below.)
+-- operator := exists (select 1 from public.profile p
+--               where p.id = (select auth.uid()) and p.role = any (array['owner','admin']))
 alter table public.radar_stock enable row level security;
 create policy radar_stock_read on public.radar_stock for select to authenticated using (true);
+create policy radar_stock_admin on public.radar_stock for all to authenticated
+  using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
+  with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
 alter table public.radar_market enable row level security;
 create policy radar_market_read on public.radar_market for select to authenticated using (true);
+create policy radar_market_admin on public.radar_market for all to authenticated
+  using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
+  with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
 alter table public.app_setting enable row level security;
 create policy app_setting_read on public.app_setting for select to authenticated using (true);
+create policy app_setting_admin on public.app_setting for all to authenticated
+  using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
+  with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
 alter table public.source_group enable row level security;
 create policy source_group_read on public.source_group for select to authenticated using (true);
+create policy source_group_admin on public.source_group for all to authenticated
+  using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
+  with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
