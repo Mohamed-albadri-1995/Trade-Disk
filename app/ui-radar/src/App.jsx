@@ -135,6 +135,7 @@ export default function App() {
             sort={sort} setSort={setSort} shortlist={shortlist} selectedTicker={selectedTicker} screen={screen}
             collapsed={collapsed} loading={!loaded}
             onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
+            onRunScan={() => runScan(filters.preset)}
             onToggleFilters={onToggleFilters} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} onToast={toast} />
         )}
         {screen === 'shortlist' && (

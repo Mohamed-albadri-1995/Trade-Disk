@@ -2,7 +2,7 @@ import React from 'react';
 import { StockCard, FilterPanel, FiltersToggle, presetTitle } from './components.jsx';
 
 // Screener — the landing screen: the filter panel + the result cards.
-export function Screener({ filters, setFilters, visibleSorted, visibleCount, screeners, scanInfo, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
+export function Screener({ filters, setFilters, visibleSorted, visibleCount, screeners, scanInfo, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onRunScan, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
   const current = (screeners || []).find((s) => s.key === filters.preset);
   const matched = scanInfo && Number.isFinite(scanInfo.totalCount) ? scanInfo.totalCount : null;
   return (
@@ -31,6 +31,10 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, scr
               <p>{scanInfo?.error ? scanInfo.error : (current?.note || 'Live market screener')}</p>
             </div>
             <div className="result-tools">
+              <button className="secondary-btn" onClick={onRunScan} disabled={loading}
+                title="Run this screener against the live feed right now">
+                {loading ? 'Scanning…' : '↻ Run scan'}
+              </button>
               <select id="sort" className="sort" value={sort} onChange={(e) => setSort(e.target.value)}>
                 <option value="score">Sort: Score ↓</option>
                 <option value="change">Sort: Change ↓</option>
