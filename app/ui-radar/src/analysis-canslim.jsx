@@ -1,16 +1,33 @@
 import React from 'react';
 
-// The CAN SLIM / O'Neil tab — a seven-factor evidence review. Ported verbatim from
-// the prototype's renderCanslim: a topline keyed to the selected stock, the factor
-// strip, the seven factor panels (each with stats, tables and demo charts), and the
-// missing-data note. All figures are fictional illustrative demo data.
+// The CAN SLIM / O'Neil tab — a seven-factor evidence review computed live from the
+// same free data as the rest of the workspace: SEC EDGAR filings (C current earnings,
+// A annual earnings), Yahoo daily bars (N new highs, S supply/demand, L leadership)
+// and the live market snapshot (M market direction). Factors that need a paid or
+// holdings feed — a true RS percentile, institutional 13F sponsorship, short interest,
+// confirmed base-pattern detection — are stated as such, never invented. It is an
+// evidence review, not a buy signal.
 
-const SPARK = 'M0 61 L15 51 L30 55 L45 37 L60 43 L75 29 L90 35 L105 24 L120 31 L135 17 L150 24 L165 13 L180 20 L195 10 L210 16 L225 7 L240 12 L255 5 L270 9 L285 3 L300 6 L320 1';
-const STRIP = [['C', 'Strong', false], ['A', 'Strong', false], ['N', 'Mixed', true], ['S', 'Positive', false], ['L', 'Leader', false], ['I', 'Positive', false], ['M', 'Caution', true]];
-const QUARTERS = [['Q2 2025', '0.68', '0.49', '+38%', '30.0', '+24%'], ['Q1 2025', '0.61', '0.47', '+29%', '26.0', '+22%'], ['Q4 2024', '0.52', '0.41', '+27%', '22.1', '+20%'], ['Q3 2024', '0.47', '0.38', '+22%', '18.1', '+17%']];
-const ANNUALS = [['2025', '3.00', '+11%', '120.0', '24%'], ['2024', '2.70', '+50%', '96.3', '26%'], ['2023', '1.80', '+50%', '60.9', '21%'], ['2022', '1.20', '—', '40.2', '18%']];
-const C_BARS = [['Q3 23', 0.28], ['Q4 23', 0.32], ['Q1 24', 0.36], ['Q2 24', 0.38], ['Q3 24', 0.41], ['Q4 24', 0.47], ['Q1 25', 0.61], ['Q2 25', 0.68]];
-const A_BARS = [['2022', 1.2], ['2023', 1.8], ['2024', 2.7], ['2025', 3]];
+const n = (v, d = 2, suf = '') => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d) + suf);
+const pctS = (v, d = 1) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + (+v).toFixed(d) + '%');
+const tone = (v) => (v == null || !isFinite(v) ? undefined : v >= 0 ? 'good' : 'bad');
+function big(v) {
+  if (v == null || !isFinite(v)) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T';
+  if (a >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+  return '$' + (+v).toFixed(0);
+}
+const shortLbl = (l) => String(l || '').replace(/ 20(\d\d)/, " '$1");
+
+function pathOf(series, w = 320, h = 70, pad = 6) {
+  const v = (series || []).filter((x) => x != null);
+  if (v.length < 2) return '';
+  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
+  const step = w / (v.length - 1);
+  return v.map((c, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${(h - pad - ((c - lo) / span) * (h - pad * 2)).toFixed(1)}`).join(' ');
+}
 
 const CsStat = ({ label, value, note, tone }) => (
   <div className="cs-stat"><small>{label}</small><strong className={tone || undefined}>{value}</strong>{note ? <em>{note}</em> : null}</div>
@@ -24,147 +41,149 @@ const CsFactor = ({ letter, title, question, status, warn, children }) => (
     {children}
   </section>
 );
-const ChartBars = ({ bars, scale }) => (
-  <>
-    <div className="cs-chartbars">{bars.map(([l, v]) => <div className="cs-barcol" key={l}><span>{v.toFixed(2)}</span><i style={{ height: `${(v / scale) * 68}px` }}></i></div>)}</div>
-    <div className="cs-chartlabels">{bars.map(([l]) => <span key={l}>{l}</span>)}</div>
-  </>
-);
+const ChartBars = ({ bars }) => {
+  const vals = bars.map(([, v]) => v).filter((v) => v != null && isFinite(v));
+  const scale = Math.max(0.01, ...vals.map((v) => Math.abs(v))) * 1.1;
+  return (
+    <>
+      <div className="cs-chartbars">{bars.map(([l, v]) => <div className="cs-barcol" key={l}><span>{v == null ? '—' : (+v).toFixed(2)}</span><i style={{ height: `${Math.max(2, Math.min(68, (Math.max(0, v) / scale) * 68))}px` }}></i></div>)}</div>
+      <div className="cs-chartlabels">{bars.map(([l]) => <span key={l}>{shortLbl(l)}</span>)}</div>
+    </>
+  );
+};
 
-export function Canslim({ stock }) {
-  const s = stock, p = s.p;
-  const nBase = [['52-Week High', '$133.00'], ['Current Price', `$${p.toFixed(2)}`], ['Distance from High', '3.5% below'], ['Base Pattern', 'Cup with Handle (demo)'], ['Base Depth', '18% (normal range)'], ['Pivot Price', '$130.00'], ['Distance from Pivot', '1.2% below'], ['Breakout Volume Confirmation', 'Not confirmed']];
+export function Canslim({ stock, a, loading }) {
+  if (loading || !a || !a.canslim) {
+    return <div id="canslim" className="pane"><div className="empty"><b>Building the seven-factor review…</b>Reading SEC filings, price action and the market snapshot for the CAN SLIM factors.</div></div>;
+  }
+  const cs = a.canslim, tech = a.technical || {}, s = stock;
+  const price = tech.price != null ? tech.price : s.p;
+  const prev = tech.prevClose;
+  const abs = prev != null ? price - prev : (s.abs ?? 0);
+  const chgPct = prev != null && prev !== 0 ? (price / prev - 1) * 100 : (s.c ?? 0);
+  const up = chgPct >= 0;
+  const statusBy = Object.fromEntries((cs.strip || []).map(([l, st]) => [l, st]));
+  const warnBy = Object.fromEntries((cs.strip || []).map(([l, , w]) => [l, w]));
+
+  const qEps = (cs.C?.quarterly || []).slice(-8);
+  const annEps = (cs.A?.annual || []).slice(-6);
+
   return (
     <div id="canslim" className="pane">
       <div className="page-head">
-        <div><div className="eyebrow">William J. O’Neil framework</div><h2>CAN SLIM / O’Neil Analysis</h2><p className="subtitle">Seven-factor evidence review · all figures are fictional and for illustration only.</p></div>
-        <span className="tag">Evidence review · not a buy signal</span>
+        <div><div className="eyebrow">William J. O’Neil framework</div><h2>CAN SLIM / O’Neil Analysis</h2><p className="subtitle">Seven-factor evidence review, computed live from free filings, price action and the market snapshot.</p></div>
+        <span className="demo" style={{ color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' }}>● LIVE · not a buy signal</span>
       </div>
       <div className="canslim-page" id="canslimDetails">
         <div className="cs-topline">
           <div className="cs-markethead">
             <div>
-              <div className="cs-market-price" id="csPrice">${p.toFixed(2)} <small>+{s.abs.toFixed(2)} (+{s.c.toFixed(2)}%)</small></div>
-              <div className="cs-market-meta">{s.n} &nbsp;|&nbsp; NASDAQ &nbsp;|&nbsp; {s.sec}<br />After hours <b>${(p + 0.12).toFixed(2)}</b> &nbsp; <span className="positive">+0.12 (+0.09%)</span></div>
+              <div className="cs-market-price" id="csPrice">${n(tech.price ?? s.p)} <small className={up ? 'positive' : 'negative'}>{up ? '+' : '−'}{Math.abs(s.abs ?? 0).toFixed(2)} ({up ? '+' : '−'}{Math.abs(s.c ?? 0).toFixed(2)}%)</small></div>
+              <div className="cs-market-meta">{a.name || s.n} &nbsp;|&nbsp; {s.sec || 'US equity'} &nbsp;|&nbsp; {a.source || 'Yahoo + SEC EDGAR'}{a.asOf ? `  ·  ${a.asOf}` : ''}</div>
             </div>
-            <svg className="cs-sparkline" viewBox="0 0 320 70" preserveAspectRatio="none"><path d={SPARK} fill="none" stroke="#20e5a4" strokeWidth="2.5" /></svg>
+            <svg className="cs-sparkline" viewBox="0 0 320 70" preserveAspectRatio="none"><path d={pathOf(a.overview?.chart)} fill="none" stroke={up ? '#20e5a4' : '#ff6374'} strokeWidth="2.5" /></svg>
           </div>
           <div className="cs-factorstrip">
             <div className="cs-strip-title">7-FACTOR REVIEW (CAN SLIM)</div>
-            <div className="cs-factor-pills">{STRIP.map(([l, v, w]) => <div className={`cs-factor-pill ${w ? 'warn' : ''}`} key={l}><b>{l}</b><span>{v}</span></div>)}</div>
+            <div className="cs-factor-pills">{(cs.strip || []).map(([l, v, w]) => <div className={`cs-factor-pill ${w ? 'warn' : ''}`} key={l}><b>{l}</b><span>{v}</span></div>)}</div>
             <div className="cs-disclaimer">Evidence review — not a buy signal.</div>
           </div>
         </div>
 
-        <CsFactor letter="C" title="Current Quarterly Earnings" question="Are recent quarterly earnings increasing significantly?" status="Strong">
+        <CsFactor letter="C" title="Current Quarterly Earnings" question="Are recent quarterly earnings increasing significantly?" status={statusBy.C} warn={warnBy.C}>
           <div className="cs-stat-grid">
-            <CsStat label="Latest Quarter (Q2 2025, demo)" value="EPS +38%" note="vs. Q2 2024" tone="good" />
-            <CsStat label="Sales" value="+24%" note="vs. Q2 2024" tone="good" />
+            <CsStat label="Latest quarter EPS growth" value={pctS(cs.C?.epsYoyPct)} note="YoY" tone={tone(cs.C?.epsYoyPct)} />
+            <CsStat label="Latest quarter sales growth" value={pctS(cs.C?.salesYoyPct)} note="YoY" tone={tone(cs.C?.salesYoyPct)} />
             <div className="cs-evidence" style={{ gridColumn: '1/-1' }}>
-              <h4>Recent Quarterly Results (EPS = earnings per share)</h4>
-              <table className="cs-table"><thead><tr><th>Quarter</th><th>EPS</th><th>Year-ago EPS</th><th>YoY Growth</th><th>Sales (B)</th><th>Sales Growth</th></tr></thead>
-                <tbody>{QUARTERS.map((r, ri) => <tr key={ri}>{r.map((v, i) => <td key={i} className={[3, 5].includes(i) ? 'good' : undefined}>{v}</td>)}</tr>)}</tbody></table>
+              <h4>Recent quarterly EPS (diluted, from filings)</h4>
+              <table className="cs-table"><thead><tr><th>Quarter</th><th>EPS</th><th>Year-ago EPS</th><th>YoY Growth</th></tr></thead>
+                <tbody>{qEps.length ? qEps.slice().reverse().map((q, ri) => <tr key={ri}><td>{q.label}</td><td>{q.value == null ? '—' : '$' + n(q.value)}</td><td>{q.yearAgo == null ? '—' : '$' + n(q.yearAgo)}</td><td className={tone(q.yoyPct)}>{pctS(q.yoyPct)}</td></tr>) : <tr><td colSpan={4}>No quarterly filings available</td></tr>}</tbody></table>
             </div>
           </div>
-          <div className="cs-evidence"><h4>Quarterly EPS Trend (last 8 quarters, demo)</h4><ChartBars bars={C_BARS} scale={0.7} /></div>
+          {qEps.length ? <div className="cs-evidence"><h4>Quarterly EPS trend (last {qEps.length})</h4><ChartBars bars={qEps.map((q) => [q.label, q.value])} /></div> : null}
         </CsFactor>
 
-        <CsFactor letter="A" title="Annual Earnings" question="Has the company grown its earnings over several years?" status="Strong">
+        <CsFactor letter="A" title="Annual Earnings" question="Has the company grown its earnings over several years?" status={statusBy.A} warn={warnBy.A}>
           <div className="cs-stat-grid">
-            <CsStat label="3-Year EPS CAGR (demo)" value="35.7%" note="Annualized growth" tone="good" />
-            <CsStat label="Return on Equity (ROE, demo)" value="24%" note="> 17% reference level" tone="good" />
-            <CsStat label="Earnings Stability (demo)" value="Consistent" note="4 of 4 years higher" tone="good" />
+            <CsStat label="3-Year EPS CAGR" value={pctS(cs.A?.epsCagr3yPct)} note="Annualized" tone={tone(cs.A?.epsCagr3yPct)} />
+            <CsStat label="Return on Equity" value={n(cs.A?.roe, 1, '%')} note="> 17% reference" tone={cs.A?.roe != null && cs.A.roe >= 17 ? 'good' : undefined} />
+            <CsStat label="Earnings record" value={annEps.length ? `${annEps.length} fiscal years` : '—'} note="From 10-K filings" />
             <div className="cs-evidence" style={{ gridColumn: '1/-1' }}>
-              <h4>Annual EPS History (fiscal year, demo)</h4>
-              <table className="cs-table"><thead><tr><th>Fiscal Year</th><th>EPS</th><th>YoY Growth</th><th>Revenue (B)</th><th>ROE</th></tr></thead>
-                <tbody>{ANNUALS.map((r, ri) => <tr key={ri}>{r.map((v, i) => <td key={i} className={i === 3 || i === 4 ? 'good' : undefined}>{v}</td>)}</tr>)}</tbody></table>
+              <h4>Annual EPS history (fiscal year, diluted)</h4>
+              <table className="cs-table"><thead><tr><th>Fiscal Year</th><th>EPS</th></tr></thead>
+                <tbody>{annEps.length ? annEps.slice().reverse().map((d, ri) => <tr key={ri}><td>{d.fy}</td><td>{d.value == null ? '—' : '$' + n(d.value)}</td></tr>) : <tr><td colSpan={2}>No annual filings available</td></tr>}</tbody></table>
             </div>
           </div>
-          <div className="cs-evidence"><h4>Annual EPS Trend (demo)</h4><ChartBars bars={A_BARS} scale={3.2} /></div>
+          {annEps.length ? <div className="cs-evidence"><h4>Annual EPS trend</h4><ChartBars bars={annEps.map((d) => [String(d.fy), d.value])} /></div> : null}
         </CsFactor>
 
-        <CsFactor letter="N" title="New Products, Services & Price Highs" question="Is something new driving the company or the stock?" status="Mixed" warn>
-          <div className="cs-evidence">
-            <h4>New Developments / Catalysts (demo)</h4>
-            <div className="cs-minirow"><span>✦ AI chip demand remains strong</span><b>Demo</b></div>
-            <p className="subtitle" style={{ fontSize: '10px', margin: '3px 0 9px' }}>Product demand related to data centers and AI.</p>
-            <div className="cs-minirow"><span>✦ New product roadmap (demo)</span><b>Verify</b></div>
-            <p className="subtitle" style={{ fontSize: '10px', margin: '3px 0 9px' }}>Next-generation GPU expected (verify source).</p>
-            <div className="cs-minirow"><span>✦ Recent news (demo)</span><b>Sep 18, 2026</b></div>
-            <p className="subtitle" style={{ fontSize: '10px', margin: '3px 0' }}>Analyst raises price target (verify source).</p>
-          </div>
-          <div className="cs-evidence">
-            <h4>Price / Base Setup (demo)</h4>
-            {nBase.map(([k, v], i) => <div className="cs-minirow" key={k}><span>{k}</span><b style={i === 2 || i === 6 || i === 7 ? { color: '#ff777f' } : undefined}>{v}</b></div>)}
-          </div>
-        </CsFactor>
-
-        <CsFactor letter="S" title="Supply and Demand" question="What do share supply and trading demand show?" status="Positive">
+        <CsFactor letter="N" title="New Highs" question="Is the stock near new price highs?" status={statusBy.N} warn={warnBy.N}>
           <div className="cs-stat-grid">
-            <CsStat label="Shares Outstanding" value="24.5B" />
-            <CsStat label="Float" value="1.2B" />
-            <CsStat label="Float %" value="4.9%" />
-            <CsStat label="Up/Down Volume Ratio" value="1.6" note="50-day, demo" tone="good" />
-            <CsStat label="Short Interest" value="N/A" />
-            <CsStat label="Days to Cover" value="N/A" />
+            <CsStat label="52-week high" value={cs.N?.high52 == null ? '—' : '$' + n(cs.N.high52)} />
+            <CsStat label="Current price" value={'$' + n(tech.price ?? s.p)} />
+            <CsStat label="Distance from high" value={n(cs.N?.distFromHighPct, 1, '%')} note="0% = at the high" tone={cs.N?.distFromHighPct != null && cs.N.distFromHighPct >= -5 ? 'good' : undefined} />
+            <CsStat label="52-week low" value={tech.low52 == null ? '—' : '$' + n(tech.low52)} />
           </div>
           <div className="cs-evidence">
-            <h4>Accumulation / Distribution (demo)</h4>
-            <strong className="good">▂ ▅ ▇ Positive</strong>
-            <p className="subtitle" style={{ fontSize: '10px', marginTop: '4px' }}>More up volume than down volume in recent weeks.</p>
-            <h4 style={{ marginTop: '12px' }}>Share Count Trend (demo)</h4>
-            <strong className="good">◉ Stable</strong>
-            <p className="subtitle" style={{ fontSize: '10px', marginTop: '4px' }}>No significant increase in shares.</p>
+            <h4>Base &amp; breakout</h4>
+            <p className="subtitle" style={{ fontSize: '11px' }}>Confirmed base patterns (cup-with-handle, flat base) and pivot points need chart-pattern detection, which isn’t wired on free daily bars. “New highs” here is proximity to the 52-week high, not a confirmed breakout.</p>
           </div>
         </CsFactor>
 
-        <CsFactor letter="L" title="Leader or Laggard" question="How does the stock rank against its industry peers?" status="Leader">
+        <CsFactor letter="S" title="Supply and Demand" question="What do share supply and trading demand show?" status={statusBy.S} warn={warnBy.S}>
           <div className="cs-stat-grid">
-            <CsStat label="Relative Strength (RS, demo)" value="92 / 99" note="Percentile vs. all stocks" tone="good" />
-            <CsStat label="Industry Group Rank (demo)" value="12 / 197" note="Semiconductors" tone="good" />
-            <CsStat label="Industry Group" value="Semiconductors" note="Top industry group" />
-            <CsStat label="Leader-Range" value="■■■■■■■■□" note="Stock is a leader in its industry group (demo)." tone="good" />
+            <CsStat label="Diluted shares" value={cs.S?.sharesStr || '—'} />
+            <CsStat label="Up/Down volume ratio" value={cs.S?.upDownVolRatio == null ? '—' : n(cs.S.upDownVolRatio, 2) + '×'} note="recent sessions" tone={cs.S?.upDownVolRatio != null && cs.S.upDownVolRatio >= 1 ? 'good' : undefined} />
+            <CsStat label="Accumulation" value={cs.S?.accumulation ? 'Accumulation' : 'Distribution'} tone={cs.S?.accumulation ? 'good' : 'bad'} />
+            <CsStat label="Float / short interest" value="Needs holdings feed" />
           </div>
           <div className="cs-evidence">
-            <h4>Relative Strength</h4>
-            <div className="cs-meter"><i style={{ width: '92%' }}></i></div>
-            <p className="subtitle" style={{ fontSize: '10px' }}>RS rating 92 / 99 · fictional demo value.</p>
+            <h4>Reading supply</h4>
+            <p className="subtitle" style={{ fontSize: '11px' }}>Share count is the diluted weighted average from filings. Free float, insider holdings and short interest need a holdings feed and are not shown.</p>
           </div>
         </CsFactor>
 
-        <CsFactor letter="I" title="Institutional Sponsorship" question="What does institutional ownership show?" status="Positive">
+        <CsFactor letter="L" title="Leader or Laggard" question="How does the stock rank for relative strength?" status={statusBy.L} warn={warnBy.L}>
           <div className="cs-stat-grid">
-            <CsStat label="Funds Holding (demo)" value="1,420" note="+86 last quarter" tone="good" />
-            <CsStat label="Institutional Ownership" value="65%" note="of shares (demo)" />
-            <CsStat label="Trend" value="Increasing" note="More funds added shares" tone="good" />
-            <CsStat label="Institution Quality (demo)" value="Not assessed" note="Requires detailed 13F analysis" />
+            <CsStat label="3-month return" value={pctS(cs.L?.mom3mPct)} note="price momentum" tone={tone(cs.L?.mom3mPct)} />
+            <CsStat label="6-month return" value={pctS(cs.L?.mom6mPct)} note="price momentum" tone={tone(cs.L?.mom6mPct)} />
+            <CsStat label="Sector" value={cs.L?.sector || '—'} />
+            <CsStat label="RS percentile" value="Needs full-universe ranking" />
           </div>
           <div className="cs-evidence">
-            <h4>Important context</h4>
-            <p className="subtitle" style={{ fontSize: '11px' }}>13F data is delayed (typically up to 45 days). Figures are illustrative and may not reflect the latest filings.</p>
+            <h4>Relative strength</h4>
+            <p className="subtitle" style={{ fontSize: '11px' }}>Leadership is read here from this stock’s own 3- and 6-month price momentum. A true RS percentile (rank versus the whole market) needs the full research universe and isn’t computed on free data.</p>
           </div>
         </CsFactor>
 
-        <CsFactor letter="M" title="Market Direction" question="Does the broader market support the setup?" status="Caution" warn>
+        <CsFactor letter="I" title="Institutional Sponsorship" question="What does institutional ownership show?" status={statusBy.I} warn={warnBy.I}>
+          <div className="cs-evidence">
+            <h4>Not available on free data</h4>
+            <p className="subtitle" style={{ fontSize: '11px' }}>{cs.I?.note || 'Institutional 13F sponsorship — funds holding, quarter-over-quarter change and institution quality — needs a holdings/13F feed. 13F data is also delayed up to 45 days.'}</p>
+          </div>
+        </CsFactor>
+
+        <CsFactor letter="M" title="Market Direction" question="Does the broader market support the setup?" status={statusBy.M} warn={warnBy.M}>
           <div className="cs-stat-grid">
-            <CsStat label="Market Regime (demo)" value="Uptrend" note="Confirmed uptrend" tone="good" />
-            <CsStat label="Major Index Trend (demo)" value="Positive" note="Above key moving averages" tone="good" />
-            <CsStat label="Distribution Days (demo)" value="3" note="In last 25 trading days" />
-            <CsStat label="Price/Volume Confirmation" value="Positive" note="Market holding up (demo)" tone="good" />
+            <CsStat label="Market regime" value={cs.M?.regime || '—'} tone={cs.M?.bias === 'LONG' ? 'good' : cs.M?.bias === 'SHORT' ? 'bad' : undefined} />
+            <CsStat label="Directional bias" value={cs.M?.bias || '—'} />
+            <CsStat label="Distribution days" value={cs.M?.distributionDays == null ? '—' : String(cs.M.distributionDays)} />
+            <CsStat label="Source" value="Live Market tab" />
           </div>
           <div className="cs-evidence">
-            <h4>Market direction note</h4>
-            <p className="subtitle" style={{ fontSize: '11px' }}>This is a fictional snapshot. Real evaluation needs dated major-index price/volume data and a consistent distribution-day methodology.</p>
+            <h4>Market direction</h4>
+            <p className="subtitle" style={{ fontSize: '11px' }}>From the live market snapshot (SPY moving averages, Bollinger position, sector breadth). The full regime model, heatmap and rankings live in the Market tab.</p>
           </div>
         </CsFactor>
 
         <section className="cs-missing">
-          <h3>🔴 Missing or Unverified Data</h3>
+          <h3>What needs a feed beyond free data</h3>
           <ul>
-            <li>New-product catalyst source not verified. Review original news sources.</li>
-            <li>Institutional quality rating requires detailed 13F analysis and is not fully assessed.</li>
-            <li>Short interest and days to cover are unavailable in this demo.</li>
-            <li>All metrics shown are fictional demo data and for illustration only.</li>
+            <li>A true RS percentile (rank vs. the whole market) needs the full research universe.</li>
+            <li>Institutional 13F sponsorship and institution quality need a holdings feed (and are delayed up to 45 days).</li>
+            <li>Free float and short interest / days-to-cover need a holdings feed.</li>
+            <li>Confirmed base patterns and pivot breakouts need chart-pattern detection, not just daily bars.</li>
+            <li>Per-ticker news and dated catalysts need a news/events feed.</li>
           </ul>
         </section>
       </div>

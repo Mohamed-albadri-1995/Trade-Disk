@@ -1,65 +1,54 @@
 import React, { useState } from 'react';
 
-// The Overview tab — the decision summary. It keeps only sections 1,4,5,6,7 (the
-// prototype's sectionData): chart preview, news, the CAN SLIM summary, themes, and a
-// market-context snapshot computed from the selected stock. Detailed metrics live in
-// Technical; company data in Fundamentals.
+// The Overview tab — the decision summary: a live price-path preview, the CAN SLIM
+// factor strip, themes, and a market-context snapshot pulled from the live Market
+// dashboard. Detailed price metrics live in Technical; company data in Fundamentals.
+// Per-ticker news needs a news feed, so that panel stays honestly empty here.
 
-const CHART_PATH = 'M0 120 L20 108 L40 116 L60 88 L80 96 L100 72 L120 84 L140 63 L160 72 L180 53 L200 62 L220 43 L240 55 L260 31 L280 44 L300 23 L320 34 L340 18 L360 27 L380 15 L400 22 L430 9 L460 14 L500 4';
-const CS_LETTERS = ['C', 'A', 'N', 'S', 'L', 'I', 'M'];
-const CS_LABELS = ['Earn.', 'Annual', 'New', 'Supply', 'Leader', 'Funds', 'Market'];
+const CS_LABELS = { C: 'Earn.', A: 'Annual', N: 'New', S: 'Supply', L: 'Leader', I: 'Funds', M: 'Market' };
 
-function sections(s, { onToast, setTab, onNav }) {
+function pathOf(series, w = 500, h = 130, pad = 8) {
+  const v = (series || []).filter((x) => x != null);
+  if (v.length < 2) return '';
+  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
+  const step = w / (v.length - 1);
+  return v.map((c, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${(h - pad - ((c - lo) / span) * (h - pad * 2)).toFixed(1)}`).join(' ');
+}
+
+function sections(a, { setTab, onNav }) {
+  const strip = a?.canslim?.strip || [];
+  const up = (a?.overview?.chart || []).slice(-1)[0] >= (a?.overview?.chart || [])[0];
   return [
-    { id: 1, title: 'Chart Snapshot', nav: 'Chart', desc: 'Compact price-path preview only. Full chart controls, candles, volume and timeframe analysis live in Technical Analysis.', content: (
+    { id: 1, title: 'Chart Snapshot', nav: 'Chart', desc: 'Live close-price path (last ~120 sessions). Full indicators and ranges live in Technical.', content: (
       <>
-        <div className="overview-snapshot-label">Price trend preview · illustrative; full chart controls live in Technical</div>
-        <svg className="mini-chart" viewBox="0 0 500 145" preserveAspectRatio="none"><path d={CHART_PATH} fill="none" stroke="#19dfa0" strokeWidth="2.5" /></svg>
-        <div className="data-row"><span>Chart timeframe</span><strong>1Y · Demo</strong></div>
+        <svg className="mini-chart" viewBox="0 0 500 130" preserveAspectRatio="none"><path d={pathOf(a?.overview?.chart)} fill="none" stroke={up ? '#19dfa0' : '#ff6374'} strokeWidth="2.5" /></svg>
+        <div className="data-row"><span>3-month return</span><strong className={(a?.overview?.mom3mPct ?? 0) >= 0 ? 'positive' : 'negative'}>{a?.overview?.mom3mPct == null ? '—' : (a.overview.mom3mPct >= 0 ? '+' : '') + a.overview.mom3mPct + '%'}</strong></div>
       </>
     ) },
-    { id: 4, title: 'Recent News', nav: 'News', desc: 'Three-line headline preview only. Company catalysts, event context, source details and the fuller news list live in Fundamental · Market · News.', content: (
+    { id: 5, title: 'CAN SLIM · O’Neil', nav: 'CAN SLIM', desc: 'Seven-factor summary from live financials + market. Open CAN SLIM for the evidence.', content: (
       <>
-        <div className="newsitem"><strong>{s.t} shares rise on strong AI / sector demand</strong><small>18m ago · Demo Newswire · source not connected</small></div>
-        <div className="newsitem"><strong>Analysts review growth outlook after quarterly results</strong><small>2h ago · Demo Markets · fictional example</small></div>
-        <div className="newsitem"><strong>Company roadmap update draws investor attention</strong><small>5h ago · Demo Markets · fictional example</small></div>
-        <button className="linkbtn" onClick={() => onToast('External news links are not connected in this frontend prototype.')}>View all news →</button>
-      </>
-    ) },
-    { id: 5, title: 'CAN SLIM · O’Neil', nav: 'CAN SLIM', desc: 'Compact seven-factor summary; open CAN SLIM for evidence.', content: (
-      <>
-        <div className="factorgrid">{CS_LETTERS.map((x, i) => <div key={x} className={`factor ${i === 2 || i === 6 ? 'warn' : ''}`}><b>{x}</b><small>{CS_LABELS[i]}</small></div>)}</div>
-        <div className="data-row"><span>Relative Strength</span><strong>92 / 99 · Demo</strong></div>
-        <div className="data-row"><span>7-factor summary</span><strong>78 / 100 · Demo</strong></div>
+        <div className="factorgrid">{strip.map(([x, , warn]) => <div key={x} className={`factor ${warn ? 'warn' : ''}`}><b>{x}</b><small>{CS_LABELS[x]}</small></div>)}</div>
+        <div className="data-row"><span>3-month relative move</span><strong>{a?.canslim?.mom3mPct == null ? '—' : (a.canslim.mom3mPct >= 0 ? '+' : '') + a.canslim.mom3mPct + '%'}</strong></div>
         <button className="linkbtn" onClick={() => setTab('canslim')}>Open full evidence review →</button>
       </>
     ) },
-    { id: 6, title: 'Themes', nav: 'Themes', desc: 'Industry and technology tags, kept separate from scoring.', content: (
-      <div className="themechips"><span>AI</span><span>Semiconductors</span><span>Data Centers</span><span>High Performance</span><span>Cloud Infrastructure</span><span>+2</span></div>
+    { id: 6, title: 'Themes', nav: 'Themes', desc: 'Sector and tag context, kept separate from scoring.', content: (
+      <div className="themechips">{(a?.overview?.themes || []).map((t, i) => <span key={i}>{t}</span>)}{!a?.overview?.themes?.length ? <span>—</span> : null}</div>
     ) },
-    { id: 7, title: 'Market Context', nav: 'Market', desc: 'Compact market snapshot for the stock card. The Market tab owns the full regime model, index dashboard, sector heatmap and industry-group rankings.', content: (
-      <>
-        <div className="market-context-regime"><span className="market-context-dot"></span><div><strong>Extended Up</strong><small>LONG · illustrative demo</small></div></div>
-        <div className="market-context-row"><span>Long term</span><strong className="positive">BULLISH</strong></div>
-        <div className="market-context-row"><span>Mid term</span><strong>UPTREND</strong></div>
-        <div className="market-context-row"><span>Short term</span><strong className="negative">BEARISH</strong></div>
-        <div className="market-context-row"><span>Sector</span><strong className="positive">{s.sec} · BULLISH ▲ 48</strong></div>
-        <div className="market-context-row"><span>Bias</span><strong><span className="market-context-auto">⦿ AUTO (long)</span></strong></div>
-        <button className="linkbtn" onClick={() => onNav('market')}>Open Market dashboard →</button>
-        <p className="market-context-note">Illustrative state only. Full market regime and sector metrics are maintained in the Market dashboard.</p>
-      </>
-    ) },
+    // Market Context moved into the stock hero (top-right); the Market tab remains the
+    // single source of truth for the full regime model, heatmap and rankings.
   ];
 }
 
-export function Overview({ stock, onToast, setTab, onNav }) {
+export function Overview({ a, loading, setTab, onNav }) {
   const [collapsed, setCollapsed] = useState(() => new Set());
-  const secs = sections(stock, { onToast, setTab, onNav });
-  const toggle = (id) => setCollapsed((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  if (loading || !a) return <div id="overview" className="pane"><div className="empty"><b>Loading live analysis…</b>Fetching price history, financials and the market snapshot.</div></div>;
+  const secs = sections(a, { setTab, onNav });
+  const toggle = (id) => setCollapsed((prev) => { const nx = new Set(prev); nx.has(id) ? nx.delete(id) : nx.add(id); return nx; });
   const jump = (id) => document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
     <div id="overview" className="pane">
-      <div className="notice analysis-ownership-note"><strong>Overview = decision summary.</strong> It keeps the chart preview, recent headlines, locked CAN SLIM summary, themes, links to the Market dashboard. The Overview has no score breakdown; scoring logic will be defined separately. All detailed price, volume, range, moving-average, momentum, volatility and pre-market metrics live only in Technical. Fundamental · Market · News owns company financials and catalysts.</div>
+      <div className="notice analysis-ownership-note"><strong>Overview = decision summary.</strong> Live price path, the CAN SLIM factor strip and themes; the market snapshot sits in the stock header above. Detailed price, volume, range and momentum metrics live in Technical; company financials in Fundamentals &amp; News.</div>
       <div className="sectionnav" id="sectionNav">
         {secs.map((s) => <button key={s.id} onClick={() => jump(s.id)}>{s.nav}</button>)}
       </div>

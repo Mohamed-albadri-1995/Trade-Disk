@@ -8,6 +8,7 @@ import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
 import { getMarket } from '../core/market.mjs';
+import { buildAnalysis } from '../core/analysis.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 
@@ -58,6 +59,18 @@ export async function scan(sb, key, limit = 50) {
   }
   const { totalCount, rows } = await tv.scan({ filters: def.filters, columns: COLUMNS, sort: def.sort, range: [0, limit] });
   return { screener: def.name, key, provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard) };
+}
+
+// The per-stock analysis workspace, live from Yahoo + SEC EDGAR. `scan` carries the
+// card context (name/sector/cap) from the result the user opened, for fields Yahoo
+// doesn't provide. The live market snapshot feeds the market-direction factor.
+export async function analysis(sb, ticker, scan = null) {
+  const market = await getMarket(sb).catch(() => null);
+  try {
+    return await buildAnalysis(ticker, { scan, market });
+  } catch (e) {
+    return { ticker, live: false, error: String((e && e.message) || e) };
+  }
 }
 
 // The market snapshot read model — live from Yahoo, lazily refreshed (core/market.mjs).

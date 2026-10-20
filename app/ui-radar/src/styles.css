@@ -191,3 +191,20 @@
 [data-theme=light] .condition-table input{background:#f4f7fb;border-color:#d3dde8}
 [data-theme=light] .schedule-window .remove-window{background:#fdecef;border-color:#f0b9c4;color:#c23050}
 [data-theme=light] .stockcard .stock-detail{border-color:#e6edf4}
+
+/* Analysis hero: compact live market snapshot moved into the hero's right column (out of the Overview tab). Additive — desktop identity/score untouched. */
+.hero-aside{display:flex;flex-direction:column;align-items:stretch;gap:10px;flex:0 0 clamp(205px,23vw,248px);min-width:0}
+.hero-controls{justify-content:flex-end}
+.hero-market{display:block;width:100%;text-align:left;border:1px solid var(--line2);background:linear-gradient(150deg,#0b2233,#081726);border-radius:11px;padding:11px;color:inherit;transition:border-color .15s,transform .15s}
+.hero-market:hover{border-color:var(--blue);transform:translateY(-1px)}
+.hero-market-head{display:flex;align-items:center;gap:10px}
+.hero-market-dot{width:26px;height:26px;flex:0 0 26px;border-radius:50%;border:3px solid #5d9e31;background:#7ab63e;box-shadow:inset 2px 2px 3px #ffffff40}
+.hero-market-head strong{display:block;font-size:15px;letter-spacing:-.2px;line-height:1.15;color:var(--text)}
+.hero-market-head small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.hero-market-rows{display:flex;flex-wrap:wrap;gap:4px 12px;margin:9px 0 7px;font-size:11px;color:var(--muted)}
+.hero-market-rows b{font-weight:750;margin-left:4px}
+.hero-market-rows b:not(.positive):not(.negative){color:var(--text)}
+.hero-market-link{font-size:11px;color:var(--cyan);font-weight:750}
+[data-theme=light] .hero-market{background:#f4f8fc;border-color:#cfdbe8}
+[data-theme=light] .hero-market:hover{border-color:#0a6fff}
+@media(max-width:700px){.hero-top{flex-direction:column}.hero-aside{flex-basis:auto;width:100%}.hero-controls{justify-content:space-between}}
