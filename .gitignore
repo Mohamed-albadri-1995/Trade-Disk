@@ -1,0 +1,10 @@
+# Deep-research working files — scaffolding for the journal import redesign,
+# not part of the design tree. The report is delivered to the trader directly.
+research_notes/
+reports/
+
+# Installed agent skills (tooling, not part of the design tree)
+.agents/
+.claude/skills/
+skills-lock.json
+node_modules/
