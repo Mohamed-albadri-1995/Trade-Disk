@@ -20,6 +20,8 @@ export const api = {
     j(`/api/radar/shortlist/${encodeURIComponent(ticker)}`, { method: 'POST' }),
   // The materialized market_snapshot the Market dashboard renders.
   market: () => j('/api/radar/market'),
+  // Industry Group Leadership (O'Neil "L") — may return {computing:true} on first daily read.
+  groups: () => j('/api/radar/groups'),
   // The live screeners available, and running one against the active engine.
   screeners: () => j('/api/radar/screeners'),
   scan: (key, limit) => j(`/api/radar/scan/${encodeURIComponent(key)}${limit ? `?limit=${limit}` : ''}`),

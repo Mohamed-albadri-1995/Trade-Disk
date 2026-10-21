@@ -27,15 +27,15 @@ export function Shell({ page, onNav, onTheme, onNewTrade, children }) {
         <div className="navlabel">Workspace</div>
         <nav className="nav">{NAV_WORK.map(NavBtn)}</nav>
         <div className="sidebottom">
-          <div className="demo-note"><b>Demo workspace</b>Illustrative trades only. No broker is connected and no real performance is shown.</div>
-          <div className="profile"><div className="avatar">TD</div><div><b>Trader workspace</b><small>Local demo · not synced</small></div></div>
+          <div className="demo-note"><b>Your workspace</b>Starter example trades are included — add or import your own. Everything saves to your account; no broker is connected.</div>
+          <div className="profile"><div className="avatar">TD</div><div><b>Trader workspace</b><small>Synced to your account</small></div></div>
         </div>
       </aside>
       <main className="main">
         <header className="topbar">
           <div className="crumb"><a className="crumb-home" href="/" title="Back to the Trading Station">◆ Station</a> <span className="muted">/</span> <b>{CRUMB[page] || 'Journal'}</b></div>
           <div className="topactions">
-            <span className="livedot">Demo data</span>
+            <span className="livedot">Synced</span>
             <button className="iconbtn" onClick={onTheme} title="Toggle light and dark theme" aria-label="Toggle theme">☀</button>
             <button className="btn primary" onClick={onNewTrade}>＋ New trade</button>
           </div>

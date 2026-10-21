@@ -8,6 +8,7 @@ import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
 import { getMarket } from '../core/market.mjs';
+import { getGroups } from '../core/oneilGroups.mjs';
 import { buildAnalysis } from '../core/analysis.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -71,6 +72,12 @@ export async function analysis(sb, ticker, scan = null) {
   } catch (e) {
     return { ticker, live: false, error: String((e && e.message) || e) };
   }
+}
+
+// Industry Group Leadership (O'Neil "L") — live S&P 500 group RS ranking, background-
+// built and cached daily (core/oneilGroups.mjs). Returns {computing:true} while it builds.
+export async function groups(sb) {
+  return getGroups(sb);
 }
 
 // The market snapshot read model — live from Yahoo, lazily refreshed (core/market.mjs).

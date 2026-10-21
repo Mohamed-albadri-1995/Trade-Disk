@@ -133,6 +133,18 @@ create policy radar_market_read on public.radar_market for select to authenticat
 create policy radar_market_admin on public.radar_market for all to authenticated
   using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
   with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
+
+-- Industry Group Leadership (O'Neil "L") cache: the live S&P 500 group RS ranking,
+-- rebuilt about once a day. Single row like radar_market; owner/admin gate the write.
+create table if not exists public.radar_groups (
+  id int primary key default 1 check (id = 1), snapshot jsonb not null, as_of timestamptz
+);
+alter table public.radar_groups enable row level security;
+create policy radar_groups_read on public.radar_groups for select to authenticated using (true);
+create policy radar_groups_admin on public.radar_groups for all to authenticated
+  using (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])))
+  with check (exists (select 1 from public.profile p where p.id = (select auth.uid()) and p.role = any (array['owner','admin'])));
+grant select, insert, update, delete on public.radar_groups to authenticated;
 alter table public.app_setting enable row level security;
 create policy app_setting_read on public.app_setting for select to authenticated using (true);
 create policy app_setting_admin on public.app_setting for all to authenticated

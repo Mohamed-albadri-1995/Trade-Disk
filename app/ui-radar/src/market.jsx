@@ -1,4 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from './api.js';
+
+// Industry Group Leadership (O'Neil "L") — fetched on its own because the S&P 500
+// ranking is computed in the background and cached daily. While it builds, the panel
+// polls; once it lands it renders the ranked groups. RS colouring: strong green, weak red.
+function rsCls(v) { return v == null ? undefined : v >= 80 ? 'positive' : v <= 40 ? 'negative' : undefined; }
+
+function GroupsPanel() {
+  const [g, setG] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    let live = true, tries = 0, timer;
+    const poll = () => {
+      api.groups().then((res) => {
+        if (!live) return;
+        setG(res); setErr(false);
+        if (res && res.computing && tries++ < 20) timer = setTimeout(poll, 4000);
+      }).catch(() => { if (live) setErr(true); });
+    };
+    poll();
+    return () => { live = false; clearTimeout(timer); };
+  }, []);
+
+  const rows = g?.groups || [];
+  return (
+    <section className="market-block">
+      <div className="block-head">
+        <div><h2>Industry Group Leadership · O’Neil L</h2><p className="subtitle">S&amp;P 500 ranked by industry-group relative strength — the group where the median stock is strongest is where leadership is forming.</p></div>
+        {rows.length ? <span className="tag">{g.totalGroups} groups · {g.mappedSymbols} stocks</span> : <span className="tag">Live engine</span>}
+      </div>
+      {err ? (
+        <div className="empty"><b>Couldn’t load group leadership</b>The ranking service didn’t respond — try again shortly.</div>
+      ) : !rows.length ? (
+        <div className="empty"><b>{g?.computing ? 'Computing group leadership…' : 'Loading…'}</b>{g?.computing ? 'Ranking the S&P 500 by industry-group relative strength (first run of the day — about a minute). It’ll appear here when ready.' : 'Reading the latest group ranking.'}</div>
+      ) : (
+        <>
+          <div className="notice">Groups are GICS sub-industries within the S&amp;P 500 — our scope, not IBD’s proprietary 197-group model. RS is each stock’s IBD-style weighted 3/6/9/12-month return, percentiled 1–99 within the universe; groups rank by member median RS.{g.asOf ? ` · Updated ${g.asOf}` : ''}{g.computing ? ' · refreshing…' : ''}</div>
+          <div className="table-wrap">
+            <table className="market-table">
+              <thead><tr><th>Rank</th><th>Industry group</th><th>Grade</th><th>Members</th><th>Median RS</th><th>% &gt; 80</th><th>Leaders (RS)</th></tr></thead>
+              <tbody>
+                {rows.map((x) => (
+                  <tr key={x.group}>
+                    <td>{x.rank}</td>
+                    <td className="group-name">{x.group}<small style={{ display: 'block', color: 'var(--muted)' }}>{x.sector}</small></td>
+                    <td><strong className={rsCls(x.pct)}>{x.letter}</strong> <span style={{ color: 'var(--muted)' }}>· {x.pct}</span></td>
+                    <td>{x.members}</td>
+                    <td><strong className={rsCls(x.median_rs)}>{x.median_rs}</strong></td>
+                    <td className={rsCls(Math.round(x.share_over_80 * 100))}>{Math.round(x.share_over_80 * 100)}%</td>
+                    <td>{x.leaders.map((l) => `${l.symbol} ${l.rs}`).join(' · ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 // The standalone Market dashboard. It renders the materialized market snapshot the
 // API serves (MARKET.md §3.5) and never recomputes anything. When the snapshot is
@@ -106,26 +166,7 @@ export function Market({ snapshot, onNav, onToast }) {
         <p className="market-footnote">{live ? 'RS Day / RS Week are the ETF return minus SPY’s over the same period. Bias, score and ADX(14) are computed from the ETF’s daily bars; score blends relative strength, trend and ADX.' : 'RS Day / RS Week are relative performance fields from the supplied legacy example. The bias, score and HOT status are displayed as provided, not recalculated in this frontend.'}</p>
       </section>
 
-      <section className="market-block">
-        <div className="block-head"><div><h2>Industry Group Leadership · O’Neil L</h2><p className="subtitle">Group rank, percentile, member count, median RS, share of members above 80 and individual leaders.</p></div><span className="tag">Research engine</span></div>
-        {m.groupsPending || !m.groups?.length ? (
-          <div className="empty"><b>Coming with the research engine</b>O’Neil’s 175-industry-group ranking classifies the whole market into groups and ranks them by relative strength — a dedicated engine, not a free feed. It isn’t wired yet, so this panel is intentionally empty rather than showing demo numbers. Sector-level leadership above is live.</div>
-        ) : (
-          <>
-            <div className="notice">These are the prototype’s group definitions, not IBD’s proprietary classification. Membership and ranks depend on the source universe.</div>
-            <div className="table-wrap">
-              <table className="market-table">
-                <thead><tr><th>Rank</th><th>Industry group</th><th>Percentile / grade</th><th>Members</th><th>Median RS</th><th>Over 80</th><th>3-mo</th><th>Leaders (RS)</th></tr></thead>
-                <tbody>
-                  {m.groups.map((row, ri) => (
-                    <tr key={ri}>{row.cells.map((c, ci) => <td key={ci} className={c.c || undefined} colSpan={c.colspan || undefined}>{c.t}</td>)}</tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+      <GroupsPanel />
 
       <section className="market-block">
         <div className="block-head"><div><h2>Market Breadth, Volatility &amp; Themes</h2><p className="subtitle">{live ? 'Sector breadth, distribution days and live volatility; theme status from the sector leaders.' : 'Additional context panels; values remain illustrative until a verified data source is connected.'}</p></div></div>

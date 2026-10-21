@@ -390,14 +390,14 @@ export function Settings({ ctx }) {
           <div className="panelbody">
             <div className="minirow"><div className="minimain"><b>Theme</b><small>Applies across the Journal</small></div>
               <select className="searchbox" value={ctx.theme} onChange={e => ctx.onSetTheme(e.target.value)}><option value="dark">Dark</option><option value="light">Light</option></select></div>
-            <div className="minirow"><div className="minimain"><b>Display timezone</b><small>Times shown in New York; production selection not wired</small></div><span className="tag warn">New York</span></div>
-            <div className="minirow"><div className="minimain"><b>Currency</b><small>Demo uses USD</small></div><span className="tag">USD · $</span></div>
+            <div className="minirow"><div className="minimain"><b>Display timezone</b><small>Times shown in US Eastern (New York)</small></div><span className="tag">New York</span></div>
+            <div className="minirow"><div className="minimain"><b>Currency</b><small>Accounts are in USD</small></div><span className="tag">USD · $</span></div>
           </div>
         </Panel>
-        <Panel title="Workspace" desc="Your demo data">
+        <Panel title="Workspace" desc="Your account">
           <div className="panelbody">
-            <div className="minirow"><div className="minimain"><b>Reset demo workspace</b><small>Restore the illustrative trades, accounts and setups</small></div><button className="btn ghost small" onClick={() => ctx.onReset()}>Reset</button></div>
-            <div className="minirow"><div className="minimain"><b>Storage</b><small>Saved on the server (SQLite) — not a broker, no real funds</small></div><span className="roflag">Local demo</span></div>
+            <div className="minirow"><div className="minimain"><b>Reset workspace</b><small>Restore the starter example trades, accounts and setups</small></div><button className="btn ghost small" onClick={() => ctx.onReset()}>Reset</button></div>
+            <div className="minirow"><div className="minimain"><b>Storage</b><small>Saved to your account (Supabase / Postgres) — journaling only, not a broker</small></div><span className="roflag">Per account</span></div>
           </div>
         </Panel>
       </div>

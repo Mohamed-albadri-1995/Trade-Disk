@@ -91,6 +91,7 @@ async function api(req, res, url) {
         if (sub === 'stocks') return json(res, await radar.stocks(sb));
         if (sub === 'shortlist') return json(res, await radar.shortlist(sb));
         if (sub === 'market') return json(res, await radar.market(sb));
+        if (sub === 'groups') return json(res, await radar.groups(sb));
         if (sub === 'screeners') return json(res, radar.screeners());
         if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
         if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }));

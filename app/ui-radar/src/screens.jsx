@@ -75,7 +75,7 @@ export function Shortlist({ saved, shortlist, onToggleStar, onOpen, onNav }) {
           <h1>Shortlist</h1>
           <p className="subtitle">Keep an eye on stocks you want to review. Tap any stock to open its analysis.</p>
         </div>
-        <span className="tag">Saved locally in this prototype</span>
+        <span className="tag">Saved to your account</span>
       </div>
       <section className="panel results">
         <div className="results-top">

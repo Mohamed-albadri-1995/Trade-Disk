@@ -168,7 +168,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
       <button className="primary" onClick={onApply}>Apply Filters</button>
       <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Score &amp; tags illustrative</span></div>
       <div className="saved">
-        <div className="panel-title"><h3>Saved Screens</h3><button className="linkbtn" onClick={() => onToast('Save-screen management is not part of this prototype.')}>＋</button></div>
+        <div className="panel-title"><h3>Quick screeners</h3><button className="linkbtn" onClick={() => onToast('Build and save custom screeners in Settings.')}>＋</button></div>
         <div className="savedrow"><span>Trend Leaders</span><button onClick={() => onLoadSaved('trend-leaders')}>↗</button></div>
         <div className="savedrow"><span>Growth Pullback</span><button onClick={() => onLoadSaved('growth-pullback')}>↗</button></div>
       </div>
