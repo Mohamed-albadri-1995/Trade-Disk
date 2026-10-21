@@ -8,7 +8,7 @@
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
-const UIS = ['ui-station', 'ui', 'ui-radar', 'ui-admin'];
+const UIS = ['ui-station', 'ui', 'ui-radar', 'ui-admin', 'ui-lab'];
 const root = import.meta.dirname;
 const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: 'inherit' });
 

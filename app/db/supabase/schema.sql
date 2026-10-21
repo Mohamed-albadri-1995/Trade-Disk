@@ -82,6 +82,41 @@ create table if not exists public.radar_screener (
   primary key (owner_id, id)
 );
 
+-- ===== Lab / qp (per account) =====
+-- A strategy is a document (the whole grammar in `doc`); saving it makes a version
+-- so an old backtest's meaning never changes. A backtest freezes its run spec
+-- (including a copy of the strategy it ran) and stores its report and trades.
+create table if not exists public.lab_strategy (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  id text not null, name text not null, side text not null default 'long',
+  stage text not null default 'development',       -- development | ready (set by hand)
+  doc jsonb not null, version int not null default 1,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  primary key (owner_id, id)
+);
+create table if not exists public.lab_strategy_version (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  strategy_id text not null, version int not null, name text, doc jsonb not null,
+  created_at timestamptz not null default now(),
+  primary key (owner_id, strategy_id, version)
+);
+create table if not exists public.lab_backtest (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  id text not null, name text, status text not null default 'done',  -- running | done | error
+  spec jsonb not null,                               -- frozen run spec incl. the strategy
+  report jsonb, trades jsonb, error text,
+  created_at timestamptz not null default now(),
+  primary key (owner_id, id)
+);
+create index if not exists lab_backtest_owner_created_idx on public.lab_backtest (owner_id, created_at desc);
+alter table public.lab_strategy enable row level security;
+create policy lab_strategy_own on public.lab_strategy for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+alter table public.lab_strategy_version enable row level security;
+create policy lab_strategy_version_own on public.lab_strategy_version for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+alter table public.lab_backtest enable row level security;
+create policy lab_backtest_own on public.lab_backtest for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.lab_strategy, public.lab_strategy_version, public.lab_backtest to authenticated;
+
 -- ===== Global (shared) =====
 create table if not exists public.radar_stock (
   t text primary key, n text not null,

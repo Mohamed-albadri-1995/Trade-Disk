@@ -79,16 +79,17 @@ export default function App({ session, onSignOut } = {}) {
             </div>
             <span className="st-cta tool-cta">Open Radar <span className="ar">→</span></span>
           </a>
-          <div className="st-tool lab">
-            <div className="tool-head"><div className="ti">▥</div><span className="soon">Coming soon</span></div>
+          <a className="st-tool lab" href="/lab/">
+            <div className="tool-head"><div className="ti">▥</div><span className="badge">Live now</span></div>
             <h3>TradeLab</h3>
-            <p>Professional charting, indicators, strategy development and backtesting.</p>
+            <p>Charting, a click-built strategy engine and an honest backtest on free daily data.</p>
             <div className="tmini">
-              <div className="trow"><span>Charting</span><b>Multi-timeframe</b></div>
-              <div className="trow"><span>Backtesting</span><b>Strategy engine</b></div>
-              <div className="trow"><span>Indicators</span><b>Custom</b></div>
+              <div className="trow"><span>Charting</span><b>Candles + 29 indicators</b></div>
+              <div className="trow"><span>Backtesting</span><b>Desk-fill engine</b></div>
+              <div className="trow"><span>Strategies</span><b>Build + save</b></div>
             </div>
-          </div>
+            <span className="st-cta tool-cta">Open TradeLab <span className="ar">→</span></span>
+          </a>
           <div className="st-tool pilot">
             <div className="tool-head"><div className="ti">✦</div><span className="soon">Coming soon</span></div>
             <h3>TradePilot</h3>

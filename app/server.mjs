@@ -8,6 +8,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, normalize, extname } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
+import * as lab from './api/lab.mjs';
 import * as sources from './core/sources.mjs';
 import { userClient } from './lib/supabase.mjs';
 
@@ -107,6 +108,33 @@ async function api(req, res, url) {
       }
     }
 
+    if (seg[1] === 'lab') {
+      const ctx = authCtx(req);
+      if (!ctx) return json(res, { error: 'unauthorized' }, 401);
+      const { sb, uid } = ctx;
+      const sub = seg[2];
+      if (m === 'GET') {
+        if (sub === 'meta') return json(res, lab.meta());
+        if (sub === 'strategies' && seg[3]) return json(res, await lab.getStrategy(sb, decodeURIComponent(seg[3])));
+        if (sub === 'strategies') return json(res, await lab.listStrategies(sb));
+        if (sub === 'backtests' && seg[3]) return json(res, await lab.getBacktest(sb, decodeURIComponent(seg[3])));
+        if (sub === 'backtests') return json(res, await lab.listBacktests(sb));
+      }
+      try {
+        if (m === 'POST') {
+          const body = await readBody(req);
+          if (sub === 'strategies') return json(res, await lab.saveStrategy(sb, uid, body), 201);
+          if (sub === 'chart') return json(res, await lab.chartData(body.symbol, body.range, body.overlays));
+          if (sub === 'preview') return json(res, await lab.preview(body.symbol, body.strategy, body.opts || {}));
+          if (sub === 'backtest') return json(res, await lab.runBacktestApi(sb, uid, body), 201);
+        }
+        if (m === 'DELETE' && sub === 'strategies' && seg[3]) return json(res, await lab.deleteStrategy(sb, decodeURIComponent(seg[3])));
+        if (m === 'DELETE' && sub === 'backtests' && seg[3]) return json(res, await lab.deleteBacktest(sb, decodeURIComponent(seg[3])));
+      } catch (e) {
+        return json(res, { error: String(e && e.message || e) }, 400);
+      }
+    }
+
     // the dual-mode feed switch (the admin dashboard reads/writes this global config)
     if (seg[1] === 'admin') {
       const ctx = authCtx(req);
@@ -131,7 +159,7 @@ async function api(req, res, url) {
 
 // Each tool is its own app under app/web/<app>/ and routes client-side within it;
 // the Station launcher owns the root. Rebuilding one app never touches another.
-const APPS = ['journal', 'radar', 'admin'];
+const APPS = ['journal', 'radar', 'admin', 'lab'];
 
 async function sendFile(res, file) {
   const body = await readFile(file); // throws if missing
