@@ -128,6 +128,8 @@ async function api(req, res, url) {
         if (sub === 'strategies') return json(res, await lab.listStrategies(sb));
         if (sub === 'backtests' && seg[3]) return json(res, await lab.getBacktest(sb, decodeURIComponent(seg[3])));
         if (sub === 'backtests') return json(res, await lab.listBacktests(sb));
+        if (sub === 'replay-screens') return json(res, await lab.replayScreens(sb));
+        if (sub === 'replays') return json(res, await lab.listReplays(sb));
       }
       try {
         if (m === 'POST') {
@@ -136,6 +138,7 @@ async function api(req, res, url) {
           if (sub === 'chart') return json(res, await lab.chartData(body.symbol, body.range, body.overlays));
           if (sub === 'preview') return json(res, await lab.preview(body.symbol, body.strategy, body.opts || {}));
           if (sub === 'backtest') return json(res, await lab.runBacktestApi(sb, uid, body), 201);
+          if (sub === 'replay') return json(res, await lab.runReplay(sb, uid, body), 201);
         }
         if (m === 'DELETE' && sub === 'strategies' && seg[3]) return json(res, await lab.deleteStrategy(sb, decodeURIComponent(seg[3])));
         if (m === 'DELETE' && sub === 'backtests' && seg[3]) return json(res, await lab.deleteBacktest(sb, decodeURIComponent(seg[3])));

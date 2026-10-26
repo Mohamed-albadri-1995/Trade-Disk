@@ -8,6 +8,7 @@ import * as yahoo from '../providers/yahoo.mjs';
 import { catalogue, compute, LIB } from '../core/lab/library.mjs';
 import { simulate, validateStrategy, FILLS } from '../core/lab/evaluate.mjs';
 import { runBacktest } from '../core/lab/backtest.mjs';
+import { screenReplay } from '../core/replay.mjs';
 import { TEMPLATES } from '../core/lab/templates.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -157,4 +158,31 @@ export async function getBacktest(sb, id) {
 export async function deleteBacktest(sb, id) {
   chk(await sb.from('lab_backtest').delete().eq('id', id));
   return { id, deleted: true };
+}
+
+// ── screener replay (historical backtest over the migrated daily record) ──
+// The pickable screens, with their window and size, for the replay chooser.
+export async function replayScreens(sb) {
+  const rows = chk(await sb.from('radar_screen_catalog')
+    .select('screen,name,src,maps_to,status,filters,first_day,last_day,days,members')
+    .order('members', { ascending: false }));
+  return rows;
+}
+
+// Run one replay, persist it (kind 'screener-replay' in lab_backtest), return it.
+export async function runReplay(sb, uid, spec) {
+  const out = await screenReplay(sb, spec);
+  const id = 'rp-' + Date.now().toString(36);
+  const name = `${out.report.screenName} replay · ${out.report.window.start}→${out.report.window.end}`;
+  chk(await sb.from('lab_backtest').insert({
+    owner_id: uid, id, name, status: 'done',
+    spec: { kind: 'screener-replay', ...out.spec }, report: out.report, trades: out.trades,
+  }));
+  return { id, name, report: out.report, trades: out.trades, spec: out.spec };
+}
+
+export async function listReplays(sb) {
+  const rows = chk(await sb.from('lab_backtest').select('id,name,status,created_at,report,spec')
+    .eq('spec->>kind', 'screener-replay').order('created_at', { ascending: false }).limit(50));
+  return rows.map((r) => ({ id: r.id, name: r.name, status: r.status, created_at: r.created_at, headline: r.report?.headline || null, screen: r.spec?.screen || null }));
 }
