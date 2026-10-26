@@ -12,6 +12,7 @@ import * as lab from './api/lab.mjs';
 import * as sources from './core/sources.mjs';
 import { userClient } from './lib/supabase.mjs';
 import { startScheduler } from './core/scheduler.mjs';
+import { importLegacy } from './core/importLegacy.mjs';
 
 const PORT = process.env.PORT || 8787;
 const WEB = join(import.meta.dirname, 'web');
@@ -105,6 +106,7 @@ async function api(req, res, url) {
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, await radar.toggleShortlist(sb, uid, decodeURIComponent(seg[3])));
       try {
         if (m === 'POST' && sub === 'preview') return json(res, await radar.previewConditions(sb, await readBody(req)));
+        if (m === 'POST' && sub === 'import-legacy' && process.env.LEGACY_IMPORT === 'on') return json(res, await importLegacy(await readBody(req)));
         if (m === 'POST' && sub === 'collect' && seg[3]) return json(res, await radar.collectNow(sb, uid, decodeURIComponent(seg[3])));
         if (m === 'POST' && sub === 'labels') return json(res, await radar.labelsNow(sb, uid));
         if (m === 'POST' && sub === 'config') return json(res, await radar.saveScreenerConfig(sb, uid, await readBody(req)), 201);
