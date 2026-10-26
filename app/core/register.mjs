@@ -26,7 +26,7 @@ export async function runScreener(sb, uid, spec) {
 
   const day = etDay();
   const now = new Date().toISOString();
-  const existing = chk(await sb.from('radar_register').select('ticker, sym, card, first_seen, last_live').eq('day', day).eq('screener', key));
+  const existing = chk(await sb.from('radar_register').select('ticker, sym, card, first_seen, last_live').eq('owner_id', uid).eq('day', day).eq('screener', key));
   const prevBy = Object.fromEntries(existing.map((e) => [e.ticker, e]));
 
   const toWrite = [];

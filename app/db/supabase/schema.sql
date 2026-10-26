@@ -95,6 +95,46 @@ create table if not exists public.radar_register (
 );
 create index if not exists radar_register_owner_day_idx on public.radar_register (owner_id, day, screener);
 
+-- The data-collection feature store (for model-building). Each scheduled scan (or a
+-- manual run) freezes a full snapshot so the data is there later even if unused now:
+--  • radar_snapshot        one row per stock at that instant — the whole card + live flag
+--  • radar_snapshot_market the entire market snapshot at that instant
+--  • radar_snapshot_facts  the heavy per-stock analysis (hero + fundamental + technical +
+--                          CAN SLIM), captured once per day per stock
+--  • radar_snapshot_label  the outcome: day open/high/low/close + the full intraday 5m path,
+--                          computed after the close. Features (snapshots) join labels on
+--                          (day, ticker); snapshots slice by screener OR by time.
+-- See core/collect.mjs, core/labels.mjs, core/scheduler.mjs.
+create table if not exists public.radar_snapshot (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  day text not null, screener text not null, taken_at timestamptz not null,
+  ticker text not null, live boolean not null default true, card jsonb not null,
+  primary key (owner_id, screener, taken_at, ticker)
+);
+create index if not exists radar_snapshot_day_screener_idx on public.radar_snapshot (owner_id, day, screener);
+create index if not exists radar_snapshot_day_ticker_idx on public.radar_snapshot (owner_id, day, ticker);
+
+create table if not exists public.radar_snapshot_market (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  day text not null, taken_at timestamptz not null, snapshot jsonb not null,
+  primary key (owner_id, taken_at)
+);
+create index if not exists radar_snapshot_market_day_idx on public.radar_snapshot_market (owner_id, day);
+
+create table if not exists public.radar_snapshot_facts (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  day text not null, ticker text not null, taken_at timestamptz not null, analysis jsonb not null,
+  primary key (owner_id, day, ticker)
+);
+
+create table if not exists public.radar_snapshot_label (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  day text not null, ticker text not null,
+  open double precision, high double precision, low double precision, close double precision,
+  bars jsonb, computed_at timestamptz not null default now(),
+  primary key (owner_id, day, ticker)
+);
+
 -- ===== Lab / qp (per account) =====
 -- A strategy is a document (the whole grammar in `doc`); saving it makes a version
 -- so an old backtest's meaning never changes. A backtest freezes its run spec
@@ -168,6 +208,22 @@ create policy radar_screener_own on public.radar_screener for all to authenticat
 alter table public.radar_register enable row level security;
 create policy radar_register_own on public.radar_register for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 grant select, insert, update, delete on public.radar_register to authenticated;
+
+alter table public.radar_snapshot enable row level security;
+create policy radar_snapshot_own on public.radar_snapshot for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.radar_snapshot to authenticated;
+
+alter table public.radar_snapshot_market enable row level security;
+create policy radar_snapshot_market_own on public.radar_snapshot_market for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.radar_snapshot_market to authenticated;
+
+alter table public.radar_snapshot_facts enable row level security;
+create policy radar_snapshot_facts_own on public.radar_snapshot_facts for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.radar_snapshot_facts to authenticated;
+
+alter table public.radar_snapshot_label enable row level security;
+create policy radar_snapshot_label_own on public.radar_snapshot_label for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.radar_snapshot_label to authenticated;
 -- global config / shared tables: any authenticated user may read; only an owner/admin
 -- may write (the server does so on their behalf — e.g. the live market snapshot
 -- refresh and the feed-switch config). Operator membership is read from profile.role.

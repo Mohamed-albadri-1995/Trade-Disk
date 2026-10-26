@@ -37,4 +37,14 @@ export const api = {
   saveConfig: (cfg) => j('/api/radar/config', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(cfg) }),
   deleteConfig: (id) => j(`/api/radar/config/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   saveSchedule: (key, body) => j(`/api/radar/schedule/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+
+  // ── data collection (the feature store for model-building) ──
+  // What the scheduler (or a manual run) has frozen today: snapshot rows, facts, labels, times.
+  collectStatus: () => j('/api/radar/collection'),
+  // Manually freeze a snapshot for one screener right now (what the scheduler does each window).
+  collectNow: (key) => j(`/api/radar/collect/${encodeURIComponent(key)}`, { method: 'POST' }),
+  // Compute today's outcome labels now (OHLC + intraday path); normally runs after the close.
+  labelsNow: () => j('/api/radar/labels', { method: 'POST' }),
+  // A day's collected data (snapshots + market + facts + labels) as JSON, for offline model-building.
+  exportData: (day) => j(`/api/radar/export${day ? `?day=${encodeURIComponent(day)}` : ''}`),
 };

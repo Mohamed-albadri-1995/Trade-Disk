@@ -155,6 +155,81 @@ function BuiltinSchedule({ s, schedule, onSave, onLoad, onToast }) {
   );
 }
 
+// Format an ISO instant as the US-Eastern clock time the market runs on.
+const etTime = (iso) => { try { return new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch { return iso; } };
+
+// The data-collection panel: what the scheduler has frozen for model-building today,
+// plus manual controls (collect a snapshot now, compute the day's outcome labels, and
+// download a day's collected data as JSON). The schedules below drive this automatically
+// in the background during market hours; these buttons do the same thing on demand.
+function DataCollection({ screeners, onToast }) {
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState('');
+  const [key, setKey] = useState('');
+  const [day, setDay] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()));
+
+  const refresh = () => api.collectStatus().then(setStatus).catch(() => {});
+  useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (!key && screeners.length) setKey(screeners[0].key); }, [screeners, key]);
+
+  const collect = () => {
+    if (!key) { onToast('Pick a screener to collect.'); return; }
+    setBusy('collect');
+    api.collectNow(key)
+      .then((r) => { onToast(r.ok ? `Snapshot frozen: ${r.snapshots} stocks, ${r.facts} new analysis captures.` : (r.error || 'Nothing collected.')); refresh(); })
+      .catch((e) => onToast(String(e.message)))
+      .finally(() => setBusy(''));
+  };
+  const labels = () => {
+    setBusy('labels');
+    api.labelsNow()
+      .then((r) => { onToast(r.ok ? `Outcome labels: ${r.labeled} of ${r.tickers} stocks labelled for ${r.day}.` : (r.error || 'No labels computed.')); refresh(); })
+      .catch((e) => onToast(String(e.message)))
+      .finally(() => setBusy(''));
+  };
+  const download = () => {
+    setBusy('export');
+    api.exportData(day)
+      .then((data) => {
+        const n = (data.snapshots || []).length;
+        if (!n && !(data.labels || []).length) { onToast(`No data collected for ${day} yet.`); return; }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `trade-disk-radar-${day}.json`;
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+        onToast(`Downloaded ${n} snapshot rows for ${day}.`);
+      })
+      .catch((e) => onToast(String(e.message)))
+      .finally(() => setBusy(''));
+  };
+
+  const times = status?.snapshotTimes || [];
+  return (
+    <section className="panel settings-overview">
+      <div className="settings-overview-head">
+        <div><h2>Data collection</h2><p className="subtitle">Every scheduled scan freezes a full snapshot — one row per stock with its complete card, the market state, and (once a day) the heavy analysis — so the data is there to build models on later. Outcome labels (open/high/low/close + the intraday path) are added after the close.</p></div>
+      </div>
+      <div className="collect-stats">
+        <div className="collect-stat"><b>{status ? status.snapshotRows : '—'}</b><span>snapshot rows today</span></div>
+        <div className="collect-stat"><b>{status ? status.facts : '—'}</b><span>analysis captures</span></div>
+        <div className="collect-stat"><b>{status ? status.labels : '—'}</b><span>outcome labels</span></div>
+        <div className="collect-stat"><b>{times.length}</b><span>snapshots taken</span></div>
+      </div>
+      {times.length ? <div className="collect-times">Frozen at (ET): {times.map((t) => <span key={t} className="settings-pill">{etTime(t)}</span>)}</div> : null}
+      <div className="collect-actions">
+        <select className="select" style={{ maxWidth: '220px' }} value={key} onChange={(e) => setKey(e.target.value)} aria-label="Screener to collect">
+          {screeners.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
+        </select>
+        <button className="secondary-btn" onClick={collect} disabled={busy === 'collect'}>{busy === 'collect' ? 'Collecting…' : '◉ Collect snapshot now'}</button>
+        <button className="secondary-btn" onClick={labels} disabled={busy === 'labels'}>{busy === 'labels' ? 'Computing…' : '◷ Compute labels now'}</button>
+        <span className="collect-spacer" />
+        <input className="input" type="date" style={{ maxWidth: '160px' }} value={day} onChange={(e) => setDay(e.target.value)} aria-label="Day to export" />
+        <button className="primary" onClick={download} disabled={busy === 'export'}>{busy === 'export' ? 'Preparing…' : '⤓ Download JSON'}</button>
+      </div>
+    </section>
+  );
+}
+
 // The Settings screen: the built-in screeners' schedules, the custom-screener
 // overview, and the on-demand editor. All server-persisted.
 export function Settings({ onToast }) {
@@ -252,7 +327,9 @@ export function Settings({ onToast }) {
         </div>
         <span className="tag">Saved to your workspace</span>
       </div>
-      <div className="settings-note"><strong>Saved on the server</strong> — your screeners and schedules live in your workspace, not just this browser, so they follow you across devices. Automatic background scanning on these schedules is wired in a later step; for now the schedule is stored and the Screener tab runs on demand.</div>
+      <div className="settings-note"><strong>Saved on the server</strong> — your screeners and schedules live in your workspace, not just this browser, so they follow you across devices. Scans on these schedules now run automatically in the background during market hours (no page open needed), freezing a full snapshot each time for model-building — see Data collection below.</div>
+
+      <DataCollection screeners={[...builtins.map((s) => ({ key: s.key, name: s.name })), ...configs.map((c) => ({ key: c.id, name: c.name }))]} onToast={onToast} />
 
       <section className="panel settings-overview">
         <div className="settings-overview-head">

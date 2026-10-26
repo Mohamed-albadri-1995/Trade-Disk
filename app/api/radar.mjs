@@ -8,6 +8,8 @@ import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 import { conditionsToFilters } from '../core/screenerTranslate.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
+import { collect, collectionStatus } from '../core/collect.mjs';
+import { computeLabels } from '../core/labels.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
 import { getMarket } from '../core/market.mjs';
 import { getGroups } from '../core/oneilGroups.mjs';
@@ -75,7 +77,7 @@ export async function scan(sb, uid, key, limit = 50) {
   let filters, sort, name, unsupported = [];
   if (def) { filters = def.filters; sort = def.sort; name = def.name; }
   else {
-    const cfg = chk(await sb.from('radar_screener').select('*').eq('id', key).eq('kind', 'custom').limit(1))[0];
+    const cfg = chk(await sb.from('radar_screener').select('*').eq('owner_id', uid).eq('id', key).eq('kind', 'custom').limit(1))[0];
     if (!cfg) return { key, error: `unknown screener "${key}"` };
     const t = conditionsToFilters(cfg.conditions || []);
     unsupported = t.unsupported;
@@ -102,6 +104,25 @@ export async function previewConditions(sb, body) {
 
 // Today's register for a screener without running a new scan (page revisit / tab switch).
 export async function register(sb, key) { return readRegister(sb, key); }
+
+// ── data collection (the feature store for model-building) ──
+// Collect a snapshot now for one screener (manual run of what the scheduler does).
+export async function collectNow(sb, uid, key) { return collect(sb, uid, key); }
+// What has been collected today (counts + the times snapshots were taken).
+export async function collectStatus(sb) { return collectionStatus(sb); }
+// Compute today's outcome labels now (normally the scheduler does this after the close).
+export async function labelsNow(sb, uid) { return computeLabels(sb, uid); }
+// Export a day's collected data (owner-scoped) as JSON, for model-building offline.
+export async function exportData(sb, day) {
+  const d = day || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const [snapshots, market, facts, labels] = await Promise.all([
+    sb.from('radar_snapshot').select('*').eq('day', d).order('taken_at').then(chk),
+    sb.from('radar_snapshot_market').select('*').eq('day', d).order('taken_at').then(chk),
+    sb.from('radar_snapshot_facts').select('*').eq('day', d).then(chk),
+    sb.from('radar_snapshot_label').select('*').eq('day', d).then(chk),
+  ]);
+  return { day: d, snapshots, market, facts, labels };
+}
 
 // The per-stock analysis workspace, live from Yahoo + SEC EDGAR. `scan` carries the
 // card context (name/sector/cap) from the result the user opened, for fields Yahoo
