@@ -21,9 +21,9 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }
       <a className="brand" href="/" title="Back to the Trading Station" aria-label="Back to the Trading Station" style={{ textDecoration: 'none', color: 'inherit' }}><span className="logo">↗</span><span>Trade-Disk <em>· Screener</em></span></a>
       <div className="app-actions">
         <button className="iconbtn" id="themeBtn" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" onClick={onToggleTheme}>{theme === 'dark' ? '☾' : '☀'}</button>
-        {live
+        {!badge?.hide && (live
           ? <span className="demo" style={LIVE_BADGE} title={badge.title || ''}>● {badge.label}</span>
-          : <span className="demo" title={badge?.title || ''}>● {badge?.label || 'DEMO DATA'}</span>}
+          : <span className="demo" title={badge?.title || ''}>● {badge?.label || 'DEMO DATA'}</span>)}
         <button className="iconbtn" aria-label="Search" onClick={onSearch}>⌕</button>
         <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
         <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>

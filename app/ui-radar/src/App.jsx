@@ -126,6 +126,7 @@ export default function App() {
   // holds those same live cards. So the badge reads LIVE throughout — it only falls
   // back to DEMO in Commercial mode before a licensed engine is wired.
   const badge = useMemo(() => {
+    if (screen === 'analysis') return { hide: true };   // the analysis sub-header owns its own LIVE · YAHOO + EDGAR badge
     if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
     if (screen === 'market')
       return { live: true, label: 'LIVE · YAHOO', title: market?.asOf ? `Market snapshot · ${market.asOf}` : 'Live market snapshot, computed from Yahoo daily bars' };
