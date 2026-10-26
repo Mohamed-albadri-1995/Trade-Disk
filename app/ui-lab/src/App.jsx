@@ -28,6 +28,7 @@ export default function App() {
   const [err, setErr] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [toast, setToast] = useState(null);
+  const [buildOpen, setBuildOpen] = useState(false);   // mobile: builder starts collapsed so the chart leads
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600); };
 
@@ -78,7 +79,7 @@ export default function App() {
   return (
     <div className="lab">
       <header className="appbar">
-        <div className="brand"><span className="logo">▥</span> Trade-Disk <em>· TradeLab</em></div>
+        <a className="brand" href="/" title="Back to the Station" style={{ textDecoration: 'none', color: 'inherit' }}><span className="logo">▥</span> Trade-Disk <em>· TradeLab</em></a>
         <div className="sym-box">
           <input className="input sym" value={symInput} onChange={(e) => setSymInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadSymbol()} placeholder="Symbol" aria-label="Symbol" />
           <button className="ghost" onClick={() => loadSymbol()}>Load</button>
@@ -112,7 +113,10 @@ export default function App() {
             {preview ? <CandleChart bars={preview.bars} overlays={preview.overlays} trades={preview.trades} /> : <div className="muted pad">Loading chart…</div>}
             {preview && <PreviewTrades trades={preview.trades} />}
           </div>
-          <aside className="build-col">
+          <aside className={cls('build-col', !buildOpen && 'collapsed')}>
+            <button className="build-toggle" onClick={() => setBuildOpen((v) => !v)} aria-expanded={buildOpen}>
+              <span>⚙ Strategy builder</span><span>{buildOpen ? '▾ hide' : '▸ edit'}</span>
+            </button>
             <Builder meta={meta} doc={doc} setDoc={editDoc} onEvaluate={() => runPreview()} onSave={onSave}
               saved={saved} onLoad={onLoad} onDelete={onDelete} templates={meta.templates} onTemplate={onTemplate} busy={busy} dirty={dirty} />
           </aside>

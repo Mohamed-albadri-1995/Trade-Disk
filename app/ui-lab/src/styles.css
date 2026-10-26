@@ -156,3 +156,18 @@ table.trades td { padding: 6px 9px; border-bottom: 1px solid var(--surface3); }
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface3); border: 1px solid var(--line2);
   border-radius: 10px; padding: 10px 16px; box-shadow: var(--shadow); font-size: 13px; z-index: 50; }
+
+/* mobile: keep the whole app bar on-screen (its non-wrapping row used to overflow the
+   viewport, pushing the home button off the edge and stretching the chart wider than the
+   phone). Lead with the chart; the strategy builder collapses behind a toggle. */
+.build-toggle { display: none; }
+.chart-col, .build-col, .work { min-width: 0; }
+@media (max-width: 920px) {
+  .appbar { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; gap: 8px 10px; }
+  .sym-box { order: 3; width: 100%; margin-left: 0; flex-wrap: wrap; }
+  .sym-box .input.sym { flex: 1 1 110px; width: auto; }
+  .app-actions { margin-left: auto; }
+  .build-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%;
+    background: var(--surface2); border: 0; border-bottom: 1px solid var(--line); padding: 13px 14px; font-weight: 700; color: var(--text); font-size: 14px; }
+  .build-col.collapsed .builder { display: none; }
+}
