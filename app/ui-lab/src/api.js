@@ -27,4 +27,8 @@ export const api = {
   backtests: () => j('/api/lab/backtests'),
   getBacktest: (id) => j(`/api/lab/backtests/${encodeURIComponent(id)}`),
   deleteBacktest: (id) => j(`/api/lab/backtests/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  // screener replay (historical backtest over the migrated daily record)
+  replayScreens: () => j('/api/lab/replay-screens'),
+  runReplay: (spec) => post('/api/lab/replay', spec),
+  replays: () => j('/api/lab/replays'),
 };
