@@ -240,7 +240,6 @@ export async function buildSnapshot() {
     live: true, asOf, builtAt: now.toISOString(),
     scan: { title: 'Live screeners active', window: '04:00–20:00 ET', lastScan: now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }), examples: 5 },
     indexes, model, regime, heatmap,
-    groups: [], groupsPending: true, // O'Neil 175-group ranking: research engine (not yet wired)
     breadth, themes,
   };
 }
