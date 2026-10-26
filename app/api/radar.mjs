@@ -6,12 +6,21 @@
 
 import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
+import { conditionsToFilters } from '../core/screenerTranslate.mjs';
+import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
 import { activeFor, getMode } from '../core/sources.mjs';
 import { getMarket } from '../core/market.mjs';
 import { getGroups } from '../core/oneilGroups.mjs';
 import { buildAnalysis } from '../core/analysis.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
+
+// A compact market read for the screener/register response, so running any scan
+// carries the current broad-market regime to the UI (and the cards' market context).
+function marketSummary(snap) {
+  if (!snap) return null;
+  return { regime: snap.regime?.output || null, bias: snap.regime?.bias || null, asOf: snap.asOf || null, live: !!snap.live };
+}
 
 function mapStock(r) {
   return {
@@ -45,30 +54,66 @@ async function feedInfo(sb) {
 }
 
 export async function bundle(sb) {
-  const [s, sl, fe] = await Promise.all([stocks(sb), shortlist(sb), feedInfo(sb)]);
-  return { stocks: s, shortlist: sl, feed: fe, screeners: listScreeners() };
+  const [s, sl, fe, cfg] = await Promise.all([stocks(sb), shortlist(sb), feedInfo(sb), screenerConfigs(sb)]);
+  // The preset list is the built-ins PLUS the user's saved custom screeners, so a
+  // custom screener is selectable and runs (into its own daily register) like any other.
+  const custom = cfg.custom.map((c) => ({ key: c.id, name: c.name, note: c.description || 'Custom screener', conditions: c.conditions, custom: true }));
+  return { stocks: s, shortlist: sl, feed: fe, screeners: [...listScreeners(), ...custom] };
 }
 
 export const screeners = () => listScreeners();
 
-// Run one screener against the active engine; Personal mode uses TradingView.
-export async function scan(sb, key, limit = 50) {
-  const def = getScreener(key);
-  if (!def) return { error: `unknown screener "${key}"` };
+// Run one screener (built-in OR saved custom) against the active engine and merge the
+// results into today's register (the sticky list). Personal mode uses TradingView.
+// Running any scan also force-refreshes the market snapshot, so the Market tab and the
+// cards' market context update on every scan.
+export async function scan(sb, uid, key, limit = 50) {
   if (await getMode(sb) !== 'personal') {
-    return { screener: def.name, key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
+    return { key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
   }
-  const { totalCount, rows } = await tv.scan({ filters: def.filters, columns: COLUMNS, sort: def.sort, range: [0, limit] });
-  return { screener: def.name, key, provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard) };
+  const def = getScreener(key);
+  let filters, sort, name, unsupported = [];
+  if (def) { filters = def.filters; sort = def.sort; name = def.name; }
+  else {
+    const cfg = chk(await sb.from('radar_screener').select('*').eq('id', key).eq('kind', 'custom').limit(1))[0];
+    if (!cfg) return { key, error: `unknown screener "${key}"` };
+    const t = conditionsToFilters(cfg.conditions || []);
+    unsupported = t.unsupported;
+    if (!t.filters.length) return { key, screener: cfg.name, error: 'This screener has no runnable conditions yet.', unsupported };
+    filters = t.filters; sort = { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' }; name = cfg.name;
+  }
+  let reg;
+  try { reg = await runScreener(sb, uid, { key, filters, sort, limit }); }
+  catch (e) { return { key, screener: name, error: String(e.message || e) }; }
+  const market = await getMarket(sb, { force: true }).catch(() => null);
+  return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };
 }
+
+// Builder "Run": preview the current (possibly unsaved) conditions live, without
+// touching the register — a quick test of what the rules return right now.
+export async function previewConditions(sb, body) {
+  if (await getMode(sb) !== 'personal') return { error: 'The live screener runs in Personal mode (TradingView, personal-use).' };
+  const t = conditionsToFilters(body?.conditions || []);
+  if (!t.filters.length) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
+  const sort = body?.sort || { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' };
+  const { totalCount, rows } = await tv.scan({ filters: t.filters, columns: COLUMNS, sort, range: [0, Math.min(100, +body?.limit || 50)] });
+  return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported };
+}
+
+// Today's register for a screener without running a new scan (page revisit / tab switch).
+export async function register(sb, key) { return readRegister(sb, key); }
 
 // The per-stock analysis workspace, live from Yahoo + SEC EDGAR. `scan` carries the
 // card context (name/sector/cap) from the result the user opened, for fields Yahoo
 // doesn't provide. The live market snapshot feeds the market-direction factor.
 export async function analysis(sb, ticker, scan = null) {
-  const market = await getMarket(sb).catch(() => null);
+  const [market, stamps] = await Promise.all([
+    getMarket(sb).catch(() => null),
+    tickerStamps(sb, ticker).catch(() => null),  // first-seen / last-live today, for the hero
+  ]);
   try {
-    return await buildAnalysis(ticker, { scan, market });
+    const a = await buildAnalysis(ticker, { scan, market });
+    return { ...a, stamps };
   } catch (e) {
     return { ticker, live: false, error: String((e && e.message) || e) };
   }

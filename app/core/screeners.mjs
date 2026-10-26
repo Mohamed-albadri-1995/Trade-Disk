@@ -17,6 +17,16 @@ export const COLUMNS = [
   'EMA9', 'EMA13', 'EMA20', 'EMA50',
 ];
 
+// Each built-in also carries a `conditions` array in the BUILDER's own grammar
+// (screener-builder.js / screenerTranslate.mjs). That is what makes the built-ins
+// buildable: you can load one into the custom builder, see its rules, edit them, and
+// run the edited version — the builder reproduces the real screener, which is how its
+// flexibility is proved. `filters` is the exact, TradingView-verified rule set run by
+// default; `conditions` is the editable equivalent (a few intraday-only rules in
+// Trend Leaders are expressed with their daily equivalents, which the builder supports).
+const C = (metric, operator, extra = {}) => ({ metric, operator, mode: 'value', timeframe: 'Daily', ...extra });
+const F = (metric, operator, compareMetric, extra = {}) => ({ metric, operator, mode: 'filter', timeframe: 'Daily', compareMetric, compareTimeframe: 'Daily', ...extra });
+
 export const SCREENERS = [
   {
     key: 'trend-leaders', name: 'Trend Leaders',
@@ -36,6 +46,18 @@ export const SCREENERS = [
       { left: 'relative_volume_10d_calc', operation: 'greater', right: 1.5 },
       { left: 'close', operation: 'egreater', right: 1 },
     ],
+    conditions: [
+      C('Close', '≥', { value: 20 }),
+      F('Close', '≥', 'SMA', { compareLength: 5 }),
+      F('Close', '≥', 'VWAP'),
+      F('Close', '>', 'VWAP', { timeframe: 'Weekly', compareTimeframe: 'Weekly' }),
+      F('Close', '>', 'VWAP', { timeframe: 'Monthly', compareTimeframe: 'Monthly' }),
+      F('EMA', '>', 'EMA', { length: 50, compareLength: 120 }),
+      F('Close', '≥', 'EMA', { compareLength: 50 }),
+      C('Average volume', '>', { value: 1000000 }),
+      C('Relative volume', '>', { value: 1.5 }),
+      C('Close', '≥', { value: 1 }),
+    ],
   },
   {
     key: 'premarket-movers', name: 'Pre-Market Movers',
@@ -48,6 +70,12 @@ export const SCREENERS = [
       { left: 'relative_volume_10d_calc', operation: 'greater', right: 3 },
       { left: 'premarket_volume', operation: 'greater', right: 1500000 },
     ],
+    conditions: [
+      C('Close', '≥', { value: 1 }),
+      C('Average volume', '>', { value: 2000000 }),
+      C('Relative volume', '>', { value: 3 }),
+      C('Premarket volume', '>', { value: 1500000 }),
+    ],
   },
   {
     key: 'volume-surges', name: 'Volume Surges',
@@ -57,6 +85,11 @@ export const SCREENERS = [
       { left: 'relative_volume_10d_calc', operation: 'greater', right: 10 },
       { left: 'close', operation: 'egreater', right: 2 },
       { left: 'average_volume_10d_calc', operation: 'greater', right: 2000000 },
+    ],
+    conditions: [
+      C('Relative volume', '>', { value: 10 }),
+      C('Close', '≥', { value: 2 }),
+      C('Average volume', '>', { value: 2000000 }),
     ],
   },
   {
@@ -71,6 +104,14 @@ export const SCREENERS = [
       { left: 'close', operation: 'egreater', right: 1 },
       { left: 'average_volume_10d_calc', operation: 'greater', right: 500000 },
     ],
+    conditions: [
+      F('SMA', '>', 'EMA', { length: 5, compareLength: 9 }),
+      F('EMA', '>', 'EMA', { length: 9, compareLength: 13 }),
+      F('EMA', '>', 'EMA', { length: 13, compareLength: 20 }),
+      F('Close', '≥', 'Month high'),
+      C('Close', '≥', { value: 1 }),
+      C('Average volume', '>', { value: 500000 }),
+    ],
   },
   {
     key: 'growth-pullback', name: 'Growth Pullback',
@@ -84,11 +125,20 @@ export const SCREENERS = [
       { left: 'close', operation: 'eless', right: 'EMA20' },
       { left: 'market_cap_basic', operation: 'greater', right: 300000000 },
     ],
+    conditions: [
+      C('EPS growth Q', '≥', { value: 25 }),
+      C('EPS growth Y', '≥', { value: 25 }),
+      C('Perf 6M', '>', { value: 30 }),
+      F('Close', '≥', 'SMA', { compareLength: 50 }),
+      F('Close', '≤', 'EMA', { compareLength: 20 }),
+      C('Market cap', '>', { value: 300000000 }),
+    ],
   },
 ];
 
 const byKey = Object.fromEntries(SCREENERS.map((s) => [s.key, s]));
-export const listScreeners = () => SCREENERS.map(({ key, name, note }) => ({ key, name, note }));
+// The builder can load a built-in's `conditions`, so they ride along with the list.
+export const listScreeners = () => SCREENERS.map(({ key, name, note, conditions }) => ({ key, name, note, conditions: conditions || [] }));
 export const getScreener = (key) => byKey[key];
 
 // ── result → Radar card ──────────────────────────────────────────────────────

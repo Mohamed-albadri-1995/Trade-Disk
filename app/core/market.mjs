@@ -250,11 +250,14 @@ const chk = ({ data, error }) => { if (error) throw new Error(error.message); re
 // Read the materialized snapshot; if it is stale and this client may write the global
 // row (owner/admin — RLS), rebuild it from the live feed first. Any failure falls back
 // to the last good snapshot so the screen never breaks.
-export async function getMarket(sb) {
+// `force` (set when a scan runs) refreshes the snapshot even if it is not yet stale,
+// so running any scanner updates the Market tab — but a 60s floor avoids rebuilding
+// it twice when several scans fire in quick succession.
+export async function getMarket(sb, { force = false } = {}) {
   const rows = chk(await sb.from('radar_market').select('snapshot, as_of').eq('id', 1).limit(1));
   const cur = rows[0] || null;
   const ageMs = cur?.as_of ? Date.now() - new Date(cur.as_of).getTime() : Infinity;
-  if (cur && ageMs < STALE_MS) return cur.snapshot;
+  if (cur && ageMs < (force ? 60 * 1000 : STALE_MS)) return cur.snapshot;
   try {
     const snap = await buildSnapshot();
     const { error } = await sb.from('radar_market').upsert({ id: 1, snapshot: snap, as_of: snap.builtAt });

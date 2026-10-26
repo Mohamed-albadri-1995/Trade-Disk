@@ -65,3 +65,30 @@ export async function scan({ filters, columns, sort, range = [0, 50] }) {
   });
   return { totalCount: Number.isFinite(j.totalCount) ? j.totalCount : rows.length, rows };
 }
+
+// Current column data for SPECIFIC symbols, regardless of any screener filter — used
+// to refresh the stocks a scan carried over from earlier in the day (they left the
+// live result set but stay on the day's register with their data kept current).
+// `symbols` are full TradingView symbols (EXCHANGE:TICKER); a wrong prefix is simply
+// dropped by TradingView, so we pass the exact `_sym` stored at discovery.
+export async function quote(symbols, columns) {
+  const list = (symbols || []).filter(Boolean);
+  if (!list.length) return { rows: [] };
+  const body = {
+    columns, markets: ['america'], symbols: { tickers: list },
+    options: { lang: 'en' }, range: [0, list.length], ignore_unknown_fields: true,
+  };
+  const res = await fetch(URL, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`TradingView quote HTTP ${res.status}`);
+  const j = await res.json();
+  const raw = j.data || [];
+  if (raw[0] && raw[0].d.length !== columns.length) {
+    throw new Error(`TradingView quote returned ${raw[0].d.length} values for ${columns.length} columns`);
+  }
+  const rows = raw.map((r) => {
+    const o = { ticker: String(r.s || '').split(':').pop(), _sym: r.s };
+    columns.forEach((c, i) => { o[c] = r.d[i]; });
+    return o;
+  });
+  return { rows };
+}

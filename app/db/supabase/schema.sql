@@ -81,6 +81,19 @@ create table if not exists public.radar_screener (
   updated_at timestamptz not null default now(),
   primary key (owner_id, id)
 );
+-- The daily register (the "sticky screener"): a stock seen on a screener today stays
+-- on its list until end of ET day, marked live/not-live, its data refreshed each scan.
+-- Also the historical daily record (one row per owner/day/screener/ticker) the Lab
+-- can backtest. See core/register.mjs.
+create table if not exists public.radar_register (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  day text not null, screener text not null, ticker text not null, sym text,
+  card jsonb not null, live boolean not null default true,
+  first_seen timestamptz not null default now(), last_live timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (owner_id, day, screener, ticker)
+);
+create index if not exists radar_register_owner_day_idx on public.radar_register (owner_id, day, screener);
 
 -- ===== Lab / qp (per account) =====
 -- A strategy is a document (the whole grammar in `doc`); saving it makes a version
@@ -152,6 +165,9 @@ alter table public.radar_shortlist enable row level security;
 create policy radar_shortlist_own on public.radar_shortlist for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 alter table public.radar_screener enable row level security;
 create policy radar_screener_own on public.radar_screener for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+alter table public.radar_register enable row level security;
+create policy radar_register_own on public.radar_register for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.radar_register to authenticated;
 -- global config / shared tables: any authenticated user may read; only an owner/admin
 -- may write (the server does so on their behalf — e.g. the live market snapshot
 -- refresh and the feed-switch config). Operator membership is read from profile.role.

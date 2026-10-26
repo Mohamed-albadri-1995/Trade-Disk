@@ -116,7 +116,7 @@ function SavedScreener({ c, onEdit, onDelete }) {
 
 // One built-in screener's scan schedule — its rules are fixed, so only the windows
 // and timezone are editable. Saved to the server per screener key.
-function BuiltinSchedule({ s, schedule, onSave, onToast }) {
+function BuiltinSchedule({ s, schedule, onSave, onLoad, onToast }) {
   const [windows, setWindows] = useState(() => (schedule?.windows?.length ? schedule.windows : [newWindow()]).map((w) => newWindow(w)));
   const [timezone, setTimezone] = useState(schedule?.timezone || 'device');
   const [saving, setSaving] = useState(false);
@@ -134,7 +134,10 @@ function BuiltinSchedule({ s, schedule, onSave, onToast }) {
   };
   return (
     <div className="saved-screener" style={{ display: 'block' }}>
-      <div className="saved-screener-title" style={{ marginBottom: '4px' }}><strong>{s.name}</strong><span className="settings-pill">BUILT-IN</span></div>
+      <div className="saved-screener-title" style={{ marginBottom: '4px', alignItems: 'center' }}>
+        <strong>{s.name}</strong><span className="settings-pill">BUILT-IN</span>
+        {s.conditions?.length ? <button type="button" className="secondary-btn" style={{ marginLeft: 'auto', padding: '5px 10px' }} onClick={() => onLoad(s)}>✎ Open rules in builder</button> : null}
+      </div>
       <small>{s.note}</small>
       <div className="schedule-window-list" style={{ marginTop: '10px' }}>
         {windows.map((w) => (
@@ -161,6 +164,8 @@ export function Settings({ onToast }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', conditions: [], windows: [], timezone: 'device' });
+  const [preview, setPreview] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -186,7 +191,30 @@ export function Settings({ onToast }) {
     });
     setEditorOpen(true);
   };
-  const close = () => setEditorOpen(false);
+  // Load a built-in's rules into the builder as a new editable copy — this is how a
+  // built-in is "buildable": you see its real conditions, can edit them, run and save.
+  const openFromBuiltin = (s) => {
+    setEditingId(null);
+    setForm({
+      name: `${s.name} (my copy)`, description: s.note || '',
+      conditions: (s.conditions?.length ? s.conditions : [{}]).map((x) => newCondition(x)),
+      windows: [newWindow()], timezone: 'device',
+    });
+    setPreview(null);
+    setEditorOpen(true);
+  };
+  const close = () => { setEditorOpen(false); setPreview(null); };
+
+  // Run the current conditions live (TradingView) without saving — a quick test.
+  const runPreview = () => {
+    const conditions = form.conditions.map((c) => ({ ...c, value: String(c.value).trim() }));
+    if (!conditions.length) { onToast('Add at least one condition to run.'); return; }
+    setPreviewing(true); setPreview(null);
+    api.preview({ conditions })
+      .then((r) => setPreview(r))
+      .catch((e) => setPreview({ error: String(e.message) }))
+      .finally(() => setPreviewing(false));
+  };
 
   const setConditions = (fn) => setForm((f) => ({ ...f, conditions: fn(f.conditions) }));
   const setWindows = (fn) => setForm((f) => ({ ...f, windows: fn(f.windows) }));
@@ -232,7 +260,7 @@ export function Settings({ onToast }) {
         </div>
         <div id="builtinScheduleList">
           {builtins.length ? builtins.map((s) => (
-            <BuiltinSchedule key={s.key} s={s} schedule={schedules[s.key]} onSave={saveSchedule} onToast={onToast} />
+            <BuiltinSchedule key={s.key} s={s} schedule={schedules[s.key]} onSave={saveSchedule} onLoad={openFromBuiltin} onToast={onToast} />
           )) : <div className="settings-empty"><b>Loading…</b>Reading the live screeners.</div>}
         </div>
       </section>
@@ -286,7 +314,22 @@ export function Settings({ onToast }) {
             <div className="window-help">Production scheduling must respect US exchange holidays and daylight-saving changes.</div>
           </div>
 
-          <div className="settings-actions"><button className="primary" onClick={save}>Save screener</button><button className="secondary-btn" onClick={close}>Cancel</button></div>
+          {preview && (
+            <div className="preview-result">
+              {preview.error
+                ? <div className="preview-err">⚠ {preview.error}</div>
+                : <>
+                    <div className="preview-head"><b>{preview.count} live match{preview.count === 1 ? '' : 'es'}</b> <span className="muted">of {preview.totalCount} in the US market · right now</span></div>
+                    <div className="preview-tickers">{(preview.stocks || []).slice(0, 24).map((s) => <span key={s.t} className="preview-chip" title={`${s.n} · ${s.p}`}>{s.t}</span>)}{preview.count > 24 ? <span className="muted"> +{preview.count - 24} more</span> : null}</div>
+                  </>}
+              {preview.unsupported?.length ? <div className="preview-warn">{preview.unsupported.length} condition(s) can't run on the live scanner yet: {preview.unsupported.map((u) => u.metric + (u.reason ? ` (${u.reason.replace(/ on the live scanner yet| yet/, '')})` : '')).join('; ')}. The rest ran.</div> : null}
+            </div>
+          )}
+          <div className="settings-actions">
+            <button className="secondary-btn" onClick={runPreview} disabled={previewing}>{previewing ? 'Running…' : '▶ Run / preview'}</button>
+            <button className="primary" onClick={save}>Save screener</button>
+            <button className="secondary-btn" onClick={close}>Cancel</button>
+          </div>
         </section>
       )}
     </section>

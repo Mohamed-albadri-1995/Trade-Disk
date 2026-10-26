@@ -97,7 +97,8 @@ function Hero({ s, a, saved, onToggleStar, onNav, onToast, setTab }) {
           <div className="hero-logo" id="heroLogo">{s.mark}</div>
           <div style={{ minWidth: 0 }}>
             <h1 className="hero-name" id="heroName">{s.t} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· {s.n}</span></h1>
-            <div className="hero-meta"><span>{s.sec || 'US equity'}</span><span>·</span><span className="tag">US Stocks</span>{a?.asOf ? <span className="metric-note" style={{ margin: 0 }}>{a.live ? 'Live · ' : ''}Updated {a.asOf}</span> : null}</div>
+            <div className="hero-meta"><span>{s.sec || 'US equity'}</span><span>·</span><span className="tag">US Stocks</span>{a?.asOf ? <span className="metric-note" style={{ margin: 0 }}>{a.live ? 'Live · ' : ''}Updated {a.asOf}</span> : null}
+              {(a?.stamps?.firstSeenEt || s.firstSeenEt) ? <span className="tag stamp-tag" title="When this stock first showed up on a screener today, and the last scan it was live in">◷ First seen {a?.stamps?.firstSeenEt || s.firstSeenEt} · {(a?.stamps ? a.stamps.liveNow : s.live) ? 'live now' : `last live ${a?.stamps?.lastLiveEt || s.lastLiveEt || '—'}`}</span> : null}</div>
             <div className="hero-price"><strong>{money(price)}</strong><span className={`change${up ? '' : ' negative'}`}>{up ? '+' : '−'}{Math.abs(abs).toFixed(2)} ({up ? '+' : '−'}{Math.abs(chgPct).toFixed(2)}%)</span></div>
             <div className="hero-chips">
               {(Array.isArray(s.tags) ? s.tags : []).map((t) => <span className="chip" key={t}>{t}</span>)}

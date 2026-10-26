@@ -86,9 +86,14 @@ export default function App() {
     api.scan(key)
       .then((res) => {
         setScanInfo(res);
-        if (res && res.stocks) { setStocks(res.stocks); setVisible(res.stocks); }
-        else { setStocks([]); setVisible([]); if (res?.error) toast(res.error); }
+        if (res && res.stocks) {
+          setStocks(res.stocks); setVisible(res.stocks);
+          if (res.unsupported?.length) toast(`${res.unsupported.length} condition(s) can't run live yet — ran the rest.`);
+        } else { setStocks([]); setVisible([]); if (res?.error) toast(res.error); }
         setLoaded(true);
+        // Running any scan force-refreshes the market snapshot server-side; pull the
+        // fresh one so the Market tab and the cards' market context update too.
+        api.market().then(setMarket).catch(() => {});
       })
       .catch(() => { setLoaded(true); toast('Could not reach the screener.'); });
   };
@@ -106,7 +111,12 @@ export default function App() {
     toast('Choose a stock card below to open its analysis.');
   };
 
-  const visibleSorted = useMemo(() => sortStocks(visible, sort), [visible, sort]);
+  // Live names first, then the carried-over "not live now" ones — stable within each
+  // group, so the day's whole register is visible with the fresh matches on top.
+  const visibleSorted = useMemo(() => {
+    const sorted = sortStocks(visible, sort);
+    return [...sorted].sort((a, b) => (a.live === b.live ? 0 : a.live === false ? 1 : b.live === false ? -1 : 0));
+  }, [visible, sort]);
   const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
   const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
 

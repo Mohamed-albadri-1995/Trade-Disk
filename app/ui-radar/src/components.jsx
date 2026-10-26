@@ -58,8 +58,11 @@ export const Toast = ({ msg }) => <div id="toast" className={msg ? '' : 'hide'} 
 // One stock card. variant 'screener' shows PM/ADR + the indicator line; 'shortlist'
 // shows Score and drops the indicator line — exactly as the two render functions do.
 export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 'screener' }) {
+  // A stock the screener found earlier today but that the latest scan no longer
+  // returns stays on the list, marked "not live now" (its data is still refreshed).
+  const notLive = s.live === false;
   return (
-    <article className={`stockcard ${selected ? 'selected' : ''}`} role="button" tabIndex={0}
+    <article className={`stockcard ${selected ? 'selected' : ''} ${notLive ? 'notlive' : ''}`} role="button" tabIndex={0}
       aria-label={`Open ${s.t} analysis`}
       onClick={() => onOpen(s.t)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(s.t); } }}>
@@ -68,6 +71,9 @@ export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 
         <div style={{ minWidth: 0 }}>
           <div className="tickerline">
             <span className="ticker">{s.t}</span>
+            {notLive
+              ? <span className="notlive-tag" title={s.firstSeenEt ? `First seen ${s.firstSeenEt} · last live ${s.lastLiveEt}` : 'Found earlier today; not in the latest scan'}>● not live now</span>
+              : (s.live === true ? <span className="live-tag" title={s.firstSeenEt ? `First seen ${s.firstSeenEt}` : 'In the latest scan'}>● live</span> : null)}
             <button className={`star ${saved ? 'on' : ''}`} aria-label={`${saved ? 'Remove' : 'Add'} ${s.t} favorite`}
               onClick={(e) => { e.stopPropagation(); onToggleStar(s.t); }}>{saved ? '★' : '☆'}</button>
           </div>
