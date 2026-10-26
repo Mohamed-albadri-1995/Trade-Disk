@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { f, pct, state } from './analysis-calc.js';
+import Candles from './candles.jsx';
 
 // The Technical tab — the selected stock's price behaviour, computed live from Yahoo
 // daily bars (moving averages, momentum, volatility, ranges, support/resistance).
@@ -10,15 +11,6 @@ const TIMEFRAMES = ['1M', '3M', '6M', 'YTD', '1Y'];
 const Rows = ({ data }) => data.map((r, i) => <tr key={i}>{r.map((v, j) => <td key={j}>{v}</td>)}</tr>);
 const Pill = ({ label, ok }) => <span className={`tech-pill ${ok ? 'up' : 'down'}`}>{ok ? '▲' : '▼'} {label}</span>;
 const n = (v, d = 2, suf = '') => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d) + suf);
-
-// Build an SVG path from a series of closes, scaled to the viewBox.
-function pathOf(series, w = 900, h = 230, pad = 8) {
-  const v = (series || []).filter((x) => x != null);
-  if (v.length < 2) return '';
-  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
-  const step = w / (v.length - 1);
-  return v.map((c, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${(h - pad - ((c - lo) / span) * (h - pad * 2)).toFixed(1)}`).join(' ');
-}
 
 function RangeItem({ label, posPct }) {
   const p = Math.max(0, Math.min(100, posPct ?? 0));
@@ -62,13 +54,11 @@ export function Technical({ stock, a, loading, onNav }) {
         <div className="tech-work-grid">
           <article className="card tech-card wide">
             <div className="results-top">
-              <div><h3>{a.ticker} · Price &amp; Trend</h3><p className="subtitle">Price {f(p)} · daily change {d.prevClose ? pct((p / d.prevClose - 1) * 100) : '—'} · {a.overview?.chart?.length || 0} sessions, live from Yahoo.</p></div>
+              <div><h3>{a.ticker} · Price &amp; Trend</h3><p className="subtitle">Price {f(p)} · daily change {d.prevClose ? pct((p / d.prevClose - 1) * 100) : '—'} · {a.bars?.length || 0} daily sessions, live from Yahoo.</p></div>
               <div className="tech-timeframe" id="techTimeframes">{TIMEFRAMES.map((t) => <button key={t} className={t === tf ? 'active' : ''} onClick={() => setTf(t)}>{t}</button>)}</div>
             </div>
-            <svg className="mini-chart" style={{ height: '240px' }} viewBox="0 0 900 240" preserveAspectRatio="none" aria-label={`Price chart for ${a.ticker}`}>
-              <path d={pathOf(a.overview?.chart)} fill="none" stroke={up ? '#19dfa0' : '#ff6374'} strokeWidth="2.5" />
-            </svg>
-            <div className="legend"><span>━ Close (last ~120 sessions)</span><span style={{ color: 'var(--muted)' }}>Candles &amp; volume overlay need an intraday feed</span></div>
+            {a.bars?.length ? <Candles bars={a.bars} tf={tf} height={300} />
+              : <div className="empty"><b>No price bars</b>The chart needs daily bars from Yahoo for this symbol.</div>}
           </article>
 
           <article className="card tech-card">

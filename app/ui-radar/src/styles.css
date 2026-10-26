@@ -237,3 +237,12 @@ a.news-item{color:inherit;text-decoration:none;transition:border-color .15s,tran
 a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .news-mark{font-size:15px;text-transform:uppercase}
 [data-theme=light] a.news-item:hover{border-color:#0a6fff}
+
+/* Technical tab — the candlestick chart (candles.jsx), drawn on a canvas from live
+   Yahoo daily bars. Replaces the old close-only line. */
+.rchart{position:relative;width:100%}
+.rchart canvas{display:block;width:100%;cursor:crosshair}
+.rchart-tip{position:absolute;top:6px;left:8px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:color-mix(in srgb,var(--surface2) 94%,transparent);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:11px;pointer-events:none}
+.rchart-tip b{color:var(--text)}
+.rchart-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:8px 2px 0;font-size:11px;color:var(--muted)}
+.rchart-legend i{display:inline-block;width:14px;height:2.5px;border-radius:2px;vertical-align:middle;margin-right:4px}

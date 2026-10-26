@@ -61,11 +61,10 @@ function GroupsPanel() {
 }
 
 // The standalone Market dashboard. It renders the materialized market snapshot the
-// API serves (MARKET.md §3.5) and never recomputes anything. When the snapshot is
-// live (computed server-side from free Yahoo daily bars) the chrome says so; the
-// seeded demo snapshot keeps the original "demo" labelling. The O'Neil 175-industry
-// -group ranking needs the research engine, so while it is pending the view shows an
-// honest placeholder rather than inventing numbers.
+// API serves (MARKET.md §3.5) and never recomputes anything. The snapshot is always
+// computed server-side from free Yahoo daily bars (core/market.mjs always returns
+// live:true), so there is no demo path here. Industry Group Leadership (O'Neil "L")
+// is now live too, in its own background-built panel (GroupsPanel).
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
 const LIVE_NOTE = { borderColor: '#1a6555', background: '#0c302a', color: '#b9f5db' };
 
@@ -79,7 +78,6 @@ export function Market({ snapshot, onNav, onToast }) {
     );
   }
   const m = snapshot;
-  const live = !!m.live;
   return (
     <section id="market" className="screen active">
       <div className="page-head">
@@ -89,10 +87,8 @@ export function Market({ snapshot, onNav, onToast }) {
           <p className="subtitle">A structured view of major-index direction, market stage, final regime and sector leadership.</p>
         </div>
         <div className="market-head-actions">
-          {live
-            ? <span className="demo" style={LIVE_BADGE}>● LIVE · YAHOO</span>
-            : <span className="demo">DEMO SNAPSHOT · NOT LIVE</span>}
-          <span className="tag">{live ? 'Live snapshot' : 'Illustrative snapshot'} · {m.asOf}</span>
+          <span className="demo" style={LIVE_BADGE}>● LIVE · YAHOO</span>
+          <span className="tag">Live snapshot · {m.asOf}</span>
         </div>
       </div>
 
@@ -107,15 +103,13 @@ export function Market({ snapshot, onNav, onToast }) {
             </div>
           </div>
           <div className="market-scan-actions">
-            <span className="tag">{live ? 'Scans run on the Screener' : 'Scan status · demo'}</span>
+            <span className="tag">Scans run on the Screener</span>
             <button className="primary market-run" onClick={() => onNav('screener')}>▶ Open Screener</button>
           </div>
         </article>
       </section>
 
-      {live
-        ? <div className="notice market-notice" style={LIVE_NOTE}><strong>Live data.</strong> Index prices, the market model, final regime, sector heatmap and breadth are computed server-side from free Yahoo daily bars and refreshed when you open this page. Informational only — not investment advice.</div>
-        : <div className="notice market-notice"><strong>Demo data only.</strong> The values below are fictional UI examples. This page does not calculate the regime or fetch market data. Production classifications must be supplied by the server according to the Market specification.</div>}
+      <div className="notice market-notice" style={LIVE_NOTE}><strong>Live data.</strong> Index prices, the market model, final regime, sector heatmap and breadth are computed server-side from free Yahoo daily bars and refreshed when you open this page. Informational only — not investment advice.</div>
 
       <section className="market-block">
         <div className="block-head"><div><h2>Market Index Dashboard</h2><p className="subtitle">Close, daily change and weekly change · matching periods across each instrument</p></div><span className="tag">{m.indexes.length} instruments</span></div>
@@ -132,15 +126,15 @@ export function Market({ snapshot, onNav, onToast }) {
             </article>
           ))}
         </div>
-        <p className="market-footnote">{live ? 'Close and changes from Yahoo daily bars (completed sessions). VIX is a volatility index level, not an ETF share price.' : 'Close values and changes are fictional. VIX is a volatility index, not an ETF share price. Changes are displayed only; no calculations are performed in the UI.'}</p>
+        <p className="market-footnote">Close and changes from Yahoo daily bars (completed sessions). VIX is a volatility index level, not an ETF share price.</p>
       </section>
 
       <section className="market-block">
-        <div className="block-head"><div><h2>Market Regime</h2><p className="subtitle">{live ? 'Long-term bias, mid-term stage and the final regime — computed from SPY moving averages and Bollinger position.' : 'Long-term bias, mid-term stage and the final regime.'}</p></div></div>
+        <div className="block-head"><div><h2>Market Regime</h2><p className="subtitle">Long-term bias, mid-term stage and the final regime — computed from SPY moving averages and Bollinger position.</p></div></div>
         <article className="card market-summary" style={{ padding: '15px' }}>
           <div className="market-context-regime">
             <span className="market-context-dot" style={m.regime.bias === 'LONG' ? { background: '#7ab63e', borderColor: '#5d9e31' } : m.regime.bias === 'SHORT' ? { background: '#e06a6a', borderColor: '#bf484d' } : { background: '#e3ad5a', borderColor: '#b5812a' }}></span>
-            <div><strong className={m.regime.outputClass} style={{ fontSize: '26px', letterSpacing: '-.4px', display: 'block', lineHeight: 1.1 }}>{m.regime.output}</strong><small style={{ color: 'var(--muted)' }}>{m.regime.bias} bias · {live ? 'live' : 'demo'}</small></div>
+            <div><strong className={m.regime.outputClass} style={{ fontSize: '26px', letterSpacing: '-.4px', display: 'block', lineHeight: 1.1 }}>{m.regime.output}</strong><small style={{ color: 'var(--muted)' }}>{m.regime.bias} bias · live</small></div>
           </div>
           <div className="market-context-row"><span>Long term</span><strong className={m.model.long.valueClass}>{m.model.long.value}</strong></div>
           <div className="market-context-row"><span>Mid term</span><strong className={m.model.mid.valueClass}>{m.model.mid.value}</strong></div>
@@ -152,7 +146,7 @@ export function Market({ snapshot, onNav, onToast }) {
       </section>
 
       <section className="market-block">
-        <div className="block-head"><div><h2>Sector Heatmap</h2><p className="subtitle">Sector / ETF performance, relative strength versus SPY, trend bias, score, ADX and heat status{live ? '.' : '. All values are illustrative demo data.'}</p></div><span className="tag">{m.heatmap.length} sectors</span></div>
+        <div className="block-head"><div><h2>Sector Heatmap</h2><p className="subtitle">Sector / ETF performance, relative strength versus SPY, trend bias, score, ADX and heat status.</p></div><span className="tag">{m.heatmap.length} sectors</span></div>
         <div className="table-wrap">
           <table className="market-table">
             <thead><tr><th>Sector / Group</th><th>ETF</th><th>Daily</th><th>Week</th><th>RS Day</th><th>RS Week</th><th>Bias</th><th>Score</th><th>ADX</th><th>Status</th></tr></thead>
@@ -163,13 +157,13 @@ export function Market({ snapshot, onNav, onToast }) {
             </tbody>
           </table>
         </div>
-        <p className="market-footnote">{live ? 'RS Day / RS Week are the ETF return minus SPY’s over the same period. Bias, score and ADX(14) are computed from the ETF’s daily bars; score blends relative strength, trend and ADX.' : 'RS Day / RS Week are relative performance fields from the supplied legacy example. The bias, score and HOT status are displayed as provided, not recalculated in this frontend.'}</p>
+        <p className="market-footnote">RS Day / RS Week are the ETF return minus SPY’s over the same period. Bias, score and ADX(14) are computed from the ETF’s daily bars; score blends relative strength, trend and ADX.</p>
       </section>
 
       <GroupsPanel />
 
       <section className="market-block">
-        <div className="block-head"><div><h2>Market Breadth, Volatility &amp; Themes</h2><p className="subtitle">{live ? 'Sector breadth, distribution days and live volatility; theme status from the sector leaders.' : 'Additional context panels; values remain illustrative until a verified data source is connected.'}</p></div></div>
+        <div className="block-head"><div><h2>Market Breadth, Volatility &amp; Themes</h2><p className="subtitle">Sector breadth, distribution days and live volatility; theme status from the sector leaders.</p></div></div>
         <div className="market-bottom-grid">
           <article className="card detailcard">
             <h3>Market Breadth</h3>
@@ -199,7 +193,7 @@ export function Market({ snapshot, onNav, onToast }) {
         </div>
       </section>
 
-      <div className="market-endnote">{live ? 'Market snapshot computed server-side from free Yahoo daily data, refreshed on read (MARKET.md §3.5). Personal-use data; the Trade-Disk tools place no orders.' : 'Market dashboard designed from the Market specification. Frontend-only demonstration: no API, server logic, or live market feed is connected.'}</div>
+      <div className="market-endnote">Market snapshot computed server-side from free Yahoo daily data, refreshed on read (MARKET.md §3.5). Personal-use data; the Trade-Disk tools place no orders.</div>
     </section>
   );
 }

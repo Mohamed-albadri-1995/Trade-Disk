@@ -88,6 +88,9 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
     ticker: t, name: scan?.n || fund?.name || t, asOf: new Date().toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' ET',
     live: true, source: 'Yahoo + SEC EDGAR',
 
+    // Full daily OHLCV (the 1-year window) for the Technical tab's candlestick chart.
+    bars: bars.map((b) => ({ t: b.t, o: r2(b.o), h: r2(b.h), l: r2(b.l), c: r2(b.c), v: b.v })),
+
     technical: {
       ...tech,
       marketCap, marketCapStr: moneyCompact(marketCap) || scan?.cap || null,
