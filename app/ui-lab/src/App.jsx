@@ -28,9 +28,16 @@ export default function App() {
   const [err, setErr] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [toast, setToast] = useState(null);
-  const [buildOpen, setBuildOpen] = useState(false);   // mobile: builder starts collapsed so the chart leads
+  const [panel, setPanel] = useState(null);             // mobile: which side panel is open ('strategy' | 'trades' | null)
+  const [chH, setChH] = useState(420);                  // chart height — chart-first (tall) on phones, standard on desktop
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600); };
+
+  // Lead with a big chart on phones (TradingView-style); standard height on desktop.
+  useEffect(() => {
+    const f = () => setChH(window.innerWidth <= 920 ? Math.max(340, Math.round(window.innerHeight * 0.58)) : 420);
+    f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
+  }, []);
 
   // first load: grammar + templates + saved strategies, then an initial preview
   useEffect(() => {
@@ -110,16 +117,22 @@ export default function App() {
                 {preview && <span className="flag ghost">{preview.trades.length} trades · {preview.entryBars.length} signals in window</span>}
               </div>
             </div>
-            {preview ? <CandleChart bars={preview.bars} overlays={preview.overlays} trades={preview.trades} /> : <div className="muted pad">Loading chart…</div>}
-            {preview && <PreviewTrades trades={preview.trades} />}
+            {preview ? <CandleChart bars={preview.bars} overlays={preview.overlays} trades={preview.trades} height={chH} /> : <div className="muted pad">Loading chart…</div>}
+            <div className={cls('prev-trades-wrap', panel === 'trades' && 'open')}>
+              <button className="panel-close" onClick={() => setPanel(null)}>✕ Close trades</button>
+              {preview && <PreviewTrades trades={preview.trades} />}
+            </div>
           </div>
-          <aside className={cls('build-col', !buildOpen && 'collapsed')}>
-            <button className="build-toggle" onClick={() => setBuildOpen((v) => !v)} aria-expanded={buildOpen}>
-              <span>⚙ Strategy builder</span><span>{buildOpen ? '▾ hide' : '▸ edit'}</span>
-            </button>
+          <aside className={cls('build-col', panel === 'strategy' && 'open')}>
+            <button className="panel-close" onClick={() => setPanel(null)}>✕ Close builder</button>
             <Builder meta={meta} doc={doc} setDoc={editDoc} onEvaluate={() => runPreview()} onSave={onSave}
               saved={saved} onLoad={onLoad} onDelete={onDelete} templates={meta.templates} onTemplate={onTemplate} busy={busy} dirty={dirty} />
           </aside>
+          <nav className="lab-rail" aria-label="Chart tools">
+            <button className={cls(panel === 'strategy' && 'on')} onClick={() => setPanel((p) => (p === 'strategy' ? null : 'strategy'))} title="Strategy builder"><b>⚙</b><small>Strategy</small></button>
+            <button className={cls(panel === 'trades' && 'on')} onClick={() => setPanel((p) => (p === 'trades' ? null : 'trades'))} title="Trades on this chart"><b>☰</b><small>Trades</small></button>
+          </nav>
+          {panel && <div className="lab-backdrop" onClick={() => setPanel(null)} />}
         </div>
       )}
 

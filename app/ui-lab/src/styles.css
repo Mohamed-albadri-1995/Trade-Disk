@@ -80,7 +80,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .builder { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 .b-id { display: flex; gap: 6px; }
 .inp.name { flex: 1; font-weight: 700; }
-.sel, .inp { border-radius: 8px; padding: 7px 8px; background: var(--surface2); border: 1px solid var(--line); }
+.sel, .inp { border-radius: 8px; padding: 7px 8px; background: var(--surface2); border: 1px solid var(--line); max-width: 100%; min-width: 0; }
+.builder, .grp, .rule, .op, .risk, .risk-row, .b-id { min-width: 0; }
+.builder select, .builder input { max-width: 100%; }
 .inp.num { width: 58px; } .sel.kind { font-weight: 650; }
 .grp { background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .grp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -157,17 +159,38 @@ table.trades td { padding: 6px 9px; border-bottom: 1px solid var(--surface3); }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface3); border: 1px solid var(--line2);
   border-radius: 10px; padding: 10px 16px; box-shadow: var(--shadow); font-size: 13px; z-index: 50; }
 
-/* mobile: keep the whole app bar on-screen (its non-wrapping row used to overflow the
-   viewport, pushing the home button off the edge and stretching the chart wider than the
-   phone). Lead with the chart; the strategy builder collapses behind a toggle. */
-.build-toggle { display: none; }
+/* Phones: a trading-app shape (TradingView-style). The app bar wraps so it stays on-screen
+   (it used to overflow and push the home button off the edge), the chart fills the view, and
+   the strategy builder + trade list live behind a left icon rail — tap to slide one open over
+   the chart, tap the backdrop or ✕ to close. Desktop keeps the chart + builder side by side. */
+.lab-rail, .panel-close, .lab-backdrop { display: none; }
 .chart-col, .build-col, .work { min-width: 0; }
 @media (max-width: 920px) {
-  .appbar { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; gap: 8px 10px; }
+  .appbar { flex-wrap: wrap; height: auto; padding: 8px clamp(10px, 2vw, 24px); gap: 8px 10px; }
   .sym-box { order: 3; width: 100%; margin-left: 0; flex-wrap: wrap; }
   .sym-box .input.sym { flex: 1 1 110px; width: auto; }
   .app-actions { margin-left: auto; }
-  .build-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%;
+  .tabs { padding: 8px 10px 0; }
+
+  .work { display: block; padding: 8px 8px 16px; }
+
+  /* left icon rail floating over the chart */
+  .lab-rail { display: flex; flex-direction: column; gap: 8px; position: fixed; left: 8px; top: 50%; transform: translateY(-50%); z-index: 30; }
+  .lab-rail button { display: grid; justify-items: center; gap: 1px; width: 46px; padding: 7px 0; color: var(--muted);
+    background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--line); border-radius: 11px;
+    box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+  .lab-rail button b { font-size: 16px; font-weight: 400; line-height: 1; }
+  .lab-rail button small { font-size: 8px; letter-spacing: .2px; }
+  .lab-rail button.on { color: #fff; background: var(--blue); border-color: var(--blue); }
+
+  /* panels slide in from the left over the chart */
+  .build-col, .prev-trades-wrap { position: fixed; top: 0; left: 0; bottom: 0; width: min(90%, 380px); z-index: 40;
+    transform: translateX(-100%); transition: transform .22s ease; overflow: auto; background: var(--surface);
+    border-right: 1px solid var(--line); border-radius: 0 16px 16px 0; box-shadow: 0 0 46px #0008; }
+  .build-col.open, .prev-trades-wrap.open { transform: translateX(0); }
+  .prev-trades-wrap .prev-trades { border-top: 0; }
+  .pt-scroll { max-height: none; }
+  .panel-close { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 2; width: 100%;
     background: var(--surface2); border: 0; border-bottom: 1px solid var(--line); padding: 13px 14px; font-weight: 700; color: var(--text); font-size: 14px; }
-  .build-col.collapsed .builder { display: none; }
+  .lab-backdrop { display: block; position: fixed; inset: 0; background: #0007; z-index: 35; }
 }
