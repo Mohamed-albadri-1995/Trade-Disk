@@ -109,7 +109,12 @@ function Hero({ s, a, saved, onToggleStar, onNav, onToast, setTab }) {
         <div className="hero-aside">
           <div className="hero-controls">
             <button className="iconbtn" id="favoriteBtn" aria-label="Toggle favorite" style={{ color: saved ? 'var(--yellow)' : undefined }} onClick={() => onToggleStar(s.t)}>{saved ? '★' : '☆'}</button>
-            <button className="iconbtn" aria-label="Share" onClick={() => onToast('Share action is a visual placeholder.')}>⇧</button>
+            <button className="iconbtn" aria-label="Share" title="Copy a shareable summary" onClick={() => {
+              const txt = `${s.t}${s.n ? ' ' + s.n : ''} · ${money(price)} (${up ? '+' : '−'}${Math.abs(chgPct).toFixed(2)}%) · Trade-Disk Radar\n${window.location.href}`;
+              (navigator.clipboard?.writeText(txt) || Promise.reject())
+                .then(() => onToast(`Copied ${s.t} summary to clipboard`))
+                .catch(() => onToast('Clipboard not available in this browser'));
+            }}>⇧</button>
             <div className="hero-score"><strong id="heroScore">{s.s}</strong><span>/ 100 · Model score</span></div>
           </div>
           {a?.overview?.market ? <HeroMarket mkt={a.overview.market} onNav={onNav} /> : null}
