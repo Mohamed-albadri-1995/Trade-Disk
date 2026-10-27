@@ -309,3 +309,7 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .cl-tip b{color:var(--text)}
 .cl-foot{margin-top:8px;font-size:11px}
 @media(max-width:700px){.cl-modal{width:100vw;max-height:94vh;border-radius:10px;padding:10px}.cl-tfs{margin-left:0}.reg-controls .select{min-width:0;width:100%}.reg-controls label{width:100%}}
+
+/* real interactive chart (lightweight-charts) in the register modal */
+.cl-modal .tvchart{width:100%;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#061320}
+.cl-chart-empty{display:grid;place-items:center;height:430px;border:1px solid var(--line);border-radius:10px;background:#061320}

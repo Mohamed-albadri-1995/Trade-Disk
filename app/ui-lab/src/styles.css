@@ -230,3 +230,8 @@ table.trades td { padding: 6px 9px; border-bottom: 1px solid var(--surface3); }
 .id-fetch.warn { border-color: var(--orange); background: #ffad4314; }
 .id-fetch.ok { border-color: var(--green); background: #19dfa012; }
 .ok-note { font-size: 13px; color: var(--green); padding: 2px 2px; }
+
+/* real interactive chart (lightweight-charts) */
+.tvchart { width: 100%; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.btn.danger { border-color: var(--red); color: var(--red); background: var(--surface2); flex: 0 0 auto; }
+.btn.danger:hover { background: #ff63741a; }

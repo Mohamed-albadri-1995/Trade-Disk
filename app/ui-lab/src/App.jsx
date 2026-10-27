@@ -13,6 +13,7 @@ import Backtest from './backtest.jsx';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const RANGES = ['6mo', '1y', '2y', '5y'];
+const BLANK = () => ({ name: 'New strategy', side: 'long', fill: 'desk', entry: { logic: 'AND', rules: [] }, exit: { logic: 'OR', rules: [] }, risk: { sl: { type: 'pct', value: 8 } } });
 
 export default function App() {
   const [meta, setMeta] = useState(null);
@@ -73,6 +74,7 @@ export default function App() {
     catch (e) { setErr(String(e.message || e)); } finally { setBusy(false); }
   }
   async function onDelete(id) { try { await api.deleteStrategy(id); setSaved((s) => s.filter((x) => x.id !== id)); if (doc.id === id) setDoc((d) => ({ ...d, id: undefined })); flash('Deleted'); } catch (e) { setErr(String(e.message || e)); } }
+  function onNew() { const d = BLANK(); setDoc(d); setDirty(false); flash('New strategy — build it, then Save'); runPreview(symbol, d, range); }
   const editDoc = (d) => { setDoc(d); setDirty(true); };
 
   function flipTheme() { toggleTheme(); setTh(getTheme()); }
@@ -125,7 +127,7 @@ export default function App() {
           </div>
           <aside className={cls('build-col', panel === 'strategy' && 'open')}>
             <button className="panel-close" onClick={() => setPanel(null)}>✕ Close builder</button>
-            <Builder meta={meta} doc={doc} setDoc={editDoc} onEvaluate={() => runPreview()} onSave={onSave}
+            <Builder meta={meta} doc={doc} setDoc={editDoc} onEvaluate={() => runPreview()} onSave={onSave} onNew={onNew}
               saved={saved} onLoad={onLoad} onDelete={onDelete} templates={meta.templates} onTemplate={onTemplate} busy={busy} dirty={dirty} />
           </aside>
           <nav className="lab-rail" aria-label="Chart tools">

@@ -142,7 +142,7 @@ function Risk({ risk, onChange }) {
   );
 }
 
-export default function Builder({ meta, doc, setDoc, onEvaluate, onSave, saved, onLoad, onDelete, templates, onTemplate, busy, dirty }) {
+export default function Builder({ meta, doc, setDoc, onEvaluate, onSave, onNew, saved, onLoad, onDelete, templates, onTemplate, busy, dirty }) {
   if (!meta) return <div className="muted pad">Loading the builder…</div>;
   const d = doc;
   return (
@@ -161,7 +161,9 @@ export default function Builder({ meta, doc, setDoc, onEvaluate, onSave, saved, 
 
       <div className="b-actions">
         <button className="btn primary" onClick={onEvaluate} disabled={busy}>▶ Evaluate on chart</button>
-        <button className="btn" onClick={onSave} disabled={busy}>{dirty ? '● ' : ''}Save</button>
+        <button className="btn" onClick={onSave} disabled={busy} title={d.id ? 'Save changes (new version)' : 'Save as a new strategy'}>{dirty ? '● ' : ''}{d.id ? 'Save' : 'Save new'}</button>
+        <button className="btn" onClick={onNew} disabled={busy} title="Start a new blank strategy">＋ New</button>
+        {d.id && <button className="btn danger" onClick={() => onDelete(d.id)} disabled={busy} title="Delete this strategy">🗑</button>}
       </div>
 
       <div className="b-templates">
