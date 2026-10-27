@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './api.js';
+import Candles from './candles.jsx';
 
 // Industry Group Leadership (O'Neil "L") — fetched on its own because the S&P 500
 // ranking is computed in the background and cached daily. While it builds, the panel

@@ -3,7 +3,7 @@
 // sorting over the records the API returns; these are the prototype's own functions
 // so the numbers and ordering match it exactly.
 
-export const money = (n) => '$' + Number(n).toFixed(2);
+export const money = (n) => (n == null || !Number.isFinite(Number(n)) ? '—' : '$' + Number(n).toFixed(2));
 
 export const pmRange = (s) => Math.max(0, s.pmHigh - s.pmLow);
 export const pmRangePct = (s) => (s.pmLow > 0 ? (pmRange(s) / s.pmLow) * 100 : 0);
