@@ -68,7 +68,40 @@ function GroupsPanel() {
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
 const LIVE_NOTE = { borderColor: '#1a6555', background: '#0c302a', color: '#b9f5db' };
 
-export function Market({ snapshot, onNav, onToast, onOpenSymbol }) {
+// A lightweight popup that shows a symbol's daily candle chart over the Market tab.
+// Click an index or sector ETF to open it; close it (tap outside / ✕ / Esc) and stay here.
+function ChartModal({ sym, name, onClose }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  const [tf, setTf] = useState('6M');
+  useEffect(() => {
+    let live = true; setData(null); setErr(null);
+    api.bars(sym).then((r) => { if (!live) return; r?.error ? setErr(r.error) : setData(r); }).catch((e) => { if (live) setErr(String(e.message || e)); });
+    return () => { live = false; };
+  }, [sym]);
+  useEffect(() => { const onKey = (e) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [onClose]);
+  const TFS = ['1M', '3M', '6M', '1Y'];
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: '#0009', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 'min(960px, 100%)', maxHeight: '90vh', overflow: 'auto', padding: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <strong style={{ fontSize: 16 }}>{sym}</strong>
+          <span style={{ color: 'var(--muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data?.name || name || ''}</span>
+          <div className="tech-timeframe">{TFS.map((t) => <button key={t} className={t === tf ? 'active' : ''} onClick={() => setTf(t)}>{t}</button>)}</div>
+          <button className="ghost" onClick={onClose} aria-label="Close" style={{ fontSize: 16, lineHeight: 1, padding: '4px 10px' }}>✕</button>
+        </div>
+        {err ? <div className="empty"><b>Couldn’t load {sym}</b>{err}</div>
+          : !data ? <div className="empty"><b>Loading {sym} chart…</b>Daily bars from Yahoo.</div>
+            : data.bars?.length ? <Candles bars={data.bars} tf={tf} height={340} />
+              : <div className="empty"><b>No bars for {sym}</b>Yahoo returned no daily data.</div>}
+        <p className="market-footnote" style={{ marginTop: 8 }}>Daily candles + volume, live from Yahoo. Tap outside, ✕ or Esc to close.</p>
+      </div>
+    </div>
+  );
+}
+
+export function Market({ snapshot, onNav, onToast }) {
+  const [chart, setChart] = useState(null);   // {sym, name} — the quick daily-chart popup over this tab
   if (!snapshot) {
     return (
       <section id="market" className="screen active">
@@ -116,8 +149,8 @@ export function Market({ snapshot, onNav, onToast, onOpenSymbol }) {
         <div className="index-grid">
           {m.indexes.map((ix) => (
             <article className="card index-card" key={ix.sym} style={{ cursor: 'pointer' }} role="button" tabIndex={0}
-              onClick={() => onOpenSymbol?.(ix.y || ix.sym, ix.name)} title={`Open ${ix.sym} chart`}
-              onKeyDown={(e) => { if (e.key === 'Enter') onOpenSymbol?.(ix.y || ix.sym, ix.name); }}>
+              onClick={() => setChart({ sym: ix.y || ix.sym, name: ix.name })} title={`Open ${ix.sym} chart`}
+              onKeyDown={(e) => { if (e.key === 'Enter') setChart({ sym: ix.y || ix.sym, name: ix.name }); }}>
               <div className="index-top"><strong>{ix.sym}</strong><span>{ix.name}</span></div>
               <div className="index-price">{ix.price}</div>
               <div className="index-changes">
@@ -155,8 +188,8 @@ export function Market({ snapshot, onNav, onToast, onOpenSymbol }) {
             <thead><tr><th>Sector / Group</th><th>ETF</th><th>Daily</th><th>Week</th><th>RS Day</th><th>RS Week</th><th>Bias</th><th>Score</th><th>ADX</th><th>Status</th></tr></thead>
             <tbody>
               {m.heatmap.map((row, ri) => (
-                <tr key={ri}>{row.cells.map((c, ci) => (ci === 1 && c.t && onOpenSymbol
-                  ? <td key={ci} style={{ cursor: 'pointer', color: 'var(--blue, #087cff)', fontWeight: 600 }} onClick={() => onOpenSymbol(c.t, row.cells[0]?.t)} title={`Open ${c.t} chart`}>{c.t} 📈</td>
+                <tr key={ri}>{row.cells.map((c, ci) => (ci === 1 && c.t
+                  ? <td key={ci} style={{ cursor: 'pointer', color: 'var(--blue, #087cff)', fontWeight: 600 }} onClick={() => setChart({ sym: c.t, name: row.cells[0]?.t })} title={`Open ${c.t} chart`}>{c.t} 📈</td>
                   : <td key={ci} className={c.c || undefined}>{c.t}</td>))}</tr>
               ))}
             </tbody>
@@ -199,6 +232,7 @@ export function Market({ snapshot, onNav, onToast, onOpenSymbol }) {
       </section>
 
       <div className="market-endnote">Market snapshot computed server-side from free Yahoo daily data, refreshed on read (MARKET.md §3.5). Personal-use data; the Trade-Disk tools place no orders.</div>
+      {chart && <ChartModal sym={chart.sym} name={chart.name} onClose={() => setChart(null)} />}
     </section>
   );
 }

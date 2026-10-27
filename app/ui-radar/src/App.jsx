@@ -23,7 +23,6 @@ export default function App() {
   const [filters, setFilters] = useState(() => structuredClone(DEFAULT_FILTERS));
   const [sort, setSort] = useState('score');
   const [selectedTicker, setSelectedTicker] = useState(null);
-  const [extStock, setExtStock] = useState(null);   // a symbol opened from outside the screener list (an index/ETF from Market)
   const [collapsed, setCollapsed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -104,9 +103,7 @@ export default function App() {
   const onToggleFilters = () => setCollapsed((c) => !c);
 
   // openStock(): remember the stock and open its analysis workspace.
-  const onOpen = (t) => { setExtStock(null); setSelectedTicker(t); nav('analysis'); };
-  // Open analysis (its chart) for a symbol NOT in the screener list — an index/ETF from the Market tab.
-  const onOpenSymbol = (sym, name) => { const t = String(sym || '').toUpperCase(); if (!t) return; setExtStock({ t, n: name || t, ext: true }); setSelectedTicker(t); nav('analysis'); };
+  const onOpen = (t) => { setSelectedTicker(t); nav('analysis'); };
 
   // focusSearch(): nudge toward the list (kept as a view affordance).
   const onSearch = () => {
@@ -121,7 +118,7 @@ export default function App() {
     return [...sorted].sort((a, b) => (a.live === b.live ? 0 : a.live === false ? 1 : b.live === false ? -1 : 0));
   }, [visible, sort]);
   const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
-  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || (extStock && extStock.t === selectedTicker ? extStock : null), [stocks, selectedTicker, extStock]);
+  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
 
   // The header badge tells the truth about what's on screen. In Personal mode every
   // surface is live: the Screener and the analysis opened from its cards run on
@@ -158,7 +155,7 @@ export default function App() {
         {screen === 'shortlist' && (
           <Shortlist saved={savedCards} shortlist={shortlist} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} />
         )}
-        {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} onOpenSymbol={onOpenSymbol} />}
+        {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} />}
         {screen === 'settings' && <Settings onToast={toast} />}
         {screen === 'analysis' && (
           <Analysis stock={selectedStock} saved={!!selectedStock && shortlist.has(selectedStock.t)} onToggleStar={onToggleStar} onNav={nav} onToast={toast} />

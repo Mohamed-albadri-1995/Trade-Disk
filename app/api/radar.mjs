@@ -5,6 +5,7 @@
 // TradingView directly (no DB). Every function takes a per-request client `sb`.
 
 import * as tv from '../providers/tradingview.mjs';
+import * as yahoo from '../providers/yahoo.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
 import { conditionsToFilters } from '../core/screenerTranslate.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
@@ -86,7 +87,14 @@ export async function scan(sb, uid, key, limit = 50) {
   }
   let reg;
   try { reg = await runScreener(sb, uid, { key, filters, sort, limit }); }
-  catch (e) { return { key, screener: name, error: String(e.message || e) }; }
+  catch (e) {
+    // Live scan failed (market closed, provider hiccup/rate-limit). Don't wipe the
+    // day's sticky list — fall back to today's saved register so the stocks that
+    // already appeared (now "not live") stay on screen instead of the view going blank.
+    const saved = await readRegister(sb, key).catch(() => null);
+    if (saved && saved.count) return { key, screener: name, provider: 'tradingview', ...saved, stale: true, scanError: String(e.message || e) };
+    return { key, screener: name, error: String(e.message || e) };
+  }
   const market = await getMarket(sb, { force: true }).catch(() => null);
   return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };
 }
@@ -104,6 +112,16 @@ export async function previewConditions(sb, body) {
 
 // Today's register for a screener without running a new scan (page revisit / tab switch).
 export async function register(sb, key) { return readRegister(sb, key); }
+
+// Daily bars for one symbol (index/ETF/stock) — for the Market tab's quick chart popup.
+export async function bars(sb, ticker) {
+  const t = String(ticker || '').toUpperCase();
+  if (!t) return { error: 'no symbol' };
+  try {
+    const { meta, bars } = await yahoo.chart(t, { range: '2y', interval: '1d' });
+    return { symbol: t, name: meta?.shortName || meta?.longName || t, bars: (bars || []).map((b) => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v })) };
+  } catch (e) { return { symbol: t, error: String(e.message || e) }; }
+}
 
 // ── data collection (the feature store for model-building) ──
 // Collect a snapshot now for one screener (manual run of what the scheduler does).

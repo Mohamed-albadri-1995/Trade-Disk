@@ -97,6 +97,7 @@ async function api(req, res, url) {
         if (sub === 'screeners') return json(res, radar.screeners());
         if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, uid, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
         if (sub === 'register' && seg[3]) return json(res, await radar.register(sb, decodeURIComponent(seg[3])));
+        if (sub === 'bars' && seg[3]) return json(res, await radar.bars(sb, decodeURIComponent(seg[3])));
         if (sub === 'collection') return json(res, await radar.collectStatus(sb));
         if (sub === 'export') return json(res, await radar.exportData(sb, url.searchParams.get('day')));
         if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }));

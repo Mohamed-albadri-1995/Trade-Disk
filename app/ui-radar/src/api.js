@@ -28,6 +28,8 @@ export const api = {
   scan: (key, limit) => j(`/api/radar/scan/${encodeURIComponent(key)}${limit ? `?limit=${limit}` : ''}`),
   // Today's register for a screener without running a new scan (tab revisit).
   register: (key) => j(`/api/radar/register/${encodeURIComponent(key)}`),
+  // Daily bars for a symbol (index/ETF) → the Market tab's quick chart popup.
+  bars: (ticker) => j(`/api/radar/bars/${encodeURIComponent(ticker)}`),
   // Builder "Run": preview the current conditions live, without touching the register.
   preview: (body) => j('/api/radar/preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
   // Live per-stock analysis (Yahoo + SEC EDGAR); ctx carries the card's name/sector/cap.
