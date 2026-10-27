@@ -68,7 +68,7 @@ function GroupsPanel() {
 const LIVE_BADGE = { color: '#5df0b7', borderColor: '#1a6555', background: '#0c302a' };
 const LIVE_NOTE = { borderColor: '#1a6555', background: '#0c302a', color: '#b9f5db' };
 
-export function Market({ snapshot, onNav, onToast }) {
+export function Market({ snapshot, onNav, onToast, onOpenSymbol }) {
   if (!snapshot) {
     return (
       <section id="market" className="screen active">
@@ -115,7 +115,9 @@ export function Market({ snapshot, onNav, onToast }) {
         <div className="block-head"><div><h2>Market Index Dashboard</h2><p className="subtitle">Close, daily change and weekly change · matching periods across each instrument</p></div><span className="tag">{m.indexes.length} instruments</span></div>
         <div className="index-grid">
           {m.indexes.map((ix) => (
-            <article className="card index-card" key={ix.sym}>
+            <article className="card index-card" key={ix.sym} style={{ cursor: 'pointer' }} role="button" tabIndex={0}
+              onClick={() => onOpenSymbol?.(ix.y || ix.sym, ix.name)} title={`Open ${ix.sym} chart`}
+              onKeyDown={(e) => { if (e.key === 'Enter') onOpenSymbol?.(ix.y || ix.sym, ix.name); }}>
               <div className="index-top"><strong>{ix.sym}</strong><span>{ix.name}</span></div>
               <div className="index-price">{ix.price}</div>
               <div className="index-changes">
@@ -123,6 +125,7 @@ export function Market({ snapshot, onNav, onToast }) {
                   <React.Fragment key={i}><b className={ch.c || undefined}>{ch.v}</b><span>{ch.label}</span></React.Fragment>
                 ))}
               </div>
+              <span style={{ display: 'block', marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>View chart →</span>
             </article>
           ))}
         </div>
@@ -152,7 +155,9 @@ export function Market({ snapshot, onNav, onToast }) {
             <thead><tr><th>Sector / Group</th><th>ETF</th><th>Daily</th><th>Week</th><th>RS Day</th><th>RS Week</th><th>Bias</th><th>Score</th><th>ADX</th><th>Status</th></tr></thead>
             <tbody>
               {m.heatmap.map((row, ri) => (
-                <tr key={ri}>{row.cells.map((c, ci) => <td key={ci} className={c.c || undefined}>{c.t}</td>)}</tr>
+                <tr key={ri}>{row.cells.map((c, ci) => (ci === 1 && c.t && onOpenSymbol
+                  ? <td key={ci} style={{ cursor: 'pointer', color: 'var(--blue, #087cff)', fontWeight: 600 }} onClick={() => onOpenSymbol(c.t, row.cells[0]?.t)} title={`Open ${c.t} chart`}>{c.t} 📈</td>
+                  : <td key={ci} className={c.c || undefined}>{c.t}</td>))}</tr>
               ))}
             </tbody>
           </table>

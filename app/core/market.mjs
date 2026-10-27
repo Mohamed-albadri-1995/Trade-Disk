@@ -114,7 +114,7 @@ export async function buildSnapshot() {
     const price = ix.kind === 'index' ? ch.price.toFixed(2) : '$' + ch.price.toFixed(2);
     const vixInvert = ix.sym === 'VIX';
     return {
-      sym: ix.sym, name: ix.name, price,
+      sym: ix.sym, y: ix.y, name: ix.name, price,
       changes: [
         { v: pctStr(ch.day), c: cls(ch.day, vixInvert), label: 'Day' },
         { v: pctStr(ch.week), c: cls(ch.week, vixInvert), label: 'Week' },

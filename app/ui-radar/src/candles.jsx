@@ -27,7 +27,7 @@ function smaSeries(vals, n) {
   for (let i = 0; i < vals.length; i++) { sum += vals[i]; if (i >= n) sum -= vals[i - n]; if (i >= n - 1) out[i] = sum / n; }
   return out;
 }
-const TF_BARS = { '1M': 21, '3M': 63, '6M': 126, '1Y': 10000 };
+const TF_BARS = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252 };
 function startIndex(bars, tf) {
   if (tf === 'YTD') { const y = new Date().getUTCFullYear(); const i = bars.findIndex((b) => new Date(b.t * 1000).getUTCFullYear() === y); return i < 0 ? 0 : i; }
   return Math.max(0, bars.length - (TF_BARS[tf] || 10000));

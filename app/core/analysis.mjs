@@ -47,7 +47,9 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
   if (cached && Date.now() - cached.at < TTL_MS) return cached.snap;
 
   const [{ bars }, fund] = await Promise.all([
-    yahoo.chart(t, { range: '1y', interval: '1d' }),
+    // 2 years: the chart shows ~1 year, and the extra year is warm-up so the 200-day
+    // moving average is defined from the very first visible candle (not just the right edge).
+    yahoo.chart(t, { range: '2y', interval: '1d' }),
     edgar.fundamentals(t).catch(() => ({ available: false })),
   ]);
   if (!bars || !bars.length) throw new Error(`no price bars for ${t}`);
