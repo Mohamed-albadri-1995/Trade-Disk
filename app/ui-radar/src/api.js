@@ -54,4 +54,10 @@ export const api = {
   dataTables: () => j('/api/data/tables'),
   dataRows: (table, page, size) => j(`/api/data/rows/${encodeURIComponent(table)}?page=${page || 1}&size=${size || 50}`),
   dataExport: (table, format) => j(`/api/data/export/${encodeURIComponent(table)}?format=${format || 'csv'}`),
+
+  // ── Registers (a screener's picks by day, charted on that exact day) ──
+  registerScreens: () => j('/api/radar/register-screens'),
+  registerDays: (screen) => j(`/api/radar/register-days?screen=${encodeURIComponent(screen)}`),
+  registerDay: (screen, day) => j(`/api/radar/register-day?screen=${encodeURIComponent(screen)}&day=${encodeURIComponent(day)}`),
+  intradayBars: (ticker, day, interval) => j(`/api/radar/intraday-bars?ticker=${encodeURIComponent(ticker)}&day=${encodeURIComponent(day)}&interval=${encodeURIComponent(interval || '1')}`),
 };

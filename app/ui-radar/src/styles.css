@@ -263,3 +263,49 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .preview-warn{margin-top:8px;font-size:12px;color:var(--yellow);background:#ffd33d14;border:1px solid #ffd33d3b;border-radius:8px;padding:6px 10px}
 [data-theme=light] .preview-warn{color:#8a6d12}
 .preview-err{color:var(--red);font-size:13px}
+
+/* ── utilities used by the Registers view + data view ── */
+.view{display:block}
+.pad{padding:22px}
+.small{font-size:11px}
+.err{color:var(--red)}
+
+/* ── Registers browser ── */
+.regview{max-width:1100px}
+.reg-head h2{font-size:22px;margin:0 0 2px}
+.reg-head p{margin:0 0 14px}
+.reg-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:16px}
+.reg-controls label{display:grid;gap:5px;font-size:11px;color:var(--muted)}
+.reg-controls .select{min-width:220px}
+.reg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.reg-card{display:grid;gap:3px;text-align:left;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:linear-gradient(110deg,#0a1d2d,#071624);transition:border-color .15s,transform .15s}
+.reg-card:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.reg-tk{font-size:16px;font-weight:850;letter-spacing:.2px}
+.reg-nm{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reg-seen{font-size:10px}
+.reg-chart{font-size:10px;color:var(--cyan);margin-top:4px;font-weight:700}
+
+/* ── interactive chart (ChartLab) modal ── */
+.cl-backdrop{position:fixed;inset:0;z-index:60;background:#030a12cc;backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px}
+.cl-modal{width:min(980px,96vw);max-height:90vh;overflow:auto;background:var(--surface,#081624);border:1px solid var(--line2);border-radius:14px;box-shadow:0 24px 70px #0009;padding:14px 16px}
+.cl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.cl-title{font-size:17px}.cl-title b{font-size:19px;letter-spacing:.2px}
+.cl-tfs{display:flex;gap:2px;background:#071725;border:1px solid var(--line);border-radius:9px;padding:2px;margin-left:auto}
+.cl-tf{background:transparent;border:0;border-radius:7px;padding:6px 11px;color:var(--muted);font-size:12px;font-weight:700}
+.cl-tf.on{background:var(--blue);color:#fff}
+.cl-x{width:34px;height:34px;border:1px solid var(--line);background:#071725;border-radius:8px;color:var(--muted);font-size:14px}
+.cl-indbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px}
+.cl-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:20px;padding:4px 7px 4px 9px;font-size:11px;font-weight:700;background:#071725}
+.cl-chip i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.cl-chip button{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0 1px}
+.cl-chip button:hover{color:var(--red)}
+.cl-add{display:inline-flex;gap:5px;align-items:center;margin-left:4px}
+.cl-add select,.cl-add input{background:#071725;border:1px solid var(--line);border-radius:7px;padding:6px 7px;font-size:11px}
+.cl-add input{width:62px}
+.cl-add button{border:1px dashed #285b7b;background:#0b2a40;color:#9bd9ff;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:700}
+.cl-chart{position:relative;width:100%;border:1px solid var(--line);border-radius:10px;background:#061320;overflow:hidden}
+.cl-chart canvas{display:block;width:100%;cursor:crosshair}
+.cl-tip{position:absolute;top:8px;left:8px;display:flex;gap:9px;flex-wrap:wrap;background:#0a1f30ee;border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:11px;pointer-events:none}
+.cl-tip b{color:var(--text)}
+.cl-foot{margin-top:8px;font-size:11px}
+@media(max-width:700px){.cl-modal{width:100vw;max-height:94vh;border-radius:10px;padding:10px}.cl-tfs{margin-left:0}.reg-controls .select{min-width:0;width:100%}.reg-controls label{width:100%}}
