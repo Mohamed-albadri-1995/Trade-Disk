@@ -11,6 +11,7 @@ import CandleChart from './chart.jsx';
 import Builder from './builder.jsx';
 import Backtest from './backtest.jsx';
 import Replay from './replay.jsx';
+import Intraday from './intraday.jsx';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const RANGES = ['6mo', '1y', '2y', '5y'];
@@ -103,6 +104,7 @@ export default function App() {
       <div className="tabs">
         <button className={cls('tab', tab === 'chart' && 'on')} onClick={() => setTab('chart')}>Chart & Strategy</button>
         <button className={cls('tab', tab === 'backtest' && 'on')} onClick={() => setTab('backtest')}>Backtest</button>
+        <button className={cls('tab', tab === 'intraday' && 'on')} onClick={() => setTab('intraday')}>Intraday</button>
         <button className={cls('tab', tab === 'replay' && 'on')} onClick={() => setTab('replay')}>Screener replay</button>
       </div>
 
@@ -139,6 +141,8 @@ export default function App() {
       )}
 
       {tab === 'backtest' && <Backtest doc={doc} />}
+
+      {tab === 'intraday' && <Intraday doc={doc} saved={saved} />}
 
       {tab === 'replay' && <Replay />}
 

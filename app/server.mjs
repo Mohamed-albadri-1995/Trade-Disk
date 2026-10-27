@@ -10,6 +10,7 @@ import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as lab from './api/lab.mjs';
 import * as data from './api/data.mjs';
+import * as intraday from './api/intraday.mjs';
 import * as sources from './core/sources.mjs';
 import { userClient } from './lib/supabase.mjs';
 import { startScheduler } from './core/scheduler.mjs';
@@ -157,6 +158,24 @@ async function api(req, res, url) {
         if (m === 'GET' && sub === 'tables') return json(res, await data.tables(sb));
         if (m === 'GET' && sub === 'rows' && seg[3]) return json(res, await data.rows(sb, decodeURIComponent(seg[3]), { page: url.searchParams.get('page'), size: url.searchParams.get('size') }));
         if (m === 'GET' && sub === 'export' && seg[3]) return json(res, await data.exportTable(sb, decodeURIComponent(seg[3]), url.searchParams.get('format') || 'csv'));
+      } catch (e) {
+        return json(res, { error: String(e && e.message || e) }, 400);
+      }
+    }
+
+    // the intraday screener backtest — run a saved strategy on real 1-minute bars over
+    // the stocks a screen actually surfaced (Polygon bars, cache-first; point-in-time).
+    if (seg[1] === 'intraday') {
+      const ctx = authCtx(req);
+      if (!ctx) return json(res, { error: 'unauthorized' }, 401);
+      const { sb, uid } = ctx;
+      const sub = seg[2];
+      try {
+        if (m === 'GET' && sub === 'key') return json(res, await intraday.keyStatus(sb));
+        if (m === 'GET' && sub === 'screens') return json(res, await intraday.screens(sb));
+        if (m === 'GET' && sub === 'runs') return json(res, await intraday.listIntraday(sb));
+        if (m === 'POST' && sub === 'key') return json(res, await intraday.saveKey(sb, (await readBody(req)).key));
+        if (m === 'POST' && sub === 'run') return json(res, await intraday.runIntraday(sb, uid, await readBody(req)), 201);
       } catch (e) {
         return json(res, { error: String(e && e.message || e) }, 400);
       }

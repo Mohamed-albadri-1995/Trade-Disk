@@ -170,6 +170,20 @@ alter table public.lab_backtest enable row level security;
 create policy lab_backtest_own on public.lab_backtest for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 grant select, insert, update, delete on public.lab_strategy, public.lab_strategy_version, public.lab_backtest to authenticated;
 
+-- Intraday minute-bar cache for the screener backtest (Polygon). Owner-scoped like the
+-- rest of the app; bars are public market data but cached per account so RLS stays
+-- uniform. Keyed by (owner, ticker, ET trading day 'YYYY-MM-DD'). See api/intraday.mjs.
+create table if not exists public.polygon_bars (
+  owner_id uuid not null references public.profile(id) on delete cascade,
+  ticker text not null, day text not null,
+  bars jsonb not null default '[]', n int not null default 0,
+  fetched_at timestamptz not null default now(),
+  primary key (owner_id, ticker, day)
+);
+alter table public.polygon_bars enable row level security;
+create policy polygon_bars_own on public.polygon_bars for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+grant select, insert, update, delete on public.polygon_bars to authenticated;
+
 -- ===== Global (shared) =====
 create table if not exists public.radar_stock (
   t text primary key, n text not null,

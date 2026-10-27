@@ -31,4 +31,10 @@ export const api = {
   replayScreens: () => j('/api/lab/replay-screens'),
   runReplay: (spec) => post('/api/lab/replay', spec),
   replays: () => j('/api/lab/replays'),
+  // intraday backtest — a saved strategy on real Polygon minute bars over a screen's picks
+  intradayKey: () => j('/api/intraday/key'),
+  saveIntradayKey: (key) => post('/api/intraday/key', { key }),
+  intradayScreens: () => j('/api/intraday/screens'),
+  runIntraday: (spec) => post('/api/intraday/run', spec),
+  intradayRuns: () => j('/api/intraday/runs'),
 };
