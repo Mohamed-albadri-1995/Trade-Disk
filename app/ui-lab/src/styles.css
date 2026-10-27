@@ -235,3 +235,38 @@ table.trades td { padding: 6px 9px; border-bottom: 1px solid var(--surface3); }
 .tvchart { width: 100%; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
 .btn.danger { border-color: var(--red); color: var(--red); background: var(--surface2); flex: 0 0 auto; }
 .btn.danger:hover { background: #ff63741a; }
+
+/* ── qp chart (our canvas, pan/zoom) ── */
+.qpchart { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.qpchart canvas { display: block; width: 100%; }
+.qpchart-tip { position: absolute; top: 8px; left: 8px; display: flex; gap: 9px; flex-wrap: wrap; background: color-mix(in srgb, var(--surface2) 94%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 11px; pointer-events: none; }
+.qpchart-tip b { color: var(--text); }
+
+/* ── qp Register browser ── */
+.reg { display: flex; flex-direction: column; gap: 12px; }
+.reg-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.reg-controls label { display: grid; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 650; }
+.reg-controls .sel { min-width: 230px; }
+.reg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 9px; }
+.reg-card { display: grid; gap: 3px; text-align: left; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface2); }
+.reg-card:hover { border-color: var(--blue); }
+.reg-card.on { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.reg-tk { font-size: 16px; font-weight: 800; letter-spacing: .2px; }
+.reg-nm { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reg-seen { font-size: 10px; }
+.reg-chartwrap { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.reg-charthead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reg-charttitle { font-size: 15px; } .reg-charttitle b { font-size: 18px; }
+.reg-charthead .ranges { margin-left: auto; }
+.reg-indbar { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.reg-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2); border-radius: 20px; padding: 4px 7px 4px 9px; font-size: 11px; font-weight: 650; background: var(--surface2); }
+.reg-chip i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.reg-chip button { border: 0; background: transparent; color: var(--muted); font-size: 12px; padding: 0 1px; }
+.reg-chip button:hover { color: var(--red); }
+.reg-add { display: inline-flex; gap: 5px; align-items: center; margin-left: 4px; }
+.reg-add select, .reg-add input { background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 7px; font-size: 11px; }
+.reg-add input { width: 60px; }
+.reg-add button { border: 1px dashed var(--line2); background: var(--surface2); color: var(--cyan); border-radius: 7px; padding: 6px 10px; font-size: 11px; font-weight: 700; }
+.reg-chart-empty { display: grid; place-items: center; height: 430px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.reg-foot { padding: 2px; }
+@media (max-width: 920px) { .reg-controls .sel { min-width: 0; width: 100%; } .reg-controls label { width: 100%; } }

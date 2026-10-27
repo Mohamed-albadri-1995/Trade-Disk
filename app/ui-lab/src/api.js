@@ -37,4 +37,10 @@ export const api = {
   intradayScreens: () => j('/api/intraday/screens'),
   runIntraday: (spec) => post('/api/intraday/run', spec),
   intradayRuns: () => j('/api/intraday/runs'),
+  // register browser (a screener's picks by day) + bars for the qp chart
+  registerScreens: () => j('/api/radar/register-screens'),
+  registerDays: (screen) => j(`/api/radar/register-days?screen=${encodeURIComponent(screen)}`),
+  registerDay: (screen, day) => j(`/api/radar/register-day?screen=${encodeURIComponent(screen)}&day=${encodeURIComponent(day)}`),
+  bars: (ticker) => j(`/api/radar/bars/${encodeURIComponent(ticker)}`),
+  intradayBars: (ticker, day, interval) => j(`/api/radar/intraday-bars?ticker=${encodeURIComponent(ticker)}&day=${encodeURIComponent(day)}&interval=${encodeURIComponent(interval || '1')}`),
 };
