@@ -7,6 +7,7 @@ import { Screener, Shortlist } from './screens.jsx';
 import { Market } from './market.jsx';
 import { Settings } from './settings.jsx';
 import { Analysis } from './analysis.jsx';
+import { DataView } from './data.jsx';
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 700;
 
@@ -126,7 +127,7 @@ export default function App() {
   // holds those same live cards. So the badge reads LIVE throughout — it only falls
   // back to DEMO in Commercial mode before a licensed engine is wired.
   const badge = useMemo(() => {
-    if (screen === 'analysis') return { hide: true };   // the analysis sub-header owns its own LIVE · YAHOO + EDGAR badge
+    if (screen === 'analysis' || screen === 'data') return { hide: true };   // these own their own header / need no live badge
     if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
     if (screen === 'market')
       return { live: true, label: 'LIVE · YAHOO', title: market?.asOf ? `Market snapshot · ${market.asOf}` : 'Live market snapshot, computed from Yahoo daily bars' };
@@ -157,6 +158,7 @@ export default function App() {
         )}
         {screen === 'market' && <Market snapshot={market} onNav={nav} onToast={toast} />}
         {screen === 'settings' && <Settings onToast={toast} />}
+        {screen === 'data' && <DataView onToast={toast} />}
         {screen === 'analysis' && (
           <Analysis stock={selectedStock} saved={!!selectedStock && shortlist.has(selectedStock.t)} onToggleStar={onToggleStar} onNav={nav} onToast={toast} />
         )}

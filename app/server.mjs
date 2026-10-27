@@ -9,6 +9,7 @@ import { join, normalize, extname } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as lab from './api/lab.mjs';
+import * as data from './api/data.mjs';
 import * as sources from './core/sources.mjs';
 import { userClient } from './lib/supabase.mjs';
 import { startScheduler } from './core/scheduler.mjs';
@@ -141,6 +142,21 @@ async function api(req, res, url) {
         }
         if (m === 'DELETE' && sub === 'strategies' && seg[3]) return json(res, await lab.deleteStrategy(sb, decodeURIComponent(seg[3])));
         if (m === 'DELETE' && sub === 'backtests' && seg[3]) return json(res, await lab.deleteBacktest(sb, decodeURIComponent(seg[3])));
+      } catch (e) {
+        return json(res, { error: String(e && e.message || e) }, 400);
+      }
+    }
+
+    // the database viewer — read-only, owner-scoped browse + export of the user's tables
+    if (seg[1] === 'data') {
+      const ctx = authCtx(req);
+      if (!ctx) return json(res, { error: 'unauthorized' }, 401);
+      const { sb } = ctx;
+      const sub = seg[2];
+      try {
+        if (m === 'GET' && sub === 'tables') return json(res, await data.tables(sb));
+        if (m === 'GET' && sub === 'rows' && seg[3]) return json(res, await data.rows(sb, decodeURIComponent(seg[3]), { page: url.searchParams.get('page'), size: url.searchParams.get('size') }));
+        if (m === 'GET' && sub === 'export' && seg[3]) return json(res, await data.exportTable(sb, decodeURIComponent(seg[3]), url.searchParams.get('format') || 'csv'));
       } catch (e) {
         return json(res, { error: String(e && e.message || e) }, 400);
       }

@@ -49,4 +49,9 @@ export const api = {
   labelsNow: () => j('/api/radar/labels', { method: 'POST' }),
   // A day's collected data (snapshots + market + facts + labels) as JSON, for offline model-building.
   exportData: (day) => j(`/api/radar/export${day ? `?day=${encodeURIComponent(day)}` : ''}`),
+
+  // ── Database viewer (read-only, owner-scoped browse + export) ──
+  dataTables: () => j('/api/data/tables'),
+  dataRows: (table, page, size) => j(`/api/data/rows/${encodeURIComponent(table)}?page=${page || 1}&size=${size || 50}`),
+  dataExport: (table, format) => j(`/api/data/export/${encodeURIComponent(table)}?format=${format || 'csv'}`),
 };

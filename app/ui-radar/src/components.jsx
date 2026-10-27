@@ -25,6 +25,7 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }
           ? <span className="demo" style={LIVE_BADGE} title={badge.title || ''}>● {badge.label}</span>
           : <span className="demo" title={badge?.title || ''}>● {badge?.label || 'DEMO DATA'}</span>)}
         <button className="iconbtn" aria-label="Search" onClick={onSearch}>⌕</button>
+        <button className="iconbtn" aria-label="Database" title="Database — browse &amp; export your data" onClick={() => onNav && onNav('data')}>▦</button>
         <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
         <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>
       </div>
@@ -33,7 +34,7 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }
 }
 
 // The mobile bottom nav (hidden above 700px by the CSS, exactly as the prototype).
-const NAV = [['screener', '⌕', 'Screener'], ['shortlist', '☆', 'Shortlist'], ['market', '◉', 'Market'], ['settings', '⚙', 'Settings']];
+const NAV = [['screener', '⌕', 'Screener'], ['shortlist', '☆', 'Shortlist'], ['market', '◉', 'Market'], ['data', '▦', 'Data'], ['settings', '⚙', 'Settings']];
 export function BottomNav({ screen, onNav }) {
   return (
     <nav className="bottomnav">
