@@ -176,9 +176,10 @@ grant select, insert, update, delete on public.lab_strategy, public.lab_strategy
 create table if not exists public.polygon_bars (
   owner_id uuid not null references public.profile(id) on delete cascade,
   ticker text not null, day text not null,
+  interval text not null default '1',               -- minute multiplier: 1 | 5 | 15
   bars jsonb not null default '[]', n int not null default 0,
   fetched_at timestamptz not null default now(),
-  primary key (owner_id, ticker, day)
+  primary key (owner_id, ticker, day, interval)
 );
 alter table public.polygon_bars enable row level security;
 create policy polygon_bars_own on public.polygon_bars for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));

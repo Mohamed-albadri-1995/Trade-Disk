@@ -14,7 +14,7 @@
 // signed-in user's RLS-scoped client `sb`. The engine (core/intradayBacktest.mjs) is
 // pure; this layer only moves data in and out of it.
 
-import { minuteBars, hasKey } from '../providers/polygon.mjs';
+import { bars as fetchBars, hasKey } from '../providers/polygon.mjs';
 import { run as runEngine } from '../core/intradayBacktest.mjs';
 import { validateStrategy } from '../core/lab/evaluate.mjs';
 
@@ -61,7 +61,7 @@ async function loadPairs(sb, screen, start, end) {
 
 // Load whatever bars are already cached for these pairs (a cached row — even empty —
 // counts as "known", so we never re-spend budget on a day that genuinely has no data).
-async function loadCache(sb, pairs) {
+async function loadCache(sb, pairs, interval) {
   const map = new Map();
   if (!pairs.length) return map;
   const want = new Set(pairs.map((p) => `${p.day}|${p.ticker}`));
@@ -71,7 +71,7 @@ async function loadCache(sb, pairs) {
     const batch = ticks.slice(i, i + 100);
     for (let from = 0; ; from += 1000) {
       const { data, error } = await sb.from('polygon_bars')
-        .select('ticker,day,bars').in('ticker', batch).in('day', days).range(from, from + 999);
+        .select('ticker,day,bars').eq('interval', interval).in('ticker', batch).in('day', days).range(from, from + 999);
       if (error) throw new Error('polygon_bars: ' + error.message);
       for (const r of (data || [])) { const k = `${r.day}|${r.ticker}`; if (want.has(k)) map.set(k, r.bars || []); }
       if (!data || data.length < 1000) break;
@@ -81,21 +81,21 @@ async function loadCache(sb, pairs) {
 }
 
 // Fetch up to FETCH_BUDGET missing stock-days from Polygon, cache each, stop on a 429.
-async function fillCache(sb, uid, pairs, cache, key) {
+async function fillCache(sb, uid, pairs, cache, key, mult, interval) {
   const need = pairs.filter((p) => !cache.has(`${p.day}|${p.ticker}`));
   let fetched = 0, rateLimited = false;
   for (const p of need) {
     if (fetched >= FETCH_BUDGET) break;
     let r;
-    try { r = await minuteBars(p.ticker, p.day, key); }
+    try { r = await fetchBars(p.ticker, p.day, key, mult); }
     catch { continue; }                               // bad ticker/day — skip, try the next
     if (r.rateLimited) { rateLimited = true; break; }
     fetched++;
-    const bars = r.bars || [];
-    cache.set(`${p.day}|${p.ticker}`, bars);
+    const got = r.bars || [];
+    cache.set(`${p.day}|${p.ticker}`, got);
     chk(await sb.from('polygon_bars').upsert(
-      { owner_id: uid, ticker: p.ticker, day: p.day, bars, n: bars.length, fetched_at: new Date().toISOString() },
-      { onConflict: 'owner_id,ticker,day' }));
+      { owner_id: uid, ticker: p.ticker, day: p.day, interval, bars: got, n: got.length, fetched_at: new Date().toISOString() },
+      { onConflict: 'owner_id,ticker,day,interval' }));
   }
   return { fetched, rateLimited, needed: need.length };
 }
@@ -115,10 +115,12 @@ export async function runIntraday(sb, uid, spec = {}) {
   const start = spec.start || cat.first_day;
   const end = spec.end || cat.last_day;
 
+  const interval = ['1', '5', '15'].includes(String(spec.interval)) ? String(spec.interval) : '1';
+  const mult = +interval;
   const all = await loadPairs(sb, screen, start, end);
   const pairs = all.slice(0, MAX_PAIRS);
-  const cache = await loadCache(sb, pairs);
-  const fill = await fillCache(sb, uid, pairs, cache, key);
+  const cache = await loadCache(sb, pairs, interval);
+  const fill = await fillCache(sb, uid, pairs, cache, key, mult, interval);
 
   const opts = { fill: spec.fill || 'next_open', costBps: Math.max(0, +spec.costBps || 0) };
   const { report, trades } = runEngine(pairs, cache, strategy, opts);
@@ -126,7 +128,7 @@ export async function runIntraday(sb, uid, spec = {}) {
   const cached = pairs.filter((p) => cache.has(`${p.day}|${p.ticker}`)).length;
   const missing = pairs.length - cached;
   report.fetch = {
-    universe: all.length, consideredThisRun: pairs.length, cached, missing,
+    universe: all.length, consideredThisRun: pairs.length, cached, missing, interval,
     fetchedThisRun: fill.fetched, rateLimited: fill.rateLimited,
     note: fill.rateLimited
       ? `Polygon's free limit (≈5/min) was hit — wait ~1 minute and run again to fetch the remaining ${missing}.`
@@ -136,14 +138,15 @@ export async function runIntraday(sb, uid, spec = {}) {
     ...(all.length > MAX_PAIRS ? { capped: `Universe capped at ${MAX_PAIRS} of ${all.length} stock-days per run — narrow the date range to cover the rest.` } : {}),
   };
 
+  const tf = interval === '1' ? '1m' : `${interval}m`;
   const id = 'id-' + Date.now().toString(36);
-  const name = `${cat.name} intraday · ${start}→${end}`;
+  const name = `${cat.name} · ${tf} · ${start}→${end}`;
   chk(await sb.from('lab_backtest').insert({
     owner_id: uid, id, name, status: 'done',
-    spec: { kind: 'intraday', screen, screenName: cat.name, start, end, fill: opts.fill, costBps: opts.costBps, strategy },
+    spec: { kind: 'intraday', screen, screenName: cat.name, start, end, interval, fill: opts.fill, costBps: opts.costBps, strategy },
     report, trades,
   }));
-  return { id, name, report, trades, spec: { kind: 'intraday', screen, start, end, fill: opts.fill, costBps: opts.costBps } };
+  return { id, name, report, trades, spec: { kind: 'intraday', screen, start, end, interval, fill: opts.fill, costBps: opts.costBps } };
 }
 
 export async function listIntraday(sb) {

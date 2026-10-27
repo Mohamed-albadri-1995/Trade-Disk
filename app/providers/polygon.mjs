@@ -5,18 +5,22 @@
 
 const BASE = 'https://api.polygon.io';
 
-// Minute bars for one ticker on one ET trading day ('YYYY-MM-DD').
-// → { bars:[{t(sec),o,h,l,c,v}] } | { rateLimited:true } | throws on other errors.
-export async function minuteBars(ticker, day, apiKey) {
+// Intraday bars for one ticker on one ET trading day ('YYYY-MM-DD'), at a minute
+// multiplier (1, 5, 15, …). → { bars:[{t(sec),o,h,l,c,v}] } | { rateLimited:true }
+// | throws on other errors.
+export async function bars(ticker, day, apiKey, mult = 1) {
   if (!apiKey) throw new Error('no Polygon API key configured');
-  const u = `${BASE}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/minute/${day}/${day}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
+  const m = Math.max(1, Math.floor(+mult || 1));
+  const u = `${BASE}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/${m}/minute/${day}/${day}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
   const res = await fetch(u);
   if (res.status === 429) return { rateLimited: true };
   if (!res.ok) throw new Error(`Polygon ${ticker} ${day}: HTTP ${res.status}`);
   const j = await res.json();
-  const bars = (j.results || []).map((b) => ({ t: Math.floor(b.t / 1000), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v }));
-  return { bars };
+  const out = (j.results || []).map((b) => ({ t: Math.floor(b.t / 1000), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v }));
+  return { bars: out };
 }
+// 1-minute convenience wrapper (unchanged call site shape).
+export const minuteBars = (ticker, day, apiKey) => bars(ticker, day, apiKey, 1);
 
 // Does a key look configured? (Does not call the network.)
 export const hasKey = (k) => typeof k === 'string' && k.length >= 12;

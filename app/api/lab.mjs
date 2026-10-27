@@ -120,6 +120,21 @@ async function resolveUniverse(sb, universe) {
     const rows = chk(await sb.from('radar_shortlist').select('ticker').order('added_at'));
     return rows.map((r) => r.ticker);
   }
+  if (universe?.kind === 'screener') {
+    const screen = String(universe.screen || '').trim();
+    if (!screen) throw new Error('pick a screen');
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      let q = sb.from('radar_history').select('ticker').eq('screen', screen);
+      if (universe.start) q = q.gte('day', universe.start);
+      if (universe.end) q = q.lte('day', universe.end);
+      const { data, error } = await q.range(from, from + 999);
+      if (error) throw new Error('radar_history: ' + error.message);
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return [...new Set(rows.map((r) => r.ticker))];   // distinct tickers the screen surfaced
+  }
   return (universe?.symbols || []).map((s) => String(s).trim().toUpperCase()).filter(Boolean);
 }
 
@@ -145,10 +160,11 @@ export async function runBacktestApi(sb, uid, spec) {
 }
 
 export async function listBacktests(sb) {
-  const rows = chk(await sb.from('lab_backtest').select('id,name,status,created_at,report').order('created_at', { ascending: false }).limit(50));
+  const rows = chk(await sb.from('lab_backtest').select('id,name,status,created_at,report,spec').order('created_at', { ascending: false }).limit(60));
   return rows.map((r) => ({
     id: r.id, name: r.name, status: r.status, created_at: r.created_at,
-    headline: r.report?.headline || null, money: r.report?.money || '%',
+    kind: r.spec?.kind || 'daily',                   // 'daily' | 'intraday' | 'screener-replay'
+    headline: r.report?.headline ?? null, money: r.report?.money || '%',
   }));
 }
 export async function getBacktest(sb, id) {
