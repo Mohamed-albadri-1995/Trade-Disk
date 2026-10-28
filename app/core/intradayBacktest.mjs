@@ -8,6 +8,7 @@
 // bars (already fetched/cached) plus the strategy; it returns trades + an honest report.
 
 import { simulate } from './lab/evaluate.mjs';
+import { qpPrims } from './lab/qpprims.mjs';
 
 const r2 = (x) => (Number.isFinite(x) ? Math.round(x * 100) / 100 : null);
 const r3 = (x) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
@@ -22,7 +23,7 @@ const clock = (min) => { if (min == null) return null; const t = 570 + min; retu
 
 // pairs: [{day, ticker, firstSeenMin}] ; barsByKey: Map('day|ticker' -> [{t,o,h,l,c,v}])
 // strategy: a Lab strategy doc ; opts: { fill, costBps }
-export function run(pairs, barsByKey, strategy, opts = {}) {
+export async function run(pairs, barsByKey, strategy, opts = {}) {
   const fill = opts.fill || 'desk', costBps = +opts.costBps || 0;
   const trades = [];
   const cov = { pairs: pairs.length, withBars: 0, noBars: 0, noSignal: 0 };
@@ -31,7 +32,9 @@ export function run(pairs, barsByKey, strategy, opts = {}) {
     if (!bars || bars.length < 5) { cov.noBars++; continue; }
     cov.withBars++;
     let sim;
-    try { sim = simulate(bars, strategy, { fill, costBps }); } catch { continue; }
+    // indicators from the REAL qp library (Python) on this day's minute bars — the
+    // same values the live algo trades; null → the JS library (bar-for-bar verified).
+    try { const prims = await qpPrims(bars, strategy); sim = simulate(bars, strategy, { fill, costBps, prims }); } catch { continue; }
     const fsm = p.firstSeenMin;
     // point-in-time: a stock is tradeable only from the minute it first appeared on the
     // screen that day, and only in the regular session (no pre-market / after-hours entries).

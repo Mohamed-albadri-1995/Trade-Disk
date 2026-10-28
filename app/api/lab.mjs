@@ -6,7 +6,8 @@
 
 import * as yahoo from '../providers/yahoo.mjs';
 import { catalogue, compute, LIB } from '../core/lab/library.mjs';
-import { simulate, validateStrategy, FILLS } from '../core/lab/evaluate.mjs';
+import { simulate, validateStrategy, FILLS, primKey } from '../core/lab/evaluate.mjs';
+import { qpPrims } from '../core/lab/qpprims.mjs';
 import { runBacktest } from '../core/lab/backtest.mjs';
 import { screenReplay } from '../core/replay.mjs';
 import { TEMPLATES } from '../core/lab/templates.mjs';
@@ -53,10 +54,17 @@ export async function preview(symbol, strategy, opts = {}) {
   const v = validateStrategy(strategy);
   if (!v.ok) return { error: v.errors.join('; '), validation: v };
   const { meta: m, bars } = await yahoo.chart(symbol, { range: RANGES[opts.range] || '1y', interval: '1d' });
-  const { trades, entrySig } = simulate(bars, strategy, { fill: opts.fill, costBps: +opts.costBps || 0 });
+  // One source of truth: the REAL qp library (Python) computes the indicators; the
+  // engine trades those exact series and the chart draws them (JS fallback if qp is
+  // down or doesn't cover a primitive), so the overlay you see IS what it traded.
+  const prims = await qpPrims(bars, strategy);
+  const { trades, entrySig } = simulate(bars, strategy, { fill: opts.fill, costBps: +opts.costBps || 0, prims });
   const overlays = {};
   for (const ov of indicatorsIn(strategy)) {
-    try { overlays[ov.key] = compute(bars, ov).map((x) => (Number.isFinite(x) ? +x.toFixed(4) : null)); } catch { /* skip */ }
+    try {
+      const vals = prims && prims.get(primKey({ name: ov.name, source: ov.source, params: ov.params, sub: ov.sub }));
+      overlays[ov.key] = (vals || compute(bars, ov)).map((x) => (Number.isFinite(x) ? +x.toFixed(4) : null));
+    } catch { /* skip */ }
   }
   return {
     symbol: symbol.toUpperCase(), name: m.shortName || m.longName || symbol.toUpperCase(),
@@ -76,7 +84,7 @@ function indicatorsIn(strat) {
     if (op.kind === 'expr') { collect(op.left, m); collect(op.right, m); }
   };
   walk(strat.entry); walk(strat.exit);
-  if (strat.risk?.sl?.type === 'prim') out.set('sl', { key: 'sl', name: strat.risk.sl.anchor, sub: strat.risk.sl.sub, params: strat.risk.sl.params });
+  if (strat.risk?.sl?.type === 'prim') out.set('sl', { key: 'sl', name: strat.risk.sl.anchor, sub: strat.risk.sl.sub, source: strat.risk.sl.source, params: strat.risk.sl.params });
   return [...out.values()];
 }
 

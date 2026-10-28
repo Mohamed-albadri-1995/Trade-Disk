@@ -123,7 +123,7 @@ export async function runIntraday(sb, uid, spec = {}) {
   const fill = await fillCache(sb, uid, pairs, cache, key, mult, interval);
 
   const opts = { fill: spec.fill || 'next_open', costBps: Math.max(0, +spec.costBps || 0) };
-  const { report, trades } = runEngine(pairs, cache, strategy, opts);
+  const { report, trades } = await runEngine(pairs, cache, strategy, opts);
 
   const cached = pairs.filter((p) => cache.has(`${p.day}|${p.ticker}`)).length;
   const missing = pairs.length - cached;

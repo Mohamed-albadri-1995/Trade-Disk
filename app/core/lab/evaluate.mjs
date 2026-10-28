@@ -15,21 +15,57 @@ import { compute, source, resolve, SOURCES } from './library.mjs';
 const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
 const NA = NaN;
 
+// ===== primitive resolution: qp-first, JS-library fallback ==================
+// A strategy names primitives (ema, atr, vwap, …). The ONE source of truth for
+// their values is the qp library the live algo imports (the Python qp-compute
+// service). The backtest/preview precomputes those series server-side and hands
+// them in via opts.prims, keyed by primKey; the engine reads them here. When a
+// primitive is not in that map — qp not configured, a primitive qp doesn't cover,
+// or an all-NaN series such as session VWAP on daily bars — the engine falls back
+// to the local JS library (library.mjs), which is bar-for-bar verified against the
+// same qp primitives, so a value always exists and nothing silently breaks.
+export function primKey(spec) {
+  return JSON.stringify({ name: spec.name, source: spec.source || 'close', params: spec.params || {}, sub: spec.sub || null });
+}
+function primSeries(bars, spec, opts) {
+  const prims = opts && opts.prims;
+  if (prims) { const hit = prims.get(primKey(spec)); if (hit) return hit; }
+  return compute(bars, spec);
+}
+// Every distinct primitive a strategy will ask for: the operands in its entry/exit
+// groups, its primitive stop anchor, and the ATR(14) the level maths always needs.
+// qpprims.mjs computes these through qp-compute; primKey ties each result back to
+// the exact operand the engine resolves, so the lookup never misses on normalising.
+export function collectPrimitives(strat) {
+  const out = new Map();
+  const add = (spec) => { if (spec && spec.name) out.set(primKey(spec), { name: spec.name, source: spec.source || 'close', params: spec.params || {}, sub: spec.sub || null }); };
+  const walkOp = (op) => {
+    if (!op) return;
+    if (op.kind === 'primitive') add({ name: op.name, source: op.source, params: op.params, sub: op.sub });
+    else if (op.kind === 'expr') { walkOp(op.left); walkOp(op.right); }
+  };
+  const walkGroup = (g) => { for (const r of (g && g.rules) || []) { if (r.logic) walkGroup(r); else { walkOp(r.left); walkOp(r.right); } } };
+  walkGroup(strat && strat.entry); walkGroup(strat && strat.exit);
+  if (strat && strat.risk && strat.risk.sl && strat.risk.sl.type === 'prim') add({ name: strat.risk.sl.anchor, source: strat.risk.sl.source, params: strat.risk.sl.params, sub: strat.risk.sl.sub });
+  add({ name: 'atr', params: { length: 14 } });   // level maths (ATR stops/targets) always needs ATR(14)
+  return [...out.values()];
+}
+
 // ===== operands: a value series aligned to the bars ========================
 // kinds: primitive | price | const | expr | trade (exit-only). Modifiers on any
 // operand: hold (carry last real value forward, Pine's fixnan), offset (n bars
 // ago), applied hold-then-offset. `trade` operands resolve from the open
 // position during the exit walk; with no open trade they are all-NaN (rule false).
-function operandSeries(bars, op, trade, cache) {
+function operandSeries(bars, op, trade, cache, opts) {
   const key = JSON.stringify(op);
   if (op.kind !== 'trade' && cache.has(key)) return cache.get(key);
   let s;
   switch (op.kind) {
     case 'const': s = bars.map(() => +op.value); break;
     case 'price': s = source(bars, SOURCES.includes(op.source) ? op.source : 'close'); break;
-    case 'primitive': s = compute(bars, { name: op.name, source: op.source, params: op.params, sub: op.sub }); break;
+    case 'primitive': s = primSeries(bars, { name: op.name, source: op.source, params: op.params, sub: op.sub }, opts); break;
     case 'expr': {
-      const a = operandSeries(bars, op.left, trade, cache), b = operandSeries(bars, op.right, trade, cache);
+      const a = operandSeries(bars, op.left, trade, cache, opts), b = operandSeries(bars, op.right, trade, cache, opts);
       s = a.map((x, i) => {
         const y = b[i];
         if (!isNum(x) || !isNum(y)) return NA;
@@ -51,9 +87,9 @@ function operandSeries(bars, op, trade, cache) {
 }
 
 // ===== operators: two value series → a boolean series ======================
-function ruleRaw(bars, rule, trade, cache) {
-  const L = operandSeries(bars, rule.left, trade, cache);
-  const R = rule.right ? operandSeries(bars, rule.right, trade, cache) : null;
+function ruleRaw(bars, rule, trade, cache, opts) {
+  const L = operandSeries(bars, rule.left, trade, cache, opts);
+  const R = rule.right ? operandSeries(bars, rule.right, trade, cache, opts) : null;
   const n = bars.length, out = new Array(n).fill(false);
   const pct = rule.pct != null ? +rule.pct : 0;
   const tol = rule.tol_pct != null ? +rule.tol_pct : 0.15;
@@ -126,8 +162,8 @@ function applyTiming(raw, rule) {
 }
 
 // ===== groups: AND / OR / ATLEAST(k) / THEN(window) ========================
-function groupBool(bars, group, trade, cache) {
-  const parts = (group.rules || []).map((r) => (r.logic ? groupBool(bars, r, trade, cache) : applyTiming(ruleRaw(bars, r, trade, cache), r)));
+function groupBool(bars, group, trade, cache, opts) {
+  const parts = (group.rules || []).map((r) => (r.logic ? groupBool(bars, r, trade, cache, opts) : applyTiming(ruleRaw(bars, r, trade, cache, opts), r)));
   const n = bars.length, out = new Array(n).fill(false);
   if (parts.length === 0) return out;
   const logic = group.logic || 'AND';
@@ -176,8 +212,8 @@ export function simulate(bars, strat, opts = {}) {
   const dir = dirOf(strat);
   const risk = strat.risk || {};
   const cache = new Map();
-  const entrySig = groupBool(bars, strat.entry || { logic: 'AND', rules: [] }, null, cache);
-  const atr14 = compute(bars, { name: 'atr', params: { length: 14 } });
+  const entrySig = groupBool(bars, strat.entry || { logic: 'AND', rules: [] }, null, cache, opts);
+  const atr14 = primSeries(bars, { name: 'atr', params: { length: 14 } }, opts);
   const hasExit = strat.exit && (strat.exit.rules || []).length > 0;
   const entryMode = risk.entry_mode || 'edge';
   const n = bars.length;
@@ -200,7 +236,7 @@ export function simulate(bars, strat, opts = {}) {
     if (risk.sl) {
       if (risk.sl.type === 'prim') {
         stopIsPrim = true; primAnchor = risk.sl;
-        const ser = compute(bars, { name: risk.sl.anchor, source: risk.sl.source, params: risk.sl.params, sub: risk.sl.sub });
+        const ser = primSeries(bars, { name: risk.sl.anchor, source: risk.sl.source, params: risk.sl.params, sub: risk.sl.sub }, opts);
         const base = isNum(ser[i]) ? ser[i] : levelRef;
         stopPrice = base; stopFrozen = risk.sl.freeze ? base : null;
       } else {
@@ -242,7 +278,7 @@ export function simulate(bars, strat, opts = {}) {
       const ec = new Map();
       const entryArr = new Array(n).fill(NA), heldArr = new Array(n).fill(NA), pnlArr = new Array(n).fill(NA);
       for (let j = entryBar; j < n; j++) { entryArr[j] = entryFill; heldArr[j] = j - entryBar; pnlArr[j] = isNum(bars[j].c) ? (bars[j].c - entryFill) / entryFill * 100 * dir : NA; }
-      exitBool = groupBool(bars, strat.exit, { entry: entryArr, bars_held: heldArr, pnl_pct: pnlArr }, ec);
+      exitBool = groupBool(bars, strat.exit, { entry: entryArr, bars_held: heldArr, pnl_pct: pnlArr }, ec, opts);
     }
 
     // ---- walk the position forward ----
@@ -251,7 +287,7 @@ export function simulate(bars, strat, opts = {}) {
     for (let j = entryBar; j < n; j++) {
       const b = bars[j];
       if (stopIsPrim && !stopFrozen) {              // trailing primitive stop, protective-only
-        const ser = compute(bars, { name: primAnchor.anchor, source: primAnchor.source, params: primAnchor.params, sub: primAnchor.sub });
+        const ser = primSeries(bars, { name: primAnchor.anchor, source: primAnchor.source, params: primAnchor.params, sub: primAnchor.sub }, opts);
         if (isNum(ser[j])) movedStop = dir > 0 ? Math.max(movedStop, ser[j]) : Math.min(movedStop, ser[j]);
       }
       const sp = stopIsPrim ? (stopFrozen != null ? stopFrozen : movedStop) : stopPrice;

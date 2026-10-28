@@ -8,6 +8,7 @@
 
 import * as yahoo from '../../providers/yahoo.mjs';
 import { simulate } from './evaluate.mjs';
+import { qpPrims } from './qpprims.mjs';
 import { report } from './report.mjs';
 
 const toUnix = (d) => Math.floor(new Date(d + 'T00:00:00Z').getTime() / 1000);
@@ -48,8 +49,10 @@ export async function runBacktest(spec, deps = {}) {
       const usable = bars.filter((b) => b.t <= end);
       if (usable.length < 60) return;                            // need warm-up + range
       let trades;
-      try { ({ trades } = simulate(usable, spec.strategy, { fill: spec.fill, costBps: spec.costBps })); }
-      catch { return; }
+      try {
+        const prims = await qpPrims(usable, spec.strategy);      // the REAL qp library (Python); null → JS fallback
+        ({ trades } = simulate(usable, spec.strategy, { fill: spec.fill, costBps: spec.costBps, prims }));
+      } catch { return; }
       const inRange = trades.filter((t) => t.entry_ts >= start && t.entry_ts < end).map((t) => ({ ...t, symbol: sym }));
       coverage.perSymbol[sym] = inRange.length;
       all.push(...inRange);
