@@ -56,6 +56,9 @@ export const api = {
   dataExport: (table, format) => j(`/api/data/export/${encodeURIComponent(table)}?format=${format || 'csv'}`),
 
   // ── Registers (a screener's picks by day, charted on that exact day) ──
+  // the real qp library (Python qp-compute, via the token-guarded proxy)
+  primitives: () => j('/api/lab/primitives'),
+  compute: (bars, overlays) => j('/api/lab/compute', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ bars, overlays }) }),
   registerScreens: () => j('/api/radar/register-screens'),
   registerDays: (screen) => j(`/api/radar/register-days?screen=${encodeURIComponent(screen)}`),
   registerDay: (screen, day) => j(`/api/radar/register-day?screen=${encodeURIComponent(screen)}&day=${encodeURIComponent(day)}`),
