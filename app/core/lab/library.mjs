@@ -243,6 +243,46 @@ function relVolume(bars, length) {
   return out;
 }
 
+// Session VWAP — RTH only (09:30–16:00 ET), source HLC/3, resets each ET day.
+// A faithful port of the qp `vwap.session` primitive (matches TradingView's VWAP
+// on an RTH chart). On daily+ frames each bar is its own session → value = HLC3.
+const _etHM = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' });
+const _etDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+function etParts(tSec) {
+  const d = new Date(tSec * 1000);
+  let [h, m] = _etHM.format(d).split(':').map(Number);
+  if (h === 24) h = 0;                               // some engines format midnight as 24:00
+  return { h, m, day: _etDay.format(d) };
+}
+const inRth = (h, m) => (h > 9 || (h === 9 && m >= 30)) && h < 16;
+function isDailyBars(bars) {
+  if (bars.length < 3) return false;
+  const d = [];
+  for (let i = 1; i < bars.length; i++) d.push(bars[i].t - bars[i - 1].t);
+  d.sort((a, b) => a - b);
+  return d[d.length >> 1] >= 12 * 3600;              // median spacing ≥ 12h → daily+
+}
+function sessionVwap(bars) {
+  const out = fill(bars.length);
+  if (!bars.length) return out;
+  if (isDailyBars(bars)) {
+    for (let i = 0; i < bars.length; i++) { const b = bars[i]; if (isNum(b.h) && isNum(b.l) && isNum(b.c)) out[i] = (b.h + b.l + b.c) / 3; }
+    return out;
+  }
+  let cumPv = 0, cumV = 0, lastDay = null;
+  for (let i = 0; i < bars.length; i++) {
+    const b = bars[i];
+    if (!isNum(b.h) || !isNum(b.l) || !isNum(b.c) || !isNum(b.v)) continue;
+    const { h, m, day } = etParts(b.t);
+    if (!inRth(h, m)) continue;                      // skip pre/after-hours
+    if (day !== lastDay) { cumPv = 0; cumV = 0; lastDay = day; }  // reset at the session
+    const price = (b.h + b.l + b.c) / 3;
+    cumPv += price * b.v; cumV += b.v;
+    if (cumV > 0) out[i] = cumPv / cumV;
+  }
+  return out;
+}
+
 // ---- the registry: short name → definition --------------------------------
 // `inputs: 'source'` → the fn gets (array, params); `'bars'` → (frame, params).
 // `lines` lists a multi-line primitive's outputs (picked with operand `sub`).
@@ -259,6 +299,9 @@ export const LIB = {
 
   // oscillator
   rsi: { group: 'osc', inputs: 'source', params: [P('length', 'int', 14, { min: 2 })], fn: (s, p) => rsi(s, p.length), desc: 'Relative Strength Index (Wilder).' },
+
+  // session VWAP (intraday RTH; HLC3; resets 09:30 ET) — matches qp vwap.session
+  vwap: { group: 'vwap', inputs: 'bars', params: [], fn: (b) => sessionVwap(b), desc: 'Session VWAP — RTH only, HLC3, resets 09:30 ET (matches TradingView VWAP).' },
 
   // volatility
   true_range: { group: 'volatility', inputs: 'bars', params: [], fn: (b) => trueRange(b), desc: 'True range.' },

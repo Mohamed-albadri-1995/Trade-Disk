@@ -1,24 +1,53 @@
-// Trade-Disk — qp Register browser (the design's §3.6). Open it, pick a screener, pick
-// a day → the stocks that screener surfaced that day, as cards. Click a card and the qp
-// chart loads that stock on that exact day (intraday from Polygon, or daily), with
-// indicators you add/remove and a timeframe switch. Our own chart + indicator math — no
-// third-party library. Reads the recorded daily record via /api/radar/register-*.
+// Trade-Disk — qp Register browser (design/05-qp/CHART.md §3.6). Open it, pick a
+// screener, pick a day → the stocks that screener surfaced that day, as cards. Click a
+// card and the qp chart loads that stock on that exact day (intraday from Polygon, or
+// daily), with indicators you add/remove and a timeframe switch. The indicators are the
+// REAL qp library (core/lab/library.mjs — the same verified primitives the backtest and
+// strategy chart use), computed bar-for-bar — no ad-hoc math, no third-party library.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import QpChart from './qpchart.jsx';
+import { compute } from '../../core/lab/library.mjs';
 
 const COLORS = ['--cyan', '--yellow', '--purple', '--orange', '--green', '--blue'];
 const TFS = [['D', 'Daily'], ['1', '1m'], ['5', '5m'], ['15', '15m']];
-const IND_TYPES = [['ema', 'EMA'], ['sma', 'SMA'], ['vwap', 'VWAP'], ['boll', 'Bollinger'], ['rsi', 'RSI']];
-const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
+// the pickable indicators map to real qp-library primitives; `pane` = oscillator pane,
+// `multi` = a 3-line primitive (Bollinger), `noPer` = no length param.
+const IND_TYPES = [
+  { name: 'vwap', label: 'VWAP (session)', noPer: true },
+  { name: 'ema', label: 'EMA', per: 20 },
+  { name: 'sma', label: 'SMA', per: 20 },
+  { name: 'wma', label: 'WMA', per: 20 },
+  { name: 'hma', label: 'HMA', per: 20 },
+  { name: 'vwma', label: 'VWMA', per: 20 },
+  { name: 'bb', label: 'Bollinger', per: 20, multi: true },
+  { name: 'rsi', label: 'RSI', per: 14, pane: true },
+  { name: 'atr', label: 'ATR', per: 14, pane: true },
+  { name: 'rel_volume', label: 'RVOL', per: 20, pane: true },
+  { name: 'slope', label: 'Slope', per: 20, pane: true },
+];
+const BY = Object.fromEntries(IND_TYPES.map((t) => [t.name, t]));
+const indLabel = (i) => `${(BY[i.name]?.label || i.name).replace(' (session)', '')}${i.period ? ' ' + i.period : ''}`;
 
-// indicator math (the qp primitives, on the loaded bars)
-function emaSeries(v, p) { if (!v.length) return []; const k = 2 / (p + 1), o = [v[0]]; for (let i = 1; i < v.length; i++) o.push(v[i] * k + o[i - 1] * (1 - k)); return o; }
-function smaSeries(v, n) { const o = new Array(v.length).fill(null); let s = 0; for (let i = 0; i < v.length; i++) { s += v[i]; if (i >= n) s -= v[i - n]; if (i >= n - 1) o[i] = s / n; } return o; }
-function vwapSeries(bars) { const o = []; let pv = 0, vv = 0; for (const b of bars) { const tp = (b.h + b.l + b.c) / 3, v = b.v || 0; pv += tp * v; vv += v; o.push(vv ? pv / vv : b.c); } return o; }
-function bollSeries(v, n, k) { const mid = smaSeries(v, n), up = new Array(v.length).fill(null), lo = new Array(v.length).fill(null); for (let i = n - 1; i < v.length; i++) { let s = 0; for (let j = i - n + 1; j <= i; j++) s += (v[j] - mid[i]) ** 2; const sd = Math.sqrt(s / n); up[i] = mid[i] + k * sd; lo[i] = mid[i] - k * sd; } return { mid, up, lo }; }
-function rsiSeries(v, n) { const o = new Array(v.length).fill(null); if (v.length <= n) return o; let ag = 0, al = 0; for (let i = 1; i <= n; i++) { const d = v[i] - v[i - 1]; if (d >= 0) ag += d; else al -= d; } ag /= n; al /= n; o[n] = 100 - 100 / (1 + (al === 0 ? 100 : ag / al)); for (let i = n + 1; i < v.length; i++) { const d = v[i] - v[i - 1]; ag = (ag * (n - 1) + Math.max(d, 0)) / n; al = (al * (n - 1) + Math.max(-d, 0)) / n; o[i] = 100 - 100 / (1 + (al === 0 ? 100 : ag / al)); } return o; }
-const indLabel = (i) => `${i.type.toUpperCase()}${i.period ? ' ' + i.period : ''}`;
+function buildOverlays(bars, inds) {
+  const price = [], osc = [];
+  for (const ind of inds) {
+    const meta = BY[ind.name] || {};
+    const params = ind.period ? { length: ind.period } : {};
+    try {
+      if (meta.multi) {
+        const mid = compute(bars, { name: ind.name, sub: 'middle', params });
+        const up = compute(bars, { name: ind.name, sub: 'upper', params });
+        const lo = compute(bars, { name: ind.name, sub: 'lower', params });
+        price.push({ color: ind.color, series: mid }, { color: ind.color, dashed: true, series: up }, { color: ind.color, dashed: true, series: lo });
+      } else {
+        const series = compute(bars, { name: ind.name, params });
+        (meta.pane ? osc : price).push({ color: ind.color, series });
+      }
+    } catch { /* skip a primitive that can't compute on this bar set */ }
+  }
+  return { priceOverlays: price, oscOverlays: osc };
+}
 
 export default function Register() {
   const [screens, setScreens] = useState(null);
@@ -28,8 +57,8 @@ export default function Register() {
   const [pick, setPick] = useState(null);                 // { ticker, name, day }
   const [tf, setTf] = useState('1');
   const [bars, setBars] = useState([]); const [loading, setLoading] = useState(false); const [msg, setMsg] = useState(null);
-  const [inds, setInds] = useState([{ id: 1, type: 'vwap', color: '--cyan' }, { id: 2, type: 'ema', period: 9, color: '--yellow' }, { id: 3, type: 'ema', period: 20, color: '--purple' }]);
-  const [addType, setAddType] = useState('ema'); const [addPer, setAddPer] = useState(20);
+  const [inds, setInds] = useState([{ id: 1, name: 'vwap', color: '--cyan' }, { id: 2, name: 'ema', period: 9, color: '--yellow' }, { id: 3, name: 'ema', period: 20, color: '--purple' }]);
+  const [addName, setAddName] = useState('ema'); const [addPer, setAddPer] = useState(20);
   const [err, setErr] = useState(null);
   const nextId = useRef(4);
 
@@ -43,9 +72,7 @@ export default function Register() {
     setDay(dy); setPick(null); setErr(null);
     try { const r = await api.registerDay(scr, dy); setRows(r || []); } catch (e) { setErr(String(e.message || e)); setRows([]); }
   }
-  function pickCard(r) { setPick({ ticker: r.ticker, name: r.name, day }); }
 
-  // load bars whenever the pick or timeframe changes
   useEffect(() => {
     if (!pick) { setBars([]); return; }
     let on = true;
@@ -59,24 +86,14 @@ export default function Register() {
     return () => { on = false; };
   }, [pick, tf]);
 
-  const addInd = () => { const needsPer = addType !== 'vwap'; setInds((x) => [...x, { id: nextId.current++, type: addType, ...(needsPer ? { period: Math.max(1, +addPer || 14) } : {}), color: COLORS[x.length % COLORS.length] }]); };
+  const addInd = () => { const meta = BY[addName] || {}; setInds((x) => [...x, { id: nextId.current++, name: addName, ...(meta.noPer ? {} : { period: Math.max(1, +addPer || meta.per || 20) }), color: COLORS[x.length % COLORS.length] }]); };
   const delInd = (id) => setInds((x) => x.filter((i) => i.id !== id));
-
-  const { priceOverlays, oscOverlays } = useMemo(() => {
-    const closes = bars.map((b) => b.c); const price = [], osc = [];
-    for (const ind of inds) {
-      if (ind.type === 'ema') price.push({ color: ind.color, series: emaSeries(closes, ind.period || 20) });
-      else if (ind.type === 'sma') price.push({ color: ind.color, series: smaSeries(closes, ind.period || 20) });
-      else if (ind.type === 'vwap') price.push({ color: ind.color, series: vwapSeries(bars) });
-      else if (ind.type === 'boll') { const b = bollSeries(closes, ind.period || 20, 2); price.push({ color: ind.color, series: b.mid }, { color: ind.color, dashed: true, series: b.up }, { color: ind.color, dashed: true, series: b.lo }); }
-      else if (ind.type === 'rsi') osc.push({ color: ind.color, series: rsiSeries(closes, ind.period || 14) });
-    }
-    return { priceOverlays: price, oscOverlays: osc };
-  }, [bars, inds]);
+  const { priceOverlays, oscOverlays } = useMemo(() => buildOverlays(bars, inds), [bars, inds]);
 
   if (!screens) return <div className="muted pad">{err ? <span className="err">⚠ {err}</span> : 'Loading registers…'}</div>;
   if (!screens.length) return <div className="muted pad">No screeners with recorded history yet.</div>;
   const curDay = days.find((d) => d.day === day);
+  const addMeta = BY[addName] || {};
 
   return (
     <div className="reg">
@@ -99,7 +116,7 @@ export default function Register() {
       {rows && (rows.length ? (
         <div className="reg-grid">
           {rows.map((r) => (
-            <button key={r.ticker} className={'reg-card' + (pick?.ticker === r.ticker ? ' on' : '')} onClick={() => pickCard(r)}>
+            <button key={r.ticker} className={'reg-card' + (pick?.ticker === r.ticker ? ' on' : '')} onClick={() => setPick({ ticker: r.ticker, name: r.name, day })}>
               <span className="reg-tk">{r.ticker}</span>
               {r.name ? <span className="reg-nm muted">{r.name}</span> : null}
               <span className="reg-seen muted">seen {r.firstSeen || '—'}</span>
@@ -117,15 +134,15 @@ export default function Register() {
           <div className="reg-indbar">
             {inds.map((i) => <span key={i.id} className="reg-chip" style={{ borderColor: `var(${i.color})` }}><i style={{ background: `var(${i.color})` }} />{indLabel(i)}<button onClick={() => delInd(i.id)} aria-label={`Remove ${indLabel(i)}`}>✕</button></span>)}
             <span className="reg-add">
-              <select value={addType} onChange={(e) => setAddType(e.target.value)}>{IND_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-              {addType !== 'vwap' && <input type="number" min="1" value={addPer} onChange={(e) => setAddPer(e.target.value)} aria-label="Indicator period" />}
+              <select value={addName} onChange={(e) => setAddName(e.target.value)}>{IND_TYPES.map((t) => <option key={t.name} value={t.name}>{t.label}</option>)}</select>
+              {!addMeta.noPer && <input type="number" min="1" value={addPer} onChange={(e) => setAddPer(e.target.value)} aria-label="Indicator length" />}
               <button onClick={addInd}>+ Add</button>
             </span>
           </div>
           {bars.length ? <QpChart bars={bars} priceOverlays={priceOverlays} oscOverlays={oscOverlays} height={430} intraday={tf !== 'D'} />
             : <div className="reg-chart-empty muted">{loading ? 'Loading…' : (msg || 'No data.')}</div>}
           <div className="muted small reg-foot">
-            {loading ? `Loading ${tf === 'D' ? 'daily' : tf + 'm'} bars…` : msg ? msg : `${tf === 'D' ? 'Daily candles · Yahoo' : `${tf}-minute candles for ${pick.day} · Polygon`} · ${bars.length} bars · drag to pan, scroll to zoom`}
+            {loading ? `Loading ${tf === 'D' ? 'daily' : tf + 'm'} bars…` : msg ? msg : `${tf === 'D' ? 'Daily candles · Yahoo' : `${tf}-minute candles for ${pick.day} · Polygon`} · ${bars.length} bars · indicators: qp library · drag to pan, scroll to zoom`}
           </div>
         </div>
       )}
