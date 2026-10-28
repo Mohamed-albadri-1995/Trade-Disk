@@ -323,7 +323,10 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .reg-card{display:grid;gap:3px;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:linear-gradient(110deg,#0a1d2d,#071624)}
 .reg-card:hover{border-color:var(--cyan)}
 .reg-card.on{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
-.reg-tk{font-size:16px;font-weight:800;letter-spacing:.2px}
+/* the card is always dark navy (both themes), so its text is always light — otherwise
+   the ticker inherits the page's dark text in light mode and vanishes on the card. */
+.reg-tk{font-size:16px;font-weight:800;letter-spacing:.2px;color:#eaf3ff}
+.reg-card .muted{color:#9fb6c9}
 .reg-nm{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reg-seen{font-size:10px}
 .reg-chartwrap{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:var(--radius);padding:12px;background:var(--surface);box-shadow:var(--shadow)}
