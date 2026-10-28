@@ -37,6 +37,9 @@ export const api = {
   intradayScreens: () => j('/api/intraday/screens'),
   runIntraday: (spec) => post('/api/intraday/run', spec),
   intradayRuns: () => j('/api/intraday/runs'),
+  // the real qp library (Python qp-compute service, via our token-guarded proxy)
+  primitives: () => j('/api/lab/primitives'),
+  compute: (bars, overlays) => post('/api/lab/compute', { bars, overlays }),
   // register browser (a screener's picks by day) + bars for the qp chart
   registerScreens: () => j('/api/radar/register-screens'),
   registerDays: (screen) => j(`/api/radar/register-days?screen=${encodeURIComponent(screen)}`),

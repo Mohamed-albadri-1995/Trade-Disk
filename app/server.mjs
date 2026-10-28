@@ -9,6 +9,7 @@ import { join, normalize, extname } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as lab from './api/lab.mjs';
+import * as qpc from './api/qpcompute.mjs';
 import * as data from './api/data.mjs';
 import * as intraday from './api/intraday.mjs';
 import * as registers from './api/registers.mjs';
@@ -136,12 +137,14 @@ async function api(req, res, url) {
         if (sub === 'backtests') return json(res, await lab.listBacktests(sb));
         if (sub === 'replay-screens') return json(res, await lab.replayScreens(sb));
         if (sub === 'replays') return json(res, await lab.listReplays(sb));
+        if (sub === 'primitives') return json(res, await qpc.primitives());   // the real qp library catalog
       }
       try {
         if (m === 'POST') {
           const body = await readBody(req);
           if (sub === 'strategies') return json(res, await lab.saveStrategy(sb, uid, body), 201);
           if (sub === 'chart') return json(res, await lab.chartData(body.symbol, body.range, body.overlays));
+          if (sub === 'compute') return json(res, await qpc.compute(body.bars, body.overlays));   // qp library on provided bars
           if (sub === 'preview') return json(res, await lab.preview(body.symbol, body.strategy, body.opts || {}));
           if (sub === 'backtest') return json(res, await lab.runBacktestApi(sb, uid, body), 201);
           if (sub === 'replay') return json(res, await lab.runReplay(sb, uid, body), 201);
