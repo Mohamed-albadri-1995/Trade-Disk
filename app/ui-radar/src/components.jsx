@@ -95,8 +95,8 @@ export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 
           <span>RVOL <b>{s.r.toFixed(1)}×</b></span>
           <span>ADR <b>{s.adr.toFixed(1)}%</b></span>
           {variant === 'shortlist'
-            ? (<><span>Score <b>{s.s}</b></span><span>{s.sec}</span></>)
-            : (<><span>PM/ADR <b>{pmAdr(s).toFixed(2)}×</b></span><span>Sector <b>{s.sec}</b></span></>)}
+            ? (<><span>Activity <b>{s.s}</b></span><span>{s.sec}</span></>)
+            : (<><span>PM/ADR <b>{(s.pm || 0).toFixed(2)}×</b></span><span>Sector <b>{s.sec}</b></span></>)}
         </div>
         {variant !== 'shortlist' && (
           <div className="indicatorline">
@@ -105,7 +105,7 @@ export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 
           </div>
         )}
       </div>
-      <div className={`scorebox ${s.s < 70 ? 'mid' : ''}`}>{s.s}</div>
+      <div className={`scorebox ${s.s < 70 ? 'mid' : ''}`} title="Activity = % change + relative volume. A transparent heuristic for ranking movers — not a prediction or a trained model.">{s.s}</div>
     </article>
   );
 }
@@ -141,7 +141,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
         {loading ? 'Scanning the market…' : '▶ Run screener'}
       </button>
       <div className="field">
-        <div className="rangehead"><label htmlFor="score">Min Model Score</label><strong id="scoreVal">{filters.score}</strong></div>
+        <div className="rangehead"><label htmlFor="score" title="Activity = % change + relative volume. A transparent heuristic, not a trained model.">Min Activity</label><strong id="scoreVal">{filters.score}</strong></div>
         <input className="range" id="score" type="range" min="40" max="95" value={filters.score} onChange={(e) => set({ score: +e.target.value })} />
       </div>
       <div className="field">
@@ -174,7 +174,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
         ))}
       </div>
       <button className="primary" onClick={onApply}>Apply Filters</button>
-      <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Score &amp; tags illustrative</span></div>
+      <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Activity = %chg + RVOL · a heuristic, not a model</span></div>
       <div className="saved">
         <div className="panel-title"><h3>Quick screeners</h3><button className="linkbtn" onClick={() => onToast('Build and save custom screeners in Settings.')}>＋</button></div>
         <div className="savedrow"><span>Trend Leaders</span><button onClick={() => onLoadSaved('trend-leaders')}>↗</button></div>

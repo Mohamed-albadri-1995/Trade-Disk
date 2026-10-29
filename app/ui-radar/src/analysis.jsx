@@ -115,7 +115,7 @@ function Hero({ s, a, saved, onToggleStar, onNav, onToast, setTab }) {
                 .then(() => onToast(`Copied ${s.t} summary to clipboard`))
                 .catch(() => onToast('Clipboard not available in this browser'));
             }}>⇧</button>
-            <div className="hero-score"><strong id="heroScore">{s.s}</strong><span>/ 100 · Model score</span></div>
+            <div className="hero-score" title="Activity = % change + relative volume. A transparent heuristic, not a prediction or trained model."><strong id="heroScore">{s.s}</strong><span>/ 100 · Activity</span></div>
           </div>
           {a?.overview?.market ? <HeroMarket mkt={a.overview.market} onNav={onNav} /> : null}
         </div>

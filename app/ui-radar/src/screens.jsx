@@ -37,7 +37,7 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, scr
                 {loading ? 'Scanning…' : '↻ Run scan'}
               </button>
               <select id="sort" className="sort" value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="score">Sort: Score ↓</option>
+                <option value="score">Sort: Activity ↓</option>
                 <option value="change">Sort: Change ↓</option>
                 <option value="ticker">Sort: Ticker A–Z</option>
               </select>
