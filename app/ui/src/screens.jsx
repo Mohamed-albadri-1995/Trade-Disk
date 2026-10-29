@@ -12,6 +12,19 @@ const CONNECTORS = [
 
 const Filters = ({ ctx }) => <FilterBar filters={ctx.filters} accounts={ctx.data.accounts} setups={ctx.data.setups} onChange={ctx.setFilters} />;
 
+// Export the currently-shown trades as a CSV the user can keep or re-import.
+const CSV_COLS = ['id', 'date', 'symbol', 'side', 'assetType', 'setup', 'qty', 'entry', 'exit', 'stop', 'target', 'fees', 'gross', 'net', 'r', 'status', 'account', 'duration', 'notes', 'tags'];
+function exportTradesCsv(list) {
+  const cell = (v) => { if (v == null) return ''; const s = Array.isArray(v) ? v.join('|') : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const lines = [CSV_COLS.join(',')];
+  for (const t of list) lines.push(CSV_COLS.map((c) => cell(t[c])).join(','));
+  try {
+    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = `trades_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  } catch { /* download unsupported */ }
+}
+
 /* ------------------------------------------------------------------ TRADES */
 export function Trades({ ctx }) {
   let list = filtered(ctx.data.trades, ctx.filters);
@@ -42,7 +55,7 @@ export function Trades({ ctx }) {
           <div><div className="paneltitle">Trade ledger</div><div className="paneldesc">Choose a trade to open its record, risk, notes and chart link.</div></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input className="searchbox" placeholder="Search symbol, setup, account, ID…" value={ctx.tradeQuery} onChange={e => ctx.setTradeQuery(e.target.value)} />
-            <button className="btn ghost small">Export CSV</button>
+            <button className="btn ghost small" disabled={!list.length} onClick={() => exportTradesCsv(list)}>Export CSV</button>
           </div>
         </div>
         <div className="tabs">
@@ -52,7 +65,7 @@ export function Trades({ ctx }) {
         </div>
         <TradesTable list={list} limit={200} sortKey={ctx.sort.key} sortDir={ctx.sort.dir}
           onSort={k => ctx.setSort(s => ({ key: k, dir: s.key === k ? -s.dir : -1 }))} onRow={ctx.onOpenTrade} />
-        <div className="tablefoot"><span>{list.length} records · synthetic demo data</span><span>Net P&L excludes open positions · % move signed by direction</span></div>
+        <div className="tablefoot"><span>{list.length} records · your trades</span><span>Net P&L excludes open positions · % move signed by direction</span></div>
       </section>
     </>
   );
@@ -116,7 +129,7 @@ export function Setups({ ctx }) {
       <Head title="Know the setup, not just the ticker." desc="Per-setup statistics over closed trades with an R, and the conditions recorded at entry."
         actions={<Btn cls="ghost" onClick={() => ctx.onNav('trades')}>Review trades</Btn>} />
       <Filters ctx={ctx} />
-      <div className="notice"><b>Condition data is not fabricated.</b> This demo has no verified entry-time snapshots, so alignment shows as unknown, never assumed. Setups with fewer than three closed trades are flagged as small samples.</div>
+      <div className="notice"><b>Condition data is not fabricated.</b> Entry-time condition snapshots aren't captured yet, so alignment shows as unknown, never assumed. Setups with fewer than three closed trades are flagged as small samples.</div>
       <div className="grid twocol">
         {ctx.data.setups.map((name, i) => {
           const sl = list.filter(t => t.setup === name), st = stats(sl), small = st.c.length < 3;
@@ -216,10 +229,10 @@ export function Time({ ctx }) {
     <>
       <Head title="When do you trade well?" desc="Net P&L by weekday, entry price and position size; plus hold time." />
       <Filters ctx={ctx} />
-      <div className="notice info"><b>Entry hour &amp; session need timestamps.</b> This sample stores dates, not intraday entry times, so hour-of-day and session analysis are shown as unavailable rather than invented. Weekday, price and size use the data on hand.</div>
+      <div className="notice info"><b>Entry hour &amp; session need timestamps.</b> Trades currently store the date, not the intraday entry time, so hour-of-day and session analysis are shown as unavailable rather than invented. Weekday, price and size use the data on hand.</div>
       <div className="grid twocol">
         <Panel title="Net P&L by weekday" desc="Closed trades"><div className="panelbody"><Html html={hbars(wk.map(w => ({ label: w.label, value: w.value, fmt: v => money(v) })))} /></div></Panel>
-        <Panel title="Entry hour & session" desc="Timezone-aware grouping"><div className="panelbody"><div className="empty"><b>Unavailable in demo</b>Needs exact entry timestamps and the chosen display timezone, including DST and overnight sessions.</div></div></Panel>
+        <Panel title="Entry hour & session" desc="Timezone-aware grouping"><div className="panelbody"><div className="empty"><b>Needs entry timestamps</b>Record an entry time on your trades (or import it) and this fills in — hour-of-day and session, DST-aware.</div></div></Panel>
       </div>
       <div className="grid twocol">
         <Panel title="Net P&L by entry price" desc="Closed trades"><div className="panelbody"><Html html={hbars(priceBuckets.map(b => ({ ...b, fmt: v => money(v) })))} /></div></Panel>
@@ -232,7 +245,7 @@ export function Time({ ctx }) {
             <div><small>Median — losers</small><b className="n">{fmt(med(losers.map(t => t.duration)), 0)} min</b></div>
             <div><small>Shortest</small><b className="n">{fmt(Math.min(...closed.map(t => t.duration).concat(0)), 0)} min</b></div>
             <div><small>Longest</small><b className="n">{fmt(Math.max(0, ...closed.map(t => t.duration)), 0)} min</b></div>
-          </div><p className="stat-f" style={{ marginTop: 8 }}>Durations are illustrative in this demo.</p>
+          </div><p className="stat-f" style={{ marginTop: 8 }}>Hold time uses the minutes recorded on each trade (blank when none is given).</p>
         </div></Panel>
         <Panel title="Winners vs losers" desc="Closed trades"><div className="panelbody">
           <div style={{ height: 9, borderRadius: 99, overflow: 'hidden', background: 'var(--panel-2)', display: 'flex', margin: '4px 0 8px' }}>
@@ -329,7 +342,7 @@ export function Import({ ctx }) {
   };
   return (
     <>
-      <Head title="Three ways in. One engine." desc="Read-only broker connectors, file upload with a column-mapping wizard, and manual entry — all feeding one pairing engine with de-dup, split/merge and undo."
+      <Head title="Get your trades in." desc="Upload a CSV or add trades by hand — they save straight to your account. Read-only broker connectors are shown below but aren't live yet."
         actions={<Btn cls="ghost" onClick={() => ctx.onNewTrade()}>＋ Manual entry</Btn>} />
       <div className="notice"><b>Prototype.</b> Connectors are illustrated, not live — a static page holds no credentials. File upload below imports directly: a CSV with symbol, side, qty, entry, exit, date is parsed and saved. The full column-mapping wizard and flat-to-flat pairing engine come next.</div>
       <AccountsPanel accounts={ctx.data.accounts} onNav={ctx.onNav} />
@@ -384,7 +397,7 @@ export function Notes({ ctx }) {
 export function Settings({ ctx }) {
   return (
     <>
-      <Head title="Make the journal yours." desc="Display preferences, and an honest look at what this demo does — and does not — connect to." />
+      <Head title="Make the journal yours." desc="Display preferences, and an honest look at what the Journal does — and does not — connect to." />
       <div className="grid sectiongrid">
         <Panel title="Appearance" desc="Comfortable in light or dark">
           <div className="panelbody">
@@ -396,7 +409,8 @@ export function Settings({ ctx }) {
         </Panel>
         <Panel title="Workspace" desc="Your account">
           <div className="panelbody">
-            <div className="minirow"><div className="minimain"><b>Reset workspace</b><small>Restore the starter example trades, accounts and setups</small></div><button className="btn ghost small" onClick={() => ctx.onReset()}>Reset</button></div>
+            <div className="minirow"><div className="minimain"><b>Clear workspace</b><small>Remove ALL your trades, notes and reviews — start from an empty journal</small></div><button className="btn ghost small" onClick={() => { if (window.confirm('Remove ALL your trades, notes and reviews? This cannot be undone.')) ctx.onClear(); }}>Clear</button></div>
+            <div className="minirow"><div className="minimain"><b>Load sample trades</b><small>Replace your workspace with clearly-labelled example trades, to explore the interface</small></div><button className="btn ghost small" onClick={() => { if (window.confirm('Replace your workspace with sample example trades?')) ctx.onLoadSamples(); }}>Load samples</button></div>
             <div className="minirow"><div className="minimain"><b>Storage</b><small>Saved to your account (Supabase / Postgres) — journaling only, not a broker</small></div><span className="roflag">Per account</span></div>
           </div>
         </Panel>

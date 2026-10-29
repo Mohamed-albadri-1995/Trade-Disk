@@ -43,7 +43,9 @@ function Overview({ ctx }) {
       <Head title="See the full picture." desc="A clear view of your decisions, results and risk — every number computed in one place."
         actions={<Btn cls="ghost" onClick={() => onNav('trades')}>View all trades</Btn>} />
       <FilterBar filters={filters} accounts={data.accounts} setups={data.setups} onChange={setFilters} />
-      {demoBanner}
+      {data.trades.length === 0 && (
+        <div className="notice info"><b>Your journal is empty.</b> Add a trade by hand or import a CSV — everything you add saves to your account. (Settings → Load sample trades if you just want to see the interface with example data.)</div>
+      )}
       <div className="grid sectiongrid">
         {heroEq}
         <Panel title="Outcomes" desc="Win rate and long share"><div className="panelbody"><Html className="rings" html={ringsHtml} /></div></Panel>
@@ -61,7 +63,7 @@ function Overview({ ctx }) {
         </Panel>
         <Panel title="Where to look" desc="Insights tied to this filtered sample">
           <div className="panelbody">
-            {s.loss.length > 0 && <div className="insight"><b>Review your largest losses</b><p>{s.loss.length} losing trades in this sample. Open any trade to review its plan, fees and notes — this is a demo sample, not a performance diagnosis.</p></div>}
+            {s.loss.length > 0 && <div className="insight"><b>Review your largest losses</b><p>{s.loss.length} losing trades in this view. Open any trade to review its plan, fees and notes — this is guidance, not a verdict.</p></div>}
             <div className="insight"><b>Check setup sample sizes</b><p>Compare setup results next to their trade counts before drawing conclusions. Small samples are not evidence of an edge.</p></div>
             <div className="insight"><b>Add a stop to every trade</b><p>R-multiple, capture and the verdict need a recorded initial risk. Trades without a stop show “—”, never a guessed R.</p></div>
           </div>
@@ -76,7 +78,7 @@ function Overview({ ctx }) {
               <div className="minimain"><b>{t.symbol} · {t.side}</b><small>{t.setup} · {t.account}</small></div>
               <div className="minivalue neutral">Open</div>
             </div>
-          ))}</div> : <div className="empty">No open positions in this sample.</div>}
+          ))}</div> : <div className="empty">No open positions.</div>}
         </Panel>
       </div>
     </>
@@ -121,7 +123,8 @@ export default function App() {
     onAddReview: r => api.addReview(r).then(reload),
     onDeleteReview: id => api.deleteReview(id).then(reload),
     onImport: rows => api.importTrades(rows).then(res => { reload(); return res; }),
-    onReset: () => api.resetDemo().then(reload),
+    onClear: () => api.clearWorkspace().then(reload),
+    onLoadSamples: () => api.loadSamples().then(reload),
   };
   const Screen = SCREENS[page] || Overview;
 

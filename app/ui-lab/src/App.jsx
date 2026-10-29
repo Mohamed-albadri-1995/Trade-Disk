@@ -18,8 +18,9 @@ const BLANK = () => ({ name: 'New strategy', side: 'long', fill: 'desk', entry: 
 
 export default function App() {
   const [meta, setMeta] = useState(null);
-  const [symbol, setSymbol] = useState('AAPL');
-  const [symInput, setSymInput] = useState('AAPL');
+  const initSym = (() => { try { return (new URLSearchParams(window.location.search).get('symbol') || 'AAPL').trim().toUpperCase() || 'AAPL'; } catch { return 'AAPL'; } })();
+  const [symbol, setSymbol] = useState(initSym);
+  const [symInput, setSymInput] = useState(initSym);
   const [range, setRange] = useState('1y');
   const [doc, setDoc] = useState(null);
   const [preview, setPreview] = useState(null);

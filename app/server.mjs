@@ -75,6 +75,8 @@ async function api(req, res, url) {
         if (sub === 'reviews') return json(res, await journal.addReview(sb, uid, body), 201);
         if (sub === 'import') return json(res, await journal.importTrades(sb, uid, body.trades || body), 201);
         if (sub === 'reset') return json(res, await journal.reset(sb, uid));
+        if (sub === 'clear') return json(res, await journal.clearWorkspace(sb, uid));
+        if (sub === 'samples') return json(res, await journal.loadSamples(sb, uid));
       }
       if (m === 'PATCH' && sub === 'trades' && seg[3]) {
         const r = await journal.updateTrade(sb, decodeURIComponent(seg[3]), await readBody(req));

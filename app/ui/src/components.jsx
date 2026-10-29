@@ -27,7 +27,7 @@ export function Shell({ page, onNav, onTheme, onNewTrade, children }) {
         <div className="navlabel">Workspace</div>
         <nav className="nav">{NAV_WORK.map(NavBtn)}</nav>
         <div className="sidebottom">
-          <div className="demo-note"><b>Your workspace</b>Starter example trades are included — add or import your own. Everything saves to your account; no broker is connected.</div>
+          <div className="demo-note"><b>Your workspace</b>Add trades by hand or import a CSV. Everything saves to your account; no broker is connected.</div>
           <div className="profile"><div className="avatar">TD</div><div><b>Trader workspace</b><small>Synced to your account</small></div></div>
         </div>
       </aside>
@@ -102,7 +102,7 @@ export function FilterBar({ filters, accounts, setups, onChange }) {
         <input placeholder="Any symbol" value={filters.symbol} onChange={e => set('symbol', e.target.value)} /></div>
       <div className="spacer"></div>
       <button className="btn ghost small" onClick={() => onChange({ period: 'all', account: 'all', setup: 'all', symbol: '' })}>Reset</button>
-      <span className="status">Demo · not synced</span>
+      <span className="status">Saved to your account</span>
     </div>
   );
 }

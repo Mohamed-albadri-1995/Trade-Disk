@@ -168,3 +168,22 @@ export async function seedDemo(sb, uid) {
 }
 
 export async function reset(sb, uid) { return { ok: true, trades: await seedDemo(sb, uid) }; }
+
+// Clear the account to a real, empty starting point: no trades, notes or reviews —
+// just the setup categories and a single manual account, so the journal holds only
+// what the trader adds or imports. (Loading the sample trades is a separate, explicit
+// action.) This is how the Journal becomes the trader's own data, not a demo.
+export async function clearWorkspace(sb, uid) {
+  for (const tbl of ['trade', 'day_note', 'review_note', 'journal_account', 'setup']) {
+    chk(await sb.from(tbl).delete().eq('owner_id', uid));
+  }
+  chk(await sb.from('journal_account').insert([{
+    owner_id: uid, id: 'acc-manual', name: 'Manual / CSV', door: 'File upload + manual',
+    kind: 'File', status: 'file', last: 'Add trades by hand or import a CSV', note: 'CSV · broker exports', sort: 0,
+  }]));
+  chk(await sb.from('setup').insert(SETUPS.map((name, i) => ({ owner_id: uid, id: String(i + 1), name }))));
+  return { ok: true, cleared: true };
+}
+
+// Explicitly load the clearly-labelled sample trades (same as reset) — opt-in only.
+export async function loadSamples(sb, uid) { return { ok: true, trades: await seedDemo(sb, uid) }; }

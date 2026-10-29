@@ -45,8 +45,8 @@ export function TradeDetailModal({ trade: t, setups, onClose, onSave }) {
               <div><small>Planned reward:risk</small><b className="n">{t.plannedRR ? t.plannedRR.toFixed(1) + ':1' : '—'}</b></div>
               <div><small>Fees</small><b className="n">{money(t.fees)}</b></div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}><button className="btn ghost small">📈 Open chart in TradeLab</button><span className="roflag">Opens in TradeLab</span></div>
-            <div className="notice" style={{ marginTop: 14 }}><b>Data provenance:</b> synthetic demo record. The 📈 chart would open qp's print sheet of this stock and day at the trade's real instants; MAE/MFE and the entry snapshot are captured from verified bars in production, not inferred here.</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}><a className="btn ghost small" href={`/lab/?symbol=${encodeURIComponent(t.symbol)}`} target="_blank" rel="noreferrer">📈 Open {t.symbol} in TradeLab</a><span className="roflag">qp chart</span></div>
+            <div className="notice" style={{ marginTop: 14 }}><b>Provenance:</b> source — {t.source || 'manual'}. The 📈 chart opens TradeLab's qp chart for this symbol. An entry-time snapshot and MAE/MFE need verified intraday bars and aren't captured yet — they show as unknown, never inferred.</div>
           </>)}
           {tab === 'Edit' && (<>
             <p className="stat-f">Setup, stop, target, fees and notes are editable on the page.</p>
@@ -61,8 +61,8 @@ export function TradeDetailModal({ trade: t, setups, onClose, onSave }) {
             <div className="field full" style={{ marginTop: 12 }}><label>Notes</label><textarea value={f.notes} onChange={e => set('notes', e.target.value)} /></div>
             <button className="btn primary" style={{ marginTop: 12 }} onClick={() => onSave(t.id, f)}>Save changes</button>
           </>)}
-          {tab === 'Entry snapshot' && <div className="empty"><b>No entry-time snapshot in demo</b>In production the snapshot stores the price structure up to the entry minute, plus the facts, market state and R1 row as known at the entry — read from the shared record, never look-ahead. MAE and MFE are measured between entry and exit.</div>}
-          {tab === 'Executions' && <div className="empty"><b>No execution ledger in this record</b>Imported trades carry their executions (fills and events). The pairing engine groups executions flat-to-flat, FIFO, splitting reversals. This synthetic trade was seeded as a single round trip.</div>}
+          {tab === 'Entry snapshot' && <div className="empty"><b>No entry-time snapshot yet</b>Capturing the price structure and market state as known at the entry minute needs verified intraday bars, which aren't wired in yet. When they are, MAE and MFE are measured between entry and exit — never inferred.</div>}
+          {tab === 'Executions' && <div className="empty"><b>No execution ledger yet</b>Individual fills and events aren't captured yet; each trade is stored as a single round trip. A future import engine will carry executions and pair them flat-to-flat, FIFO.</div>}
           {tab === 'History' && (<><div className="kv">
             <div><small>Created</small><b className="n">{t.createdAt}</b></div>
             <div><small>Updated</small><b className="n">{t.updatedAt}</b></div>

@@ -19,3 +19,5 @@ export const addReview = (r) => req('/api/journal/reviews', { method: 'POST', he
 export const deleteReview = (id) => req('/api/journal/reviews/' + encodeURIComponent(id), { method: 'DELETE' });
 export const importTrades = (trades) => req('/api/journal/import', { method: 'POST', headers: JSON_H, body: JSON.stringify({ trades }) });
 export const resetDemo = () => req('/api/journal/reset', { method: 'POST' });
+export const clearWorkspace = () => req('/api/journal/clear', { method: 'POST' });
+export const loadSamples = () => req('/api/journal/samples', { method: 'POST' });
