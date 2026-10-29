@@ -11,8 +11,27 @@ const fmtCell = (v) => {
   const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
   return s.length > 140 ? s.slice(0, 137) + '…' : s;
 };
-const fullVal = (v) => (v == null ? '' : typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v));
+const isHex = (v) => typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v);
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+// Render any value readably: objects/arrays become an indented key→value tree
+// (so a JSON column like `facts` reads like an outline, not one long string);
+// primitives render plain, with a small swatch next to colour values.
+function JsonTree({ value }) {
+  if (value == null) return <span className="muted">null</span>;
+  if (Array.isArray(value)) {
+    if (!value.length) return <span className="muted">(empty)</span>;
+    return <ul className="db-jt">{value.map((v, i) => <li key={i}><span className="db-jt-k">{i + 1}</span><JsonTree value={v} /></li>)}</ul>;
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value);
+    if (!keys.length) return <span className="muted">(empty)</span>;
+    return <ul className="db-jt">{keys.map((k) => <li key={k}><span className="db-jt-k">{k}</span><JsonTree value={value[k]} /></li>)}</ul>;
+  }
+  if (isHex(value)) return <span className="db-jt-v"><i className="db-swatch" style={{ background: value }} />{value}</span>;
+  return <span className={cls('db-jt-v', typeof value === 'number' && 'num', typeof value === 'boolean' && 'bool')}>{String(value)}</span>;
+}
+const renderVal = (v) => (v != null && typeof v === 'object' ? <JsonTree value={v} /> : v == null ? <span className="muted">null</span> : String(v));
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 function download(filename, content, mime) {
@@ -182,7 +201,7 @@ export function DataView({ onToast }) {
                               {openRow === i && (
                                 <tr className="db-detail"><td colSpan={data.columns.length + 1}>
                                   <dl className="db-detail-grid">
-                                    {data.columns.map((c) => <React.Fragment key={c}><dt>{c}</dt><dd>{fullVal(r[c]) || <span className="muted">null</span>}</dd></React.Fragment>)}
+                                    {data.columns.map((c) => <React.Fragment key={c}><dt>{c}</dt><dd>{renderVal(r[c])}</dd></React.Fragment>)}
                                   </dl>
                                 </td></tr>
                               )}

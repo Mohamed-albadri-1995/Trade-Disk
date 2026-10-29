@@ -394,3 +394,11 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .db-pager{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
 .db-size{width:auto}
 @media(max-width:560px){.db-tname{display:none}.db-detail-grid{grid-template-columns:1fr;gap:2px}.db-detail-grid dt{margin-top:7px}.db-fmeta{font-size:10px}.db-dl{margin-left:0}}
+/* readable JSON tree inside an expanded record (e.g. the `facts` column) */
+.db-jt{list-style:none;margin:3px 0 0;padding-left:12px;border-left:1px solid var(--line)}
+.db-jt li{padding:1px 0}
+.db-jt-k{color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-right:8px;font-size:11px}
+.db-jt-k::after{content:':'}
+.db-jt-v{color:var(--text);word-break:break-word;overflow-wrap:anywhere}
+.db-jt-v.num,.db-jt-v.bool{color:var(--cyan)}
+.db-swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;border:1px solid var(--line2)}
