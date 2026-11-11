@@ -27,7 +27,7 @@ Then open **http://localhost:8787** — the Station launcher.
   active feed. Set that group to **Yahoo** in Admin first (or use the Refresh button there);
   on demo it's a no-op. Wires groups 1·2·3·4·7 (price/volume/range/indicators/name);
   5·6·8 stay demo until a paid feed is added.
-- `npm test` — the Radar test suite (61 tests; no network or database needed). The review
+- `npm test` — the Radar test suite (77 tests; no network or database needed). The review
   it came from is in `test/RADAR-REVIEW.md`.
 - Re-run `npm run setup` any time to rebuild after code changes.
 

@@ -8,7 +8,7 @@ Not reviewed: `core/market.mjs`, `core/oneilGroups.mjs`, `providers/edgar.mjs`,
 `providers/news.mjs`, and the React screens themselves.
 
 Run the tests: `cd app && npm install && npm test` (no network, no database needed).
-61 tests, all passing. "Live" means checked against the real TradingView scanner.
+77 tests, all passing. "Live" means checked against the real TradingView scanner.
 
 ## Fixed
 
@@ -40,6 +40,47 @@ Run the tests: `cd app && npm install && npm test` (no network, no database need
     junk `limit` falls back to 50; the analysis cache is capped at 500 tickers;
     `tools/radar-smoke.mjs` (it called the old SQLite API and crashed) is removed.
 
+## Second pass — builder, schedule, cards, Market tab
+
+Checked each against live data (TradingView scanner and Yahoo) as well as by test.
+
+**Builder**
+13. **"OR" was ignored** — every condition was ANDed. OR now runs (AND binds tighter:
+    `a AND b OR c` is `(a AND b) OR c`); live: 121 + 778 stocks = 899 for the OR of two rules.
+14. **A timeframe on a daily-only metric matched nothing.** Performance, week/month high/low,
+    pre-market, market cap, valuation, growth and classification metrics exist only on the
+    daily view; the timeframe is now ignored for them. Intraday relative volume exists only
+    on 5 minutes and always uses it. All 47 runnable metrics × 9 timeframes were swept live.
+15. **Reported instead of mis-run:** text metrics (Sector, Industry, Exchange, Country) with
+    anything but = / ≠ (the scanner answers HTTP 400); "Percentage distance" mode (it ran as
+    a plain value compare); an indicator Source other than Close (it was ignored).
+
+**Schedule** — a tick is now testable end to end: a due window scans, updates the register
+and freezes the snapshot, per account and per time zone, once per minute, not on weekends
+or holidays (`test/radar-live-paths.test.mjs`).
+
+**Cards**
+16. **A falling stock showed "+-1.20 (+-4.00%)" in green.** Sign and colour now follow the move.
+17. **Pre-market high / low / range were always 0** and PM/ADR was an approximation; they now
+    come from the scanner. ADR% uses the scanner's average daily range (ATR as fallback), and
+    the $ change is the scanner's own.
+18. **The "Earnings" filter could never match** (nothing set the tag). Cards now carry an
+    Earnings tag when the next report is today or within 7 days.
+19. **The scanner's data is 15 minutes delayed** (`update_mode: delayed_streaming_900`, the
+    free feed). This cannot be changed here; the header now says "15-MIN DELAYED" instead of
+    implying real time. Live check: card prices matched Yahoo allowing for that delay.
+
+**Market tab**
+20. **During the session it showed yesterday.** Today's forming bar was dropped, so prices and
+    day changes were the prior close until 8pm ET. It now uses the live bar (live check: SPY
+    price and day % equal Yahoo's); only the distribution-day count waits for the close.
+21. **Not refreshed on time.** The snapshot is rebuilt after 2 minutes during the session (10
+    outside it), and the open page re-reads it every minute; before, it loaded once and
+    changed only when a scan was run by hand.
+22. **A reader who could not store the snapshot got the old one** although a fresh one had
+    just been built. The fresh one is now returned, kept in memory, and built once for
+    concurrent readers.
+
 ## Still open
 
 - **Run the Polygon key migration.** The one shared key now lives in `app_secret`, which only
@@ -52,6 +93,17 @@ Run the tests: `cd app && npm install && npm test` (no network, no database need
 - **The other provider keys are readable by every signed-in user.** They sit in
   `source_group.keys`, whose read policy is "any authenticated user" — the same problem the
   Polygon key had.
+- **News and CAN SLIM filters never match**: nothing sets `news` / `cs` on a card (those
+  feeds are not wired), so ticking either filter empties the list.
+- **Shortlist tab** shows only shortlisted stocks that are in the scan currently on screen
+  (`savedCards` in `ui-radar/src/App.jsx`); a starred stock from another screener is hidden.
+- **The screener list does not refresh itself** after a scheduled scan; it updates when a
+  scan is run from the page.
+- **Outcome labels run once at 16:05 ET**, so a stock first seen by a later (after-hours)
+  window that day gets no label until labels are run by hand.
+- **Builder:** text values must be typed exactly as TradingView names them (e.g. "Electronic
+  Technology"); the "Indicator type" selector on a moving average is not used.
+- The card's sparkline is two points (previous close → price).
 - `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
   is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it

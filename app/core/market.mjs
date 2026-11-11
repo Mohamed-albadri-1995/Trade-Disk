@@ -11,7 +11,17 @@
 import * as yahoo from '../providers/yahoo.mjs';
 import { ema } from '../providers/compute.mjs';
 
-const STALE_MS = 10 * 60 * 1000; // rebuild a snapshot older than ten minutes
+// Rebuild a snapshot older than this: two minutes while the US market is trading, so
+// the Market tab follows the session, ten minutes outside it (nothing is moving).
+const STALE_OPEN_MS = 2 * 60 * 1000, STALE_CLOSED_MS = 10 * 60 * 1000;
+const etDay = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const etMinute = (ms) => {
+  const [h, m] = new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+  return (h % 24) * 60 + m;
+};
+const etWeekday = (ms) => new Date(ms).toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short' });
+export const sessionOpen = (ms = Date.now()) => !['Sat', 'Sun'].includes(etWeekday(ms)) && etMinute(ms) >= 570 && etMinute(ms) < 960;
+export const staleMs = (ms = Date.now()) => (sessionOpen(ms) ? STALE_OPEN_MS : STALE_CLOSED_MS);
 
 const INDEXES = [
   { sym: 'SPY', y: 'SPY', name: 'SPDR S&P 500 ETF', kind: 'etf' },
@@ -88,18 +98,20 @@ const pctStr = (v) => sign(v) + '%';
 // VIX up is risk-off, so it reads 'negative' (red) when rising, like the prototype.
 const cls = (v, invert = false) => ((invert ? -v : v) > 0.0001 ? 'positive' : (invert ? -v : v) < -0.0001 ? 'negative' : '');
 
-// Drop today's still-forming bar so day/week changes compare completed sessions.
-const dayUTC = (ms) => new Date(ms).toISOString().slice(0, 10);
-function completed(bars) {
+// The bars without today's still-forming one (its ET day, before the 16:00 ET close).
+// Only volume-based counts need this (a partial day's volume is not comparable). Prices,
+// day/week changes and the moving-average checks use the LIVE last bar, so during the
+// session the Market tab shows today, not yesterday.
+function completed(bars, nowMs = Date.now()) {
   const last = bars[bars.length - 1];
-  return last && dayUTC(last.t * 1000) === dayUTC(Date.now()) ? bars.slice(0, -1) : bars;
+  return last && etDay(last.t * 1000) === etDay(nowMs) && etMinute(nowMs) < 960 ? bars.slice(0, -1) : bars;
 }
 
 // ── the builder ──
-export async function buildSnapshot() {
+export async function buildSnapshot(nowMs = Date.now()) {
   const symbols = [...INDEXES.map((i) => i.y), ...SECTORS.map(([, e]) => e)];
   const { out } = await yahoo.charts(symbols, { range: '1y', interval: '1d' });
-  const barsOf = (y) => { const r = out[y]; return r && r.bars.length ? completed(r.bars) : null; };
+  const barsOf = (y) => { const r = out[y]; return r && r.bars.length ? r.bars : null; };
 
   const spy = barsOf('SPY');
   if (!spy) throw new Error('market build: SPY bars unavailable');
@@ -216,7 +228,7 @@ export async function buildSnapshot() {
   const vixLevel = vix ? vix.price.toFixed(2) : '—';
   const breadth = {
     advancing: pctOf(adv), declining: pctOf(dec), unchanged: pctOf(unch),
-    distribution: `${distributionDays(spy)} · last 25 sessions`,
+    distribution: `${distributionDays(completed(spy, nowMs))} · last 25 sessions`,
     volatility: `VIX ${vixLevel}`,
   };
 
@@ -234,7 +246,7 @@ export async function buildSnapshot() {
     themeOf('XLF', 'Financials'), themeOf('XLE', 'Energy'),
   ].filter(Boolean);
 
-  const now = new Date();
+  const now = new Date(nowMs);
   const asOf = now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' ET';
   return {
     live: true, asOf, builtAt: now.toISOString(),
@@ -246,23 +258,31 @@ export async function buildSnapshot() {
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 
-// Read the materialized snapshot; if it is stale and this client may write the global
-// row (owner/admin — RLS), rebuild it from the live feed first. Any failure falls back
-// to the last good snapshot so the screen never breaks.
+// Read the materialized snapshot; if it is stale, rebuild it from the live feed and
+// store it. The freshly built snapshot is ALWAYS what is returned — a client that may
+// not write the global row (not an owner) still gets current data, and the copy kept
+// in memory serves the next readers so they do not each rebuild it. One build runs at
+// a time. Any build failure falls back to the last good snapshot.
 // `force` (set when a scan runs) refreshes the snapshot even if it is not yet stale,
 // so running any scanner updates the Market tab — but a 60s floor avoids rebuilding
 // it twice when several scans fire in quick succession.
+let memo = null;       // { at, snap } — the newest snapshot this process built
+let building = null;   // the build in flight, shared by concurrent readers
 export async function getMarket(sb, { force = false } = {}) {
   const rows = chk(await sb.from('radar_market').select('snapshot, as_of').eq('id', 1).limit(1));
-  const cur = rows[0] || null;
-  const ageMs = cur?.as_of ? Date.now() - new Date(cur.as_of).getTime() : Infinity;
-  if (cur && ageMs < (force ? 60 * 1000 : STALE_MS)) return cur.snapshot;
+  let cur = rows[0]?.snapshot ? { snap: rows[0].snapshot, at: Date.parse(rows[0].as_of) || 0 } : null;
+  if (memo && (!cur || memo.at > cur.at)) cur = memo;
+  const ageMs = cur ? Date.now() - cur.at : Infinity;
+  if (cur && ageMs < (force ? 60 * 1000 : staleMs())) return cur.snap;
   try {
-    const snap = await buildSnapshot();
-    const { error } = await sb.from('radar_market').upsert({ id: 1, snapshot: snap, as_of: snap.builtAt });
-    if (error) return cur ? cur.snapshot : snap; // not allowed to write (not owner) → serve what we built/have
+    building ||= buildSnapshot().finally(() => { building = null; });
+    const snap = await building;
+    memo = { at: Date.parse(snap.builtAt), snap };
+    await sb.from('radar_market').upsert({ id: 1, snapshot: snap, as_of: snap.builtAt });   // refused for non-owners: fine
     return snap;
   } catch {
-    return cur ? cur.snapshot : null; // live build failed → last good snapshot
+    return cur ? cur.snap : null; // live build failed → last good snapshot
   }
 }
+// test hook: forget the in-memory copy
+export const _resetMarketMemo = () => { memo = null; building = null; };

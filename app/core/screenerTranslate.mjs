@@ -44,6 +44,18 @@ export const LENGTHS = {
   VWMA: [20], ATR: [14], ADX: [14], CCI: [20], ROC: [9],
 };
 const STRING_METRIC = new Set(['Sector', 'Industry', 'Exchange', 'Country']);
+// Metrics the scanner only has on the daily view: with any other timeframe suffix the
+// field does not exist and the scan silently returns nothing (checked live), so the
+// builder's timeframe is ignored for them.
+const DAILY_ONLY = new Set(['Perf 1W', 'Perf 1M', 'Perf 3M', 'Perf 6M', 'Perf 1Y', 'Month high', 'Month low', 'Week high', 'Week low',
+  'Premarket volume', 'Premarket change', 'Market cap', 'PE', 'PS', 'EPS growth Q', 'EPS growth Y', 'Revenue growth Q', 'Revenue growth Y',
+  'ROE', 'Net margin', 'Dividend yield', ...STRING_METRIC]);
+// Indicators are computed by the scanner on the close; the builder's "Source" choice
+// (HL2, Volume, …) cannot be honoured, so anything but Close is reported.
+const INDICATOR = new Set(['SMA', 'EMA', 'VWMA', 'VWAP', 'RSI', 'ATR', 'ADX', 'CCI', 'ROC']);
+const suffix = (metric, timeframe) => (DAILY_ONLY.has(metric) ? ''
+  : metric === 'Intraday relative volume' ? '|5'            // the scanner has it on the 5-minute view only
+    : (TF[timeframe] || ''));
 
 const OP = { '>': 'greater', '≥': 'egreater', '<': 'less', '≤': 'eless', '=': 'equal', '≠': 'nequal', Between: 'in_range' };
 
@@ -59,13 +71,13 @@ function fieldFor(metric, length, timeframe, what = 'metric') {
   const fn = FIELD[metric];
   if (!fn) return { error: `${what} "${metric}" is not available on the live scanner yet` };
   const allowed = LENGTHS[metric];
-  if (!allowed) return { field: fn() + (TF[timeframe] || '') };
+  if (!allowed) return { field: fn() + suffix(metric, timeframe) };
   const blank = length == null || String(length).trim() === '';
   const len = blank ? (allowed.includes(14) ? 14 : allowed[0]) : Number(length);
   if (!allowed.includes(len)) {
     return { error: `${metric} length ${length} is not available — the live scanner has ${metric} ${allowed.length === 1 ? allowed[0] + ' only' : allowed.join(', ')}` };
   }
-  return { field: fn(len) + (TF[timeframe] || '') };
+  return { field: fn(len) + suffix(metric, timeframe) };
 }
 
 // One condition → one {left, operation, right}, or null (with a reason) if unmappable.
@@ -76,6 +88,9 @@ function translateOne(c) {
   const operation = OP[c.operator];
   if (!operation) return { error: `operator "${c.operator}" is not available on the live scanner yet` };
   const blank = (v) => v == null || String(v).trim() === '';
+  if (c.mode === 'percent') return { error: 'percentage-distance comparisons are not available on the live scanner yet' };
+  if (INDICATOR.has(c.metric) && c.source && c.source !== 'Close') return { error: `source "${c.source}" is not available — the live scanner computes ${c.metric} on the close` };
+  if (STRING_METRIC.has(c.metric) && (c.mode === 'filter' || !['=', '≠'].includes(c.operator))) return { error: `${c.metric} can only be compared with = or ≠ and a name` };
 
   if (c.mode === 'filter') {
     if (c.operator === 'Between') return { error: 'Between compares against two numbers, not another filter' };
@@ -96,15 +111,22 @@ function translateOne(c) {
   return { rule: { left, operation, right } };
 }
 
-// conditions[] → { filters, unsupported }. `filters` is ready for tradingview.scan().
+// conditions[] → { filters, unsupported, anyOf? }, ready for tradingview.scan().
+// Each condition's `join` says how it combines with the NEXT one. AND binds tighter
+// than OR, as in ordinary logic: "a AND b OR c AND d" is (a AND b) OR (c AND d). With
+// no OR, every rule lands in `filters`. With an OR, `filters` is empty and `anyOf`
+// holds the groups (a stock matches when one whole group holds).
 export function conditionsToFilters(conditions) {
-  const filters = [], unsupported = [];
+  const unsupported = [], groups = [[]];
   for (const c of conditions || []) {
     const r = translateOne(c);
-    if (r.rule) filters.push(r.rule);
+    if (r.rule) groups[groups.length - 1].push(r.rule);
     else unsupported.push({ metric: c.metric, operator: c.operator, reason: r.error });
+    if (c.join === 'OR') groups.push([]);
   }
-  return { filters, unsupported };
+  const live = groups.filter((g) => g.length);
+  if (live.length <= 1) return { filters: live[0] || [], unsupported };
+  return { filters: [], anyOf: live, unsupported };
 }
 
 // The metrics/operators the builder can currently RUN (for the UI to show what's live).

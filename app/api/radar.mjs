@@ -6,7 +6,7 @@
 
 import * as tv from '../providers/tradingview.mjs';
 import * as yahoo from '../providers/yahoo.mjs';
-import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
+import { COLUMNS, listScreeners, getScreener, toCard, delayOf } from '../core/screeners.mjs';
 import { conditionsToFilters } from '../core/screenerTranslate.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
 import { collect, collectionStatus } from '../core/collect.mjs';
@@ -78,18 +78,18 @@ export async function scan(sb, uid, key, limit = 50) {
     return { key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
   }
   const def = getScreener(key);
-  let filters, sort, name, unsupported = [];
+  let filters, anyOf = null, sort, name, unsupported = [];
   if (def) { filters = def.filters; sort = def.sort; name = def.name; }
   else {
     const cfg = chk(await sb.from('radar_screener').select('*').eq('owner_id', uid).eq('id', key).eq('kind', 'custom').limit(1))[0];
     if (!cfg) return { key, error: `unknown screener "${key}"` };
     const t = conditionsToFilters(cfg.conditions || []);
     unsupported = t.unsupported;
-    if (!t.filters.length) return { key, screener: cfg.name, error: 'This screener has no runnable conditions yet.', unsupported };
-    filters = t.filters; sort = { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' }; name = cfg.name;
+    if (!t.filters.length && !t.anyOf) return { key, screener: cfg.name, error: 'This screener has no runnable conditions yet.', unsupported };
+    filters = t.filters; anyOf = t.anyOf || null; sort = { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' }; name = cfg.name;
   }
   let reg;
-  try { reg = await runScreener(sb, uid, { key, filters, sort, limit }); }
+  try { reg = await runScreener(sb, uid, { key, filters, anyOf, sort, limit }); }
   catch (e) {
     // Live scan failed (market closed, provider hiccup/rate-limit). Don't wipe the
     // day's sticky list — fall back to today's saved register so the stocks that
@@ -99,7 +99,7 @@ export async function scan(sb, uid, key, limit = 50) {
     return { key, screener: name, error: String(e.message || e) };
   }
   const market = await getMarket(sb, { force: true }).catch(() => null);
-  return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };
+  return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };   // reg carries delayMin
 }
 
 // Builder "Run": preview the current (possibly unsaved) conditions live, without
@@ -107,10 +107,10 @@ export async function scan(sb, uid, key, limit = 50) {
 export async function previewConditions(sb, body) {
   if (await getMode(sb) !== 'personal') return { error: 'The live screener runs in Personal mode (TradingView, personal-use).' };
   const t = conditionsToFilters(body?.conditions || []);
-  if (!t.filters.length) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
+  if (!t.filters.length && !t.anyOf) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
   const sort = body?.sort || { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' };
-  const { totalCount, rows } = await tv.scan({ filters: t.filters, columns: COLUMNS, sort, range: [0, clampLimit(body?.limit)] });
-  return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported };
+  const { totalCount, rows } = await tv.scan({ filters: t.filters, anyOf: t.anyOf, columns: COLUMNS, sort, range: [0, clampLimit(body?.limit)] });
+  return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported, delayMin: delayOf(rows) };
 }
 
 // Today's register for a screener without running a new scan (page revisit / tab switch).

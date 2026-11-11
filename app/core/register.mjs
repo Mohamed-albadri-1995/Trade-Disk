@@ -8,7 +8,7 @@
 // radar_register (which also becomes the historical daily record the Lab can backtest).
 
 import * as tv from '../providers/tradingview.mjs';
-import { COLUMNS, toCard } from './screeners.mjs';
+import { COLUMNS, toCard, delayOf } from './screeners.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const COLORS = ['', 'blue', 'purple', 'orange', 'green'];
@@ -19,8 +19,8 @@ const etTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-US', { timeZ
 // Run one screener (built-in or custom) and merge its results into today's register.
 // `spec` = { key, filters, sort, limit }. Returns the full merged list for the UI.
 export async function runScreener(sb, uid, spec) {
-  const { key, filters, sort, limit = 50 } = spec;
-  const { rows } = await tv.scan({ filters, columns: COLUMNS, sort, range: [0, Math.min(100, limit)] });
+  const { key, filters, anyOf = null, sort, limit = 50 } = spec;
+  const { rows } = await tv.scan({ filters, anyOf, columns: COLUMNS, sort, range: [0, Math.min(100, limit)] });
   const liveCards = rows.map((r, i) => ({ card: toCard(r, i), sym: r._sym }));
   const liveTickers = new Set(liveCards.map((l) => l.card.t));
 
@@ -62,7 +62,7 @@ export async function runScreener(sb, uid, spec) {
   }));
   stocks.sort((a, b) => (b.live === a.live ? (b.s || 0) - (a.s || 0) : (b.live ? 1 : -1)));
   stocks.forEach((c, i) => { c.color = COLORS[i % COLORS.length]; });
-  return { stocks, liveCount: liveCards.length, count: stocks.length, day };
+  return { stocks, liveCount: liveCards.length, count: stocks.length, day, delayMin: delayOf(rows) };
 }
 
 // Read today's register for a screener without running a scan (page revisit).

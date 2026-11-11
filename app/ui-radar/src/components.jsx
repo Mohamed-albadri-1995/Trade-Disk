@@ -87,7 +87,7 @@ export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 
       </div>
       <div className="stock-price">
         <div className="priceval">{money(s.p)}</div>
-        <div className="change">+{s.abs.toFixed(2)} (+{s.c.toFixed(2)}%)</div>
+        <div className={`change ${s.c < 0 ? 'negative' : ''}`}>{s.c < 0 ? '−' : '+'}{Math.abs(s.abs).toFixed(2)} ({s.c < 0 ? '−' : '+'}{Math.abs(s.c).toFixed(2)}%)</div>
         <Spark points={s.changeLine} />
       </div>
       <div className="stock-detail">

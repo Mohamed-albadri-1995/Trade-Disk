@@ -15,6 +15,8 @@ export const COLUMNS = [
   'market_cap_basic', 'sector', 'industry',
   'premarket_change', 'premarket_volume', 'ATR',
   'EMA9', 'EMA13', 'EMA20', 'EMA50',
+  'change_abs', 'ADR', 'premarket_high', 'premarket_low',
+  'earnings_release_next_date', 'update_mode',
 ];
 
 // Each built-in also carries a `conditions` array in the BUILDER's own grammar
@@ -163,12 +165,18 @@ const capBand = (n) => (n == null ? '' : n >= 1e10 ? 'large' : n >= 2e9 ? 'mid' 
 // Price/change/volume/range/indicator fields are live; `s` is a transparent
 // activity score (not the trained model yet); news/CAN-SLIM flags stay off until
 // those feeds are wired (DATA-CATALOG groups 6 & 8).
-export function toCard(r, i = 0) {
+export function toCard(r, i = 0, now = Date.now()) {
   const p = r.close, c = r.change ?? 0;
-  // previous close implied by today's % change; a −100% (or worse) print has none
-  const prev = (p != null && c > -100) ? p / (1 + c / 100) : p;
+  // previous close: from the scanner's own $ change when it sends one, else implied by
+  // today's % change (a −100% or worse print has none)
+  const prev = (p != null && r.change_abs != null) ? p - r.change_abs
+    : (p != null && c > -100) ? p / (1 + c / 100) : p;
   const abs = (p != null && prev != null) ? +(p - prev).toFixed(2) : 0;
-  const adr = (r.ATR && p) ? +((r.ATR / p) * 100).toFixed(2) : 0;
+  // ADR%: the scanner's average daily range in $ over price; ATR stands in when it is missing
+  const rangeUsd = r.ADR || r.ATR || 0;
+  const adr = (rangeUsd && p) ? +((rangeUsd / p) * 100).toFixed(2) : 0;
+  const pmHigh = r.premarket_high ?? 0, pmLow = r.premarket_low ?? 0;
+  const pmRange = pmHigh && pmLow ? Math.max(0, +(pmHigh - pmLow).toFixed(2)) : 0;
   const rvol = r.relative_volume_10d_calc;
   const pmc = r.premarket_change;
   const ema = p != null && r.EMA20 != null && p > r.EMA20;
@@ -178,16 +186,31 @@ export function toCard(r, i = 0) {
   if (pmc != null && Math.abs(pmc) >= 2) tags.push('Pre-Market');
   if (rvol != null && rvol >= 5) tags.push('High RVOL');
   if (Math.abs(c) >= 4) tags.push('Big Move');
+  // earnings due today or within the next 7 days (what the "Earnings" filter looks for)
+  const toEarnings = r.earnings_release_next_date ? r.earnings_release_next_date * 1000 - now : null;
+  if (toEarnings != null && toEarnings > -86400e3 && toEarnings <= 7 * 86400e3) tags.push('Earnings');
   const score = Math.max(5, Math.min(99, Math.round(50 + c * 1.5 + ((rvol ?? 1) - 1) * 6)));
   return {
     t: r.ticker, n: r.description || r.ticker,
     p: p != null ? +p.toFixed(2) : 0, c: +(+c).toFixed(2), abs,
     s: score, r: rvol != null ? +rvol.toFixed(2) : 0, adr,
-    pm: (adr && pmc != null) ? +(Math.abs(pmc) / adr).toFixed(2) : 0,
-    pmHigh: 0, pmLow: 0, pmRange: 0, pmPct: pmc != null ? +pmc.toFixed(2) : 0,
+    // PM/ADR: the pre-market range as a share of a normal day's range; before the
+    // scanner has a pre-market high/low it falls back to the pre-market % move over ADR%
+    pm: (pmRange && rangeUsd) ? +(pmRange / rangeUsd).toFixed(2) : (adr && pmc != null) ? +(Math.abs(pmc) / adr).toFixed(2) : 0,
+    pmHigh: +(+pmHigh).toFixed(2), pmLow: +(+pmLow).toFixed(2), pmRange, pmPct: pmc != null ? +pmc.toFixed(2) : 0,
     cap: capFmt(r.market_cap_basic), capBand: capBand(r.market_cap_basic),
     sec: r.industry || r.sector || '—', mark: (r.ticker || '?')[0], color: COLORS[i % COLORS.length],
     tags, ema, stacked, news: false, cs: false,
     changeLine: [+((prev ?? p) || 0).toFixed(2), +((p) || 0).toFixed(2)],
   };
+}
+
+// How many minutes behind the market the scanner's data is, read from its own
+// `update_mode` ("delayed_streaming_900" = 15 minutes; "streaming" = real time).
+// null when the scan returned no rows or the scanner did not say.
+export function delayOf(rows) {
+  const m = rows?.find((r) => r.update_mode)?.update_mode;
+  if (!m) return null;
+  const d = /delayed_streaming_(\d+)/.exec(m);
+  return d ? Math.round(+d[1] / 60) : 0;
 }

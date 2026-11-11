@@ -52,16 +52,19 @@ export function minuteIn(timezone, now = new Date()) {
   return p.hh * 60 + p.mm;
 }
 
-async function tick() {
-  if (!admin) return;
+// One pass: fire every schedule window due this minute. `client` and `now` default to
+// the service-role client and the real clock. Returns what it fired and a promise that
+// settles when those collections finish (the timer ignores both).
+export async function tick(client = admin, now = new Date()) {
+  const jobs = [], fired = [];
+  if (!client) return { fired, done: Promise.resolve() };
   try {
-    const et = parts('America/New_York');
-    if (!marketOpenDay(et)) return;                             // weekend or NYSE holiday
+    const et = parts('America/New_York', now);
+    if (!marketOpenDay(et)) return { fired, done: Promise.resolve() };   // weekend or NYSE holiday
     const etMin = et.hh * 60 + et.mm;
-    const now = new Date();
     const stamp = `${et.date} ${String(et.hh).padStart(2, '0')}:${String(et.mm).padStart(2, '0')}`;
 
-    const scheds = chk(await admin.from('radar_screener').select('owner_id, id, windows, timezone'));
+    const scheds = chk(await client.from('radar_screener').select('owner_id, id, windows, timezone'));
     for (const s of scheds) {
       const windows = Array.isArray(s.windows) ? s.windows : [];
       if (!windows.length) continue;
@@ -71,19 +74,21 @@ async function tick() {
       const fkey = `${s.owner_id}|${s.id}|${stamp}`;
       if (firedThisMinute.has(fkey)) continue;
       firedThisMinute.add(fkey);
-      collect(admin, s.owner_id, s.id)
+      fired.push(`${s.owner_id}|${s.id}`);
+      jobs.push(collect(client, s.owner_id, s.id)
         .then((r) => console.log('[scheduler] collect', s.id, JSON.stringify(r)))
-        .catch((e) => console.log('[scheduler] collect error', s.id, e.message));
+        .catch((e) => console.log('[scheduler] collect error', s.id, e.message)));
     }
 
     // Outcome labels once per day, shortly after the 16:00 ET close.
     if (etMin >= 16 * 60 + 5 && lastLabelDay !== et.date) {
       lastLabelDay = et.date;
       const owners = [...new Set(scheds.map((s) => s.owner_id))];
-      for (const o of owners) computeLabels(admin, o, et.date).then((r) => console.log('[scheduler] labels', JSON.stringify(r))).catch(() => {});
+      for (const o of owners) computeLabels(client, o, et.date).then((r) => console.log('[scheduler] labels', JSON.stringify(r))).catch(() => {});
     }
     if (firedThisMinute.size > 5000) firedThisMinute.clear();
   } catch (e) { console.log('[scheduler] tick error', e.message); }
+  return { fired, done: Promise.all(jobs) };
 }
 
 export function startScheduler() {
@@ -91,5 +96,5 @@ export function startScheduler() {
   if (!admin) { console.log('[scheduler] off — no service-role key; scans run on demand only'); return; }
   console.log('[scheduler] on — checking schedules every minute (each schedule in its own time zone)');
   tick();
-  timer = setInterval(tick, 20 * 1000);
+  timer = setInterval(() => tick(), 20 * 1000);
 }
