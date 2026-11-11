@@ -13,25 +13,36 @@ const FIELD = {
   Close: () => 'close', Open: () => 'open', High: () => 'high', Low: () => 'low',
   'Daily change': () => 'change', 'Perf 1D': () => 'change', 'Gap %': () => 'gap',
   // volume & liquidity
-  Volume: () => 'volume', 'Average volume': () => 'average_volume_10d_calc',
-  'Relative volume': () => 'relative_volume_10d_calc', 'Dollar volume': () => 'Value.Traded',
+  Volume: () => 'volume', 'Average volume': () => 'average_volume_10d_calc', 'Average volume 90D': () => 'average_volume_90d_calc',
+  'Relative volume': () => 'relative_volume_10d_calc', 'Intraday relative volume': () => 'relative_volume_intraday',
+  'Dollar volume': () => 'Value.Traded',
   'Premarket volume': () => 'premarket_volume', 'Premarket change': () => 'premarket_change',
   // performance & ranges
   'Perf 1W': () => 'Perf.W', 'Perf 1M': () => 'Perf.1M', 'Perf 3M': () => 'Perf.3M',
   'Perf 6M': () => 'Perf.6M', 'Perf 1Y': () => 'Perf.Y',
-  'Month high': () => 'High.1M', 'Month low': () => 'Low.1M', 'Week high': () => 'High.1W', 'Week low': () => 'Low.1W',
+  'Month high': () => 'High.1M', 'Month low': () => 'Low.1M', 'Week high': () => 'High.5D', 'Week low': () => 'Low.5D',
   // indicators (MA family carry the length in the field name)
-  SMA: (len) => `SMA${len}`, EMA: (len) => `EMA${len}`, WMA: (len) => `WMA${len}`, VWMA: (len) => `VWMA${len}`,
-  VWAP: () => 'VWAP', RSI: () => 'RSI', ATR: () => 'ATR', ADX: () => 'ADX', CCI: () => 'CCI20', ROC: () => 'ROC',
+  // (WMA is not offered by the scanner at any length, so it is left unmapped and reported.)
+  SMA: (len) => `SMA${len}`, EMA: (len) => `EMA${len}`, VWMA: () => 'VWMA',
+  VWAP: () => 'VWAP', RSI: (len) => (len === 14 ? 'RSI' : `RSI${len}`), ATR: () => 'ATR', ADX: () => 'ADX', CCI: () => 'CCI20', ROC: () => 'ROC',
   // fundamentals & growth
   'Market cap': () => 'market_cap_basic', PE: () => 'price_earnings_ttm', PS: () => 'price_sales_current',
   'EPS growth Q': () => 'earnings_per_share_diluted_yoy_growth_fq', 'EPS growth Y': () => 'earnings_per_share_diluted_yoy_growth_fy',
   'Revenue growth Q': () => 'total_revenue_yoy_growth_fq', 'Revenue growth Y': () => 'total_revenue_yoy_growth_fy',
-  'ROE': () => 'return_on_equity', 'Net margin': () => 'net_margin', 'Dividend yield': () => 'dividend_yield_recent',
+  'ROE': () => 'return_on_equity', 'Net margin': () => 'net_margin', 'Dividend yield': () => 'dividends_yield_current',
   // classification (string compares)
   Sector: () => 'sector', Industry: () => 'industry', Exchange: () => 'exchange', Country: () => 'country',
 };
-const MA_FAMILY = new Set(['SMA', 'EMA', 'WMA', 'VWMA']);
+// The lengths the live scanner actually has (checked against it 2026-11-11). A field
+// for any other length does not exist there, and the scanner answers such a filter with
+// "0 stocks" and no error — so an unavailable length is reported here, never sent.
+const MA_LENGTHS = [2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 20, 21, 25, 26, 30, 34, 40, 50, 55, 60, 75, 89, 100, 120, 144, 150, 200, 250, 300];
+export const LENGTHS = {
+  SMA: MA_LENGTHS, EMA: MA_LENGTHS,
+  RSI: [2, 3, 4, 5, 7, 9, 10, 14, 20, 21, 30],
+  // one fixed length each on the scanner
+  VWMA: [20], ATR: [14], ADX: [14], CCI: [20], ROC: [9],
+};
 const STRING_METRIC = new Set(['Sector', 'Industry', 'Exchange', 'Country']);
 
 const OP = { '>': 'greater', '≥': 'egreater', '<': 'less', '≤': 'eless', '=': 'equal', '≠': 'nequal', Between: 'in_range' };
@@ -42,29 +53,40 @@ const TF = {
 };
 
 // Build the scanner field name for one side: base field + MA length + timeframe suffix.
-function fieldFor(metric, length, timeframe) {
+// → { field } or { error }. A metric with lengths uses the given one (blank = its
+// first-choice default) and is refused when the scanner has no such length.
+function fieldFor(metric, length, timeframe, what = 'metric') {
   const fn = FIELD[metric];
-  if (!fn) return null;
-  const base = MA_FAMILY.has(metric) ? fn(Math.max(1, +length || 14)) : fn();
-  return base + (TF[timeframe] || '');
+  if (!fn) return { error: `${what} "${metric}" is not available on the live scanner yet` };
+  const allowed = LENGTHS[metric];
+  if (!allowed) return { field: fn() + (TF[timeframe] || '') };
+  const blank = length == null || String(length).trim() === '';
+  const len = blank ? (allowed.includes(14) ? 14 : allowed[0]) : Number(length);
+  if (!allowed.includes(len)) {
+    return { error: `${metric} length ${length} is not available — the live scanner has ${metric} ${allowed.length === 1 ? allowed[0] + ' only' : allowed.join(', ')}` };
+  }
+  return { field: fn(len) + (TF[timeframe] || '') };
 }
 
 // One condition → one {left, operation, right}, or null (with a reason) if unmappable.
 function translateOne(c) {
-  const left = fieldFor(c.metric, c.length, c.timeframe);
-  if (!left) return { error: `metric "${c.metric}" is not available on the live scanner yet` };
+  const l = fieldFor(c.metric, c.length, c.timeframe);
+  if (l.error) return l;
+  const left = l.field;
   const operation = OP[c.operator];
   if (!operation) return { error: `operator "${c.operator}" is not available on the live scanner yet` };
+  const blank = (v) => v == null || String(v).trim() === '';
 
   if (c.mode === 'filter') {
-    const right = fieldFor(c.compareMetric, c.compareLength, c.compareTimeframe);
-    if (!right) return { error: `compare metric "${c.compareMetric}" is not available yet` };
-    return { rule: { left, operation, right } };
+    if (c.operator === 'Between') return { error: 'Between compares against two numbers, not another filter' };
+    const r = fieldFor(c.compareMetric, c.compareLength, c.compareTimeframe, 'compare metric');
+    if (r.error) return r;
+    return { rule: { left, operation, right: r.field } };
   }
   // value mode (and Between)
   if (c.operator === 'Between') {
     const lo = +c.value, hi = +c.upper;
-    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return { error: 'Between needs two numbers' };
+    if (blank(c.value) || blank(c.upper) || !Number.isFinite(lo) || !Number.isFinite(hi)) return { error: 'Between needs two numbers' };
     return { rule: { left, operation: 'in_range', right: [Math.min(lo, hi), Math.max(lo, hi)] } };
   }
   const raw = c.value;

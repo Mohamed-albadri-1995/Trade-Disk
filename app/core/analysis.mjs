@@ -142,5 +142,6 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
   };
 
   cache.set(t, { at: Date.now(), snap });
+  if (cache.size > 500) cache.delete(cache.keys().next().value);   // drop the oldest; the cache must not grow without limit
   return snap;
 }

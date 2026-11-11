@@ -37,7 +37,7 @@ test('server: files outside the web folder are not served', async () => {
   assert.notEqual(r.status, 200);
 });
 
-test('server: a malformed web address does not take the server down', { todo: 'GET /%E0%A4%A throws inside serveStatic with nothing to catch it; Node exits, so one request from anyone (no sign-in) stops the app and the background scheduler' }, async () => {
+test('server: a malformed web address does not take the server down', async () => {
   await fetch(`${base}/%E0%A4%A`).catch(() => {});
   await new Promise((r) => setTimeout(r, 300));
   const alive = await up();

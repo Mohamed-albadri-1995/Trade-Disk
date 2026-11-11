@@ -22,8 +22,8 @@ export const COLUMNS = [
 // buildable: you can load one into the custom builder, see its rules, edit them, and
 // run the edited version — the builder reproduces the real screener, which is how its
 // flexibility is proved. `filters` is the exact, TradingView-verified rule set run by
-// default; `conditions` is the editable equivalent (a few intraday-only rules in
-// Trend Leaders are expressed with their daily equivalents, which the builder supports).
+// default; `conditions` is the editable equivalent and must translate to exactly the
+// same rules (test/radar-screeners.test.mjs holds every built-in to that).
 const C = (metric, operator, extra = {}) => ({ metric, operator, mode: 'value', timeframe: 'Daily', ...extra });
 const F = (metric, operator, compareMetric, extra = {}) => ({ metric, operator, mode: 'filter', timeframe: 'Daily', compareMetric, compareTimeframe: 'Daily', ...extra });
 
@@ -52,9 +52,11 @@ export const SCREENERS = [
       F('Close', '≥', 'VWAP'),
       F('Close', '>', 'VWAP', { timeframe: 'Weekly', compareTimeframe: 'Weekly' }),
       F('Close', '>', 'VWAP', { timeframe: 'Monthly', compareTimeframe: 'Monthly' }),
-      F('EMA', '>', 'EMA', { length: 50, compareLength: 120 }),
-      F('Close', '≥', 'EMA', { compareLength: 50 }),
-      C('Average volume', '>', { value: 1000000 }),
+      F('EMA', '>', 'EMA', { length: 50, compareLength: 120, timeframe: '1 minute', compareTimeframe: '1 minute' }),
+      F('Close', '≥', 'EMA', { compareLength: 50, timeframe: '1 minute', compareTimeframe: '1 minute' }),
+      C('Average volume 90D', '>', { value: 1000000 }),
+      F('VWAP', '≥', 'SMA', { compareLength: 75, compareTimeframe: '5 minutes' }),
+      C('Intraday relative volume', '>', { value: 3, timeframe: '5 minutes' }),
       C('Relative volume', '>', { value: 1.5 }),
       C('Close', '≥', { value: 1 }),
     ],
@@ -71,6 +73,7 @@ export const SCREENERS = [
       { left: 'premarket_volume', operation: 'greater', right: 1500000 },
     ],
     conditions: [
+      C('Close', '≥', { value: 0.5 }),
       C('Close', '≥', { value: 1 }),
       C('Average volume', '>', { value: 2000000 }),
       C('Relative volume', '>', { value: 3 }),
@@ -105,9 +108,9 @@ export const SCREENERS = [
       { left: 'average_volume_10d_calc', operation: 'greater', right: 500000 },
     ],
     conditions: [
-      F('SMA', '>', 'EMA', { length: 5, compareLength: 9 }),
-      F('EMA', '>', 'EMA', { length: 9, compareLength: 13 }),
-      F('EMA', '>', 'EMA', { length: 13, compareLength: 20 }),
+      F('SMA', '>', 'EMA', { length: 5, compareLength: 9, timeframe: '1 minute', compareTimeframe: '1 minute' }),
+      F('EMA', '>', 'EMA', { length: 9, compareLength: 13, timeframe: '1 minute', compareTimeframe: '1 minute' }),
+      F('EMA', '>', 'EMA', { length: 13, compareLength: 20, timeframe: '1 minute', compareTimeframe: '1 minute' }),
       F('Close', '≥', 'Month high'),
       C('Close', '≥', { value: 1 }),
       C('Average volume', '>', { value: 500000 }),
@@ -147,8 +150,11 @@ const capFmt = (n) => {
   if (n == null) return '—';
   const a = Math.abs(n);
   if (a >= 1e12) return (n / 1e12).toFixed(2) + 'T';
-  if (a >= 1e9) return Math.round(n / 1e9) + 'B';
-  if (a >= 1e6) return Math.round(n / 1e6) + 'M';
+  // one decimal under 10 (1.5B, not "2B"), whole numbers above; a value that rounds
+  // up to 1000 of its unit moves to the next unit (999.6M → 1B, not "1000M")
+  const short = (v) => String(+v.toFixed(Math.abs(v) < 9.95 ? 1 : 0));
+  if (a >= 999.5e6) return short(n / 1e9) + 'B';
+  if (a >= 999.5e3) return short(n / 1e6) + 'M';
   return String(Math.round(n));
 };
 const capBand = (n) => (n == null ? '' : n >= 1e10 ? 'large' : n >= 2e9 ? 'mid' : 'small');
@@ -159,7 +165,8 @@ const capBand = (n) => (n == null ? '' : n >= 1e10 ? 'large' : n >= 2e9 ? 'mid' 
 // those feeds are wired (DATA-CATALOG groups 6 & 8).
 export function toCard(r, i = 0) {
   const p = r.close, c = r.change ?? 0;
-  const prev = (p != null && c != null) ? p / (1 + c / 100) : p;
+  // previous close implied by today's % change; a −100% (or worse) print has none
+  const prev = (p != null && c > -100) ? p / (1 + c / 100) : p;
   const abs = (p != null && prev != null) ? +(p - prev).toFixed(2) : 0;
   const adr = (r.ATR && p) ? +((r.ATR / p) * 100).toFixed(2) : 0;
   const rvol = r.relative_volume_10d_calc;

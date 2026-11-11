@@ -8,6 +8,7 @@ import * as registers from '../api/registers.mjs';
 import { collect, collectionStatus } from '../core/collect.mjs';
 import { computeLabels } from '../core/labels.mjs';
 import { etDay } from '../core/register.mjs';
+import { windowDue, minuteIn, marketOpenDay, parts } from '../core/scheduler.mjs';
 import { COLUMNS } from '../core/screeners.mjs';
 import * as yahoo from '../providers/yahoo.mjs';
 
@@ -28,7 +29,7 @@ test('technicals: a steady uptrend reads as bullish, aligned, RSI 100, near its 
   assert.ok(t.rangePosPct.year > 99);
 });
 
-test('technicals: 50 up days in a row count as accumulation', { todo: 'with no down-volume the up/down ratio is null, so the strongest possible case is flagged "not accumulating"' }, () => {
+test('technicals: 50 up days in a row count as accumulation', () => {
   assert.equal(technicals(dailyBars(260, (i) => 100 + i)).accumulation, true);
 });
 
@@ -42,7 +43,7 @@ test('technicals: short history leaves long indicators null instead of guessing'
   assert.equal(t.sma200, null); assert.equal(t.rsi14, null); assert.equal(t.macd, null); assert.equal(t.atr14, null);
 });
 
-test('technicals: RSI uses Wilder smoothing, as its comment says', { todo: 'the code averages only the last 14 changes (no smoothing), so RSI differs from TradingView/other platforms by several points on real data' }, () => {
+test('technicals: RSI uses Wilder smoothing, as its comment says', () => {
   const closes = Array.from({ length: 120 }, (_, i) => 100 + 10 * Math.sin(i / 3) + (i % 7) - i * 0.05);
   // reference Wilder RSI(14)
   let g = 0, l = 0;
@@ -58,6 +59,40 @@ test('compute: ema, relative volume and ADR', () => {
   assert.equal(ema([], 10), null); assert.equal(ema([5, 5, 5], 10), 5);
   assert.equal(rvol([{ v: 100 }, { v: 100 }, { v: 300 }]), 3); assert.equal(rvol([{ v: 1 }]), null);
   assert.equal(adrPct([{ h: 11, l: 10 }, { h: 21, l: 20 }]), 7.5); assert.equal(adrPct([]), null);
+});
+
+test('technicals: today’s bar counts as still forming only before the 16:00 ET close', () => {
+  const bars = dailyBars(30, (i) => 50 + i, Date.parse('2026-01-05T14:30:00Z') / 1000);
+  bars.forEach((b, i) => { b.v = i === 29 ? 5 : 1000; });       // today's volume so far is tiny
+  const during = technicals(bars, Date.parse('2026-01-05T17:00:00Z'));   // 12:00 ET
+  const after = technicals(bars, Date.parse('2026-01-05T21:30:00Z'));    // 16:30 ET, same UTC day
+  assert.equal(during.volumeSession, 1000, 'mid-session: volume stats use the last finished day');
+  assert.equal(after.volumeSession, 5, 'after the close: today is a finished session');
+});
+
+// ── the scheduler's clock ──
+test('scheduler: a window fires on its start, every N minutes, through its end', () => {
+  const w = { start: '09:30', end: '09:45', every: 5 };
+  assert.deepEqual([569, 570, 571, 575, 585, 586, 590].map((m) => windowDue(m, w)), [false, true, false, true, true, false, false]);
+  assert.equal(windowDue(600, { start: '10:00', end: '10:00' }), true);
+  assert.equal(windowDue(603, { start: '10:00', end: '11:00', every: 0 }), false, 'a missing interval means every 5 minutes');
+});
+
+test('scheduler: each schedule is read in its own time zone', () => {
+  const at = new Date('2026-01-05T14:30:00Z');                // 09:30 New York, 17:30 Riyadh
+  assert.equal(minuteIn('America/New_York', at), 570);
+  assert.equal(minuteIn('UTC', at), 870);
+  assert.equal(minuteIn('Asia/Riyadh', at), 1050);
+  for (const legacy of ['device', undefined, null, 'Not/AZone']) assert.equal(minuteIn(legacy, at), 570, `${legacy} → US Eastern`);
+});
+
+test('scheduler: weekends and NYSE holidays are skipped', () => {
+  const day = (iso) => marketOpenDay(parts('America/New_York', new Date(iso)));
+  assert.equal(day('2026-01-05T15:00:00Z'), true);            // Monday
+  assert.equal(day('2026-01-03T15:00:00Z'), false);           // Saturday
+  assert.equal(day('2026-11-26T15:00:00Z'), false);           // Thanksgiving
+  assert.equal(day('2026-12-25T15:00:00Z'), false);
+  assert.equal(day('2026-11-27T15:00:00Z'), true);            // early close still trades
 });
 
 // ── the register browser ──
@@ -101,10 +136,15 @@ test('intraday bars: no key, rate limit and provider errors are reported, not ca
   assert.equal((db.tables.polygon_bars || []).length, 0);
 });
 
-test('intraday bars: an empty or still-forming day is not cached forever', { todo: 'whatever Polygon returns is cached permanently — asking for today mid-session (or a day with no data yet) stores a partial/empty day that is then served as final' }, async (t) => {
+test('intraday bars: an empty or still-forming day is not cached forever', async (t) => {
   const f = stubFetch(() => ({ json: { results: [] } })); t.after(f.restore);
   const db = polyDb();
-  await registers.intradayBars(db, 'u1', 'AAPL', etDay(), 1);
+  await registers.intradayBars(db, 'u1', 'AAPL', '2026-01-05', 1);                     // a past day with no bars
+  assert.equal((db.tables.polygon_bars || []).length, 0);
+  f.restore();
+  const g = stubFetch(() => ({ json: { results: [{ t: 1767623400000, o: 1, h: 2, l: 0.5, c: 1.5, v: 10 }] } })); t.after(g.restore);
+  const r = await registers.intradayBars(db, 'u1', 'AAPL', etDay(), 1);                 // today: returned, not stored
+  assert.equal(r.bars.length, 1); assert.equal(r.cached, false);
   assert.equal((db.tables.polygon_bars || []).length, 0);
 });
 

@@ -85,9 +85,10 @@ test('register: runScreener only reads and writes its own account', async () => 
 const twoAccounts = () => fakeDb({ radar_register: ['u1', 'u2'].map((o) => (
   { owner_id: o, day: etDay(), screener: spec.key, ticker: o === 'u1' ? 'MINE' : 'THEIRS', card: { t: o, s: 50 }, live: true, first_seen: '2026-01-01T14:00:00Z', last_live: '2026-01-01T15:00:00Z' })) });
 
-test('register: readRegister returns only the asking account', { todo: 'readRegister/tickerStamps have no owner filter. Safe for page requests (database row security), but the background scheduler uses the service-role client, which bypasses it: when a scheduled scan fails, the fallback reads every account’s register and freezes it into this account’s snapshot' }, async () => {
-  const r = await readRegister(twoAccounts(), spec.key);
-  assert.equal(r.count, 1);
+test('register: readRegister returns only the asking account', async () => {
+  const r = await readRegister(twoAccounts(), spec.key, 'u1');
+  assert.deepEqual(r.stocks.map((s) => s.t), ['u1']);
+  assert.equal((await tickerStamps(twoAccounts(), 'THEIRS', 'u1')), null);
 });
 
 test('register: tickerStamps gives first-seen / last-live across screeners, null when unseen', async () => {
@@ -110,12 +111,21 @@ test('scan: unknown screener and commercial mode return an error, not a throw', 
   assert.match(r.error, /Personal mode/); assert.equal(f.calls.length, 0, 'no TradingView call in commercial mode');
 });
 
-test('scan: when the live scan fails, today’s saved list is returned marked stale', async (t) => {
-  const db = personal({ radar_register: [{ owner_id: 'u1', day: etDay(), screener: 'volume-surges', ticker: 'AAA', card: { t: 'AAA', s: 60 }, live: true, first_seen: 'x', last_live: 'x' }] });
+test('scan: when the live scan fails, today’s saved list is returned marked stale — this account’s only', async (t) => {
+  const db = personal({ radar_register: [{ owner_id: 'u2', day: etDay(), screener: 'volume-surges', ticker: 'ZZZ', card: { t: 'ZZZ', s: 99 }, live: true, first_seen: 'x', last_live: 'x' }, { owner_id: 'u1', day: etDay(), screener: 'volume-surges', ticker: 'AAA', card: { t: 'AAA', s: 60 }, live: true, first_seen: 'x', last_live: 'x' }] });
   const f = stubFetch((url) => (url.includes('tradingview') ? { status: 503, json: {} } : { status: 500, json: {} })); t.after(f.restore);
   const r = await radar.scan(db, 'u1', 'volume-surges');
   assert.equal(r.stale, true); assert.match(r.scanError, /HTTP 503/);
   assert.deepEqual(r.stocks.map((s) => s.t), ['AAA']);
+});
+
+test('scan: a junk or negative limit falls back to 50, a large one is capped at 100', async (t) => {
+  const f = stubFetch(() => ({ json: { data: [] } })); t.after(f.restore);
+  for (const lim of [-5, 'abc', null, 0]) await radar.scan(personal(), 'u1', 'volume-surges', lim);
+  await radar.scan(personal(), 'u1', 'volume-surges', 9999);
+  await radar.previewConditions(personal(), { conditions: [{ metric: 'Close', operator: '>', mode: 'value', value: 1 }], limit: -3 });
+  const scans = f.calls.filter((c) => c.url.includes('tradingview') && !c.body.symbols?.tickers);
+  assert.deepEqual(scans.map((c) => c.body.range[1]), [50, 50, 50, 50, 100, 50]);
 });
 
 test('shortlist: toggle adds then removes', async () => {
@@ -138,9 +148,9 @@ test('screener config: save, list, schedule a built-in, delete', async () => {
   assert.equal((await radar.screenerConfigs(db)).schedules['volume-surges'].windows.length, 1, 'deleting a custom screener leaves built-in schedules');
 });
 
-test('screener config: a custom screener cannot take a built-in’s id', { todo: 'saveScreenerConfig trusts the id sent by the page; id "volume-surges" overwrites that built-in’s saved schedule with a custom row that can never run' }, async () => {
+test('screener config: a custom screener cannot take a built-in’s id', async () => {
   const db = fakeDb();
   await radar.saveSchedule(db, 'u1', 'volume-surges', { windows: [{ start: '09:30', end: '09:45', every: 5 }] });
-  await radar.saveScreenerConfig(db, 'u1', { id: 'volume-surges', name: 'Clash' }).catch(() => {});
+  await assert.rejects(radar.saveScreenerConfig(db, 'u1', { id: 'volume-surges', name: 'Clash' }), /built-in screener/);
   assert.equal((await radar.screenerConfigs(db)).schedules['volume-surges']?.windows.length, 1);
 });

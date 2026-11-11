@@ -5,7 +5,7 @@
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { join, normalize, extname } from 'node:path';
+import { join, normalize, extname, sep } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as lab from './api/lab.mjs';
@@ -101,8 +101,8 @@ async function api(req, res, url) {
         if (sub === 'market') return json(res, await radar.market(sb));
         if (sub === 'groups') return json(res, await radar.groups(sb));
         if (sub === 'screeners') return json(res, radar.screeners());
-        if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, uid, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
-        if (sub === 'register' && seg[3]) return json(res, await radar.register(sb, decodeURIComponent(seg[3])));
+        if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, uid, decodeURIComponent(seg[3]), url.searchParams.get('limit')));
+        if (sub === 'register' && seg[3]) return json(res, await radar.register(sb, decodeURIComponent(seg[3]), uid));
         if (sub === 'bars' && seg[3]) return json(res, await radar.bars(sb, decodeURIComponent(seg[3])));
         if (sub === 'register-screens') return json(res, await registers.screens(sb));
         if (sub === 'register-days') return json(res, await registers.days(sb, url.searchParams.get('screen')));
@@ -110,7 +110,7 @@ async function api(req, res, url) {
         if (sub === 'intraday-bars') return json(res, await registers.intradayBars(sb, uid, url.searchParams.get('ticker'), url.searchParams.get('day'), url.searchParams.get('interval')));
         if (sub === 'collection') return json(res, await radar.collectStatus(sb));
         if (sub === 'export') return json(res, await radar.exportData(sb, url.searchParams.get('day')));
-        if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }));
+        if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }, uid));
         if (sub === 'configs') return json(res, await radar.screenerConfigs(sb));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, await radar.toggleShortlist(sb, uid, decodeURIComponent(seg[3])));
@@ -227,7 +227,9 @@ async function sendFile(res, file) {
 // back to the owning app's index.html (SPA client routing). The root serves the
 // Station launcher once it exists, otherwise it sends users to the Journal.
 async function serveStatic(res, url) {
-  let rel = decodeURIComponent(url.pathname);
+  let rel;
+  try { rel = decodeURIComponent(url.pathname); }
+  catch { return json(res, { error: 'bad request' }, 400); }   // malformed %-escape
 
   if (rel === '/') {
     try { return await sendFile(res, join(WEB, 'index.html')); }
@@ -236,7 +238,7 @@ async function serveStatic(res, url) {
 
   if (rel.endsWith('/')) rel += 'index.html';
   const path = normalize(join(WEB, rel));
-  if (!path.startsWith(WEB)) return json(res, { error: 'forbidden' }, 403);
+  if (path !== WEB && !path.startsWith(WEB + sep)) return json(res, { error: 'forbidden' }, 403);
   try {
     const s = await stat(path);
     return await sendFile(res, s.isDirectory() ? join(path, 'index.html') : path);
@@ -250,10 +252,16 @@ async function serveStatic(res, url) {
   }
 }
 
+// No request may take the process down: a throw anywhere (bad URL, a handler bug)
+// is answered as an error instead of becoming an unhandled rejection that exits Node.
 createServer((req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname.startsWith('/api/')) return api(req, res, url);
-  return serveStatic(res, url);
+  Promise.resolve().then(() => {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    return url.pathname.startsWith('/api/') ? api(req, res, url) : serveStatic(res, url);
+  }).catch((e) => {
+    console.log('[server] request error', req.method, req.url, e && e.message);
+    if (!res.headersSent) json(res, { error: 'bad request' }, 400); else res.end();
+  });
 }).listen(PORT, () => {
   console.log(`Trade-Disk (solo) on http://localhost:${PORT}`);
   startScheduler();   // fire saved scan schedules + collect data during market hours (needs the service-role key)

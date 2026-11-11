@@ -66,9 +66,13 @@ export async function runScreener(sb, uid, spec) {
 }
 
 // Read today's register for a screener without running a scan (page revisit).
-export async function readRegister(sb, key) {
+// `uid` scopes the read to one account. Page requests are already scoped by row-level
+// security, but the scheduler's service-role client is not, so callers pass it.
+export async function readRegister(sb, key, uid = null) {
   const day = etDay();
-  const rows = chk(await sb.from('radar_register').select('*').eq('day', day).eq('screener', key));
+  let q = sb.from('radar_register').select('*').eq('day', day).eq('screener', key);
+  if (uid) q = q.eq('owner_id', uid);
+  const rows = chk(await q);
   const stocks = rows.map((r) => ({ ...r.card, live: r.live, firstSeen: r.first_seen, lastLive: r.last_live, firstSeenEt: etTime(r.first_seen), lastLiveEt: etTime(r.last_live) }));
   stocks.sort((a, b) => (b.live === a.live ? (b.s || 0) - (a.s || 0) : (b.live ? 1 : -1)));
   stocks.forEach((c, i) => { c.color = COLORS[i % COLORS.length]; });
@@ -76,9 +80,11 @@ export async function readRegister(sb, key) {
 }
 
 // The first-seen / last-live stamps for one ticker today (for the analysis hero).
-export async function tickerStamps(sb, ticker) {
+export async function tickerStamps(sb, ticker, uid = null) {
   const day = etDay();
-  const rows = chk(await sb.from('radar_register').select('screener, live, first_seen, last_live').eq('day', day).eq('ticker', ticker));
+  let q = sb.from('radar_register').select('screener, live, first_seen, last_live').eq('day', day).eq('ticker', ticker);
+  if (uid) q = q.eq('owner_id', uid);
+  const rows = chk(await q);
   if (!rows.length) return null;
   const firstSeen = rows.map((r) => r.first_seen).sort()[0];
   const lastLive = rows.map((r) => r.last_live).sort().at(-1);

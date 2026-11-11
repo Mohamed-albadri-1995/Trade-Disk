@@ -10,20 +10,32 @@ const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const r2 = (v) => (v == null || !isFinite(v) ? null : +(+v).toFixed(2));
 const r1 = (v) => (v == null || !isFinite(v) ? null : +(+v).toFixed(1));
 const sma = (vals, n) => (vals.length >= n ? mean(vals.slice(-n)) : null);
-const dayUTC = (ms) => new Date(ms).toISOString().slice(0, 10);
+// The US market's calendar day and minute-of-day for an instant. A daily bar is
+// "still forming" only on its own ET day before the 16:00 ET close.
+const etDay = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const etMinute = (ms) => {
+  const [h, m] = new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+  return (h % 24) * 60 + m;
+};
 
-// Wilder RSI(14).
+// Wilder RSI(14): seed with the plain average of the first n changes, then smooth
+// every later change in (avg = (avg·(n−1) + change) / n) — the form TradingView and
+// other platforms use, so the number matches what a trader sees elsewhere.
 function rsi(closes, n = 14) {
   if (closes.length < n + 1) return null;
-  let gain = 0, loss = 0;
-  for (let i = closes.length - n; i < closes.length; i++) {
+  let ag = 0, al = 0;
+  for (let i = 1; i <= n; i++) {
     const d = closes[i] - closes[i - 1];
-    if (d >= 0) gain += d; else loss -= d;
+    if (d >= 0) ag += d; else al -= d;
   }
-  const ag = gain / n, al = loss / n;
-  if (al === 0) return 100;
-  const rs = ag / al;
-  return 100 - 100 / (1 + rs);
+  ag /= n; al /= n;
+  for (let i = n + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    ag = (ag * (n - 1) + Math.max(d, 0)) / n;
+    al = (al * (n - 1) + Math.max(-d, 0)) / n;
+  }
+  if (al === 0) return ag === 0 ? 50 : 100;
+  return 100 - 100 / (1 + ag / al);
 }
 
 // Wilder ATR(14).
@@ -74,10 +86,10 @@ const posPct = (price, w) => {
   return hi === lo ? 50 : r1(((price - lo) / (hi - lo)) * 100);
 };
 
-export function technicals(bars) {
+export function technicals(bars, nowMs = Date.now()) {
   if (!bars || bars.length < 2) return {};
   const last = bars[bars.length - 1];
-  const partial = dayUTC(last.t * 1000) === dayUTC(Date.now());
+  const partial = etDay(last.t * 1000) === etDay(nowMs) && etMinute(nowMs) < 16 * 60;
   const done = partial ? bars.slice(0, -1) : bars;   // completed sessions
   const closesAll = bars.map((b) => b.c);
   const closesDone = done.map((b) => b.c);
@@ -95,7 +107,7 @@ export function technicals(bars) {
   const rvol20 = avgVol20 ? (done[done.length - 1].v) / avgVol20 : null;
   let upv = 0, dnv = 0;
   for (let i = done.length - 50; i < done.length; i++) { if (i < 1) continue; (done[i].c >= done[i - 1].c ? upv += done[i].v : dnv += done[i].v); }
-  const upDown = dnv ? upv / dnv : null;
+  const upDown = dnv ? upv / dnv : null;   // null when there was no down-volume at all
   const adr = (() => { const w = done.slice(-20); return w.length ? mean(w.map((b) => b.h / b.l)) * 100 - 100 : null; })();
   const atr14 = atr(done);
 
@@ -118,7 +130,7 @@ export function technicals(bars) {
     roc20Pct: closesAll.length > 20 ? r2((price / closesAll[closesAll.length - 21] - 1) * 100) : null,
     atr14: r2(atr14), adrPct20: r1(adr), dailyMoveAtr: atr14 ? r2((last.h - last.l) / atr14) : null,
     volumeSession, avgVol20: avgVol20 ? Math.round(avgVol20) : null, rvol20: r2(rvol20),
-    upDownVolRatio: r2(upDown), accumulation: upDown != null && upDown > 1,
+    upDownVolRatio: r2(upDown), accumulation: upDown != null ? upDown > 1 : upv > 0,
     high52: r2(high52), low52: r2(low52), distFromHighPct: high52 ? r1(((price - high52) / high52) * 100) : null,
     rangePosPct: { week: posPct(price, win(5)), month: posPct(price, win(21)), quarter: posPct(price, win(63)), year: posPct(price, y) },
     support: { near: r2(Math.min(lo10, price)), major: r2(lo30) },

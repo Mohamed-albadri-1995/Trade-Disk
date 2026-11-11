@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   FILTER_LIBRARY, OPERATORS, TIMEFRAMES, SOURCES, VARIANTS, SESSIONS, EVERY_OPTIONS, TIMEZONES,
   newCondition, newWindow, fieldVisibility, buildConditionPreview, conditionIncomplete,
-  filterSummary, scheduleSummary,
+  filterSummary, scheduleSummary, tzToSave, tzToShow, tzOptions, FIXED_LENGTH,
 } from './screener-builder.js';
 import { api } from './api.js';
 
@@ -22,7 +22,7 @@ function ConditionRow({ c, n, isLast, onChange, onRemove }) {
       <div className="condition-row-head"><strong>CONDITION <span className="condition-number">{n}</span></strong><button type="button" onClick={onRemove}>Remove</button></div>
       <div className="condition-fields">
         <div className="field"><label>Filter</label>
-          <select className="condition-metric" aria-label="Filter" value={c.metric} onChange={(e) => set({ metric: e.target.value })}><MetricOptions /></select>
+          <select className="condition-metric" aria-label="Filter" value={c.metric} onChange={(e) => set({ metric: e.target.value, ...(FIXED_LENGTH[e.target.value] ? { length: FIXED_LENGTH[e.target.value] } : {}) })}><MetricOptions /></select>
         </div>
         <div className="field"><label>Timeframe</label>
           <select className="condition-timeframe" value={c.timeframe} onChange={(e) => set({ timeframe: e.target.value })}>{TIMEFRAMES.map((t) => <option key={t}>{t}</option>)}</select>
@@ -118,19 +118,19 @@ function SavedScreener({ c, onEdit, onDelete }) {
 // and timezone are editable. Saved to the server per screener key.
 function BuiltinSchedule({ s, schedule, onSave, onLoad, onToast }) {
   const [windows, setWindows] = useState(() => (schedule?.windows?.length ? schedule.windows : [newWindow()]).map((w) => newWindow(w)));
-  const [timezone, setTimezone] = useState(schedule?.timezone || 'device');
+  const [timezone, setTimezone] = useState(tzToShow(schedule?.timezone));
   const [saving, setSaving] = useState(false);
   // Pick up the server's stored schedule once it arrives.
   useEffect(() => {
     if (schedule) {
       setWindows((schedule.windows?.length ? schedule.windows : [newWindow()]).map((w) => newWindow(w)));
-      setTimezone(schedule.timezone || 'device');
+      setTimezone(tzToShow(schedule.timezone));
     }
   }, [schedule]);
   const save = () => {
     if (!windows.length || windows.some((w) => !w.start || !w.end || w.start >= w.end)) { onToast('Each window needs a valid start and end time.'); return; }
     setSaving(true);
-    onSave(s.key, { windows, timezone }).catch(() => {}).finally(() => setSaving(false));
+    onSave(s.key, { windows, timezone: tzToSave(timezone) }).catch(() => {}).finally(() => setSaving(false));
   };
   return (
     <div className="saved-screener" style={{ display: 'block' }}>
@@ -148,7 +148,7 @@ function BuiltinSchedule({ s, schedule, onSave, onLoad, onToast }) {
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
         <button type="button" className="add-window" onClick={() => setWindows((ws) => [...ws, newWindow()])}>＋ Add window</button>
-        <select className="select" style={{ maxWidth: '180px' }} value={timezone} onChange={(e) => setTimezone(e.target.value)}>{TIMEZONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <select className="select" style={{ maxWidth: '180px' }} value={timezone} onChange={(e) => setTimezone(e.target.value)}>{tzOptions(timezone).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         <button className="primary" style={{ marginLeft: 'auto' }} disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save schedule'}</button>
       </div>
     </div>
@@ -262,7 +262,7 @@ export function Settings({ onToast }) {
       name: c.name, description: c.description || '',
       conditions: (c.conditions && c.conditions.length ? c.conditions : (c.filters || []).map((metric) => ({ metric }))).map((x) => newCondition(x)),
       windows: (c.windows && c.windows.length ? c.windows : [{}]).map((w) => newWindow(w)),
-      timezone: c.timezone || 'device',
+      timezone: tzToShow(c.timezone),
     });
     setEditorOpen(true);
   };
@@ -301,7 +301,7 @@ export function Settings({ onToast }) {
     if (!conditions.length || conditions.some(conditionIncomplete)) { onToast('Complete each condition or remove the empty row.'); return; }
     if (!form.windows.length) { onToast('Add at least one running window.'); return; }
     if (form.windows.some((w) => !w.start || !w.end || w.start >= w.end)) { onToast('Each running window needs a valid start and end time.'); return; }
-    const cfg = { id: editingId || undefined, name, description: form.description.trim(), conditions, windows: form.windows, timezone: form.timezone };
+    const cfg = { id: editingId || undefined, name, description: form.description.trim(), conditions, windows: form.windows, timezone: tzToSave(form.timezone) };
     api.saveConfig(cfg)
       .then(({ custom }) => { setConfigs(custom || []); setEditorOpen(false); onToast('Screener saved to your workspace.'); })
       .catch((e) => onToast(String(e.message)));
@@ -387,7 +387,7 @@ export function Settings({ onToast }) {
           <button type="button" className="add-window" onClick={() => setWindows((ws) => [...ws, newWindow()])}>＋ Add running window</button>
 
           <div className="field timezone-field"><label htmlFor="scheduleTimezone">TIME ZONE</label>
-            <select className="select" id="scheduleTimezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })}>{TIMEZONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            <select className="select" id="scheduleTimezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })}>{tzOptions(form.timezone).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             <div className="window-help">Production scheduling must respect US exchange holidays and daylight-saving changes.</div>
           </div>
 

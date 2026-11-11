@@ -5,6 +5,7 @@
 // backtest uses). Everything rides the signed-in user's RLS-scoped client.
 
 import { bars as fetchBars, hasKey } from '../providers/polygon.mjs';
+import { etDay } from '../core/register.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const clock = (m) => { if (m == null) return null; const t = 570 + m; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(((t % 60) + 60) % 60).padStart(2, '0')}`; };
@@ -60,6 +61,9 @@ export async function intradayBars(sb, uid, ticker, dayStr, interval) {
   catch (e) { return { ticker, day: dayStr, interval, bars: [], error: String(e.message || e) }; }
   if (r.rateLimited) return { ticker, day: dayStr, interval, bars: [], rateLimited: true };
   const got = r.bars || [];
+  // Cache only a finished day that has bars. Today (still trading, or not yet published)
+  // and an empty answer are returned but not stored, so a later request fetches the full day.
+  if (!got.length || dayStr >= etDay()) return { ticker, day: dayStr, interval, bars: got, cached: false };
   chk(await sb.from('polygon_bars').upsert(
     { owner_id: uid, ticker, day: dayStr, interval, bars: got, n: got.length, fetched_at: new Date().toISOString() },
     { onConflict: 'owner_id,ticker,day,interval' }));

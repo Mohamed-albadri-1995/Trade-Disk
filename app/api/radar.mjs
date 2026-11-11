@@ -17,6 +17,8 @@ import { getGroups } from '../core/oneilGroups.mjs';
 import { buildAnalysis } from '../core/analysis.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
+// A result limit from the page: 1..100, default 50 (a negative or junk value is the default).
+const clampLimit = (v, dflt = 50) => { const n = Math.floor(+v); return Number.isFinite(n) && n >= 1 ? Math.min(100, n) : dflt; };
 
 // A compact market read for the screener/register response, so running any scan
 // carries the current broad-market regime to the UI (and the cards' market context).
@@ -71,6 +73,7 @@ export const screeners = () => listScreeners();
 // Running any scan also force-refreshes the market snapshot, so the Market tab and the
 // cards' market context update on every scan.
 export async function scan(sb, uid, key, limit = 50) {
+  limit = clampLimit(limit);
   if (await getMode(sb) !== 'personal') {
     return { key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
   }
@@ -91,7 +94,7 @@ export async function scan(sb, uid, key, limit = 50) {
     // Live scan failed (market closed, provider hiccup/rate-limit). Don't wipe the
     // day's sticky list — fall back to today's saved register so the stocks that
     // already appeared (now "not live") stay on screen instead of the view going blank.
-    const saved = await readRegister(sb, key).catch(() => null);
+    const saved = await readRegister(sb, key, uid).catch(() => null);
     if (saved && saved.count) return { key, screener: name, provider: 'tradingview', ...saved, stale: true, scanError: String(e.message || e) };
     return { key, screener: name, error: String(e.message || e) };
   }
@@ -106,12 +109,12 @@ export async function previewConditions(sb, body) {
   const t = conditionsToFilters(body?.conditions || []);
   if (!t.filters.length) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
   const sort = body?.sort || { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' };
-  const { totalCount, rows } = await tv.scan({ filters: t.filters, columns: COLUMNS, sort, range: [0, Math.min(100, +body?.limit || 50)] });
+  const { totalCount, rows } = await tv.scan({ filters: t.filters, columns: COLUMNS, sort, range: [0, clampLimit(body?.limit)] });
   return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported };
 }
 
 // Today's register for a screener without running a new scan (page revisit / tab switch).
-export async function register(sb, key) { return readRegister(sb, key); }
+export async function register(sb, key, uid = null) { return readRegister(sb, key, uid); }
 
 // Daily bars for one symbol (index/ETF/stock) — for the Market tab's quick chart popup.
 export async function bars(sb, ticker) {
@@ -145,10 +148,10 @@ export async function exportData(sb, day) {
 // The per-stock analysis workspace, live from Yahoo + SEC EDGAR. `scan` carries the
 // card context (name/sector/cap) from the result the user opened, for fields Yahoo
 // doesn't provide. The live market snapshot feeds the market-direction factor.
-export async function analysis(sb, ticker, scan = null) {
+export async function analysis(sb, ticker, scan = null, uid = null) {
   const [market, stamps] = await Promise.all([
     getMarket(sb).catch(() => null),
-    tickerStamps(sb, ticker).catch(() => null),  // first-seen / last-live today, for the hero
+    tickerStamps(sb, String(ticker || '').toUpperCase(), uid).catch(() => null),  // first-seen / last-live today, for the hero
   ]);
   try {
     const a = await buildAnalysis(ticker, { scan, market });
@@ -184,6 +187,9 @@ export async function screenerConfigs(sb) {
 export async function saveScreenerConfig(sb, uid, cfg) {
   if (!cfg || !String(cfg.name || '').trim()) throw new Error('a screener name is required');
   const id = cfg.id || ('scr-' + Date.now());
+  // A custom screener may not take a built-in's key: it would overwrite that built-in's
+  // saved schedule and could never run (the built-in definition always wins a scan).
+  if (getScreener(id)) throw new Error(`"${id}" is a built-in screener — save your copy under a new name`);
   chk(await sb.from('radar_screener').upsert({
     owner_id: uid, id, kind: 'custom', name: String(cfg.name).trim(), description: cfg.description || '',
     conditions: cfg.conditions || [], windows: cfg.windows || [], timezone: cfg.timezone || 'device',
