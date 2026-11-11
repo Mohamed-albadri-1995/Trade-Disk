@@ -199,6 +199,10 @@ create table if not exists public.radar_market (
   id int primary key default 1 check (id = 1), snapshot jsonb not null, as_of timestamptz
 );
 create table if not exists public.app_setting (key text primary key, value text);
+-- Server-only secrets (the shared Polygon key). RLS on with no policy: only the service role reads it.
+create table if not exists public.app_secret (key text primary key, value text, updated_at timestamptz not null default now());
+alter table public.app_secret enable row level security;
+revoke all on public.app_secret from anon, authenticated;
 create table if not exists public.source_group (
   id text primary key, mode text not null default 'prime',
   active jsonb not null default '["demo"]', keys jsonb not null default '{}'

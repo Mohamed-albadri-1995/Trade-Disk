@@ -6,14 +6,12 @@
 
 import { bars as fetchBars, hasKey } from '../providers/polygon.mjs';
 import { etDay } from '../core/register.mjs';
+import { getPolygonKey } from '../core/polygonKey.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const clock = (m) => { if (m == null) return null; const t = 570 + m; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(((t % 60) + 60) % 60).padStart(2, '0')}`; };
 
-async function polyKey(sb) {
-  const d = chk(await sb.from('app_setting').select('value').eq('key', 'polygon_api_key').limit(1));
-  return (d[0]?.value || '').trim();
-}
+const polyKey = (sb) => getPolygonKey(sb);   // the shared key, from server-only storage
 
 // The screens that have a recorded register (with their day window + size).
 export async function screens(sb) {

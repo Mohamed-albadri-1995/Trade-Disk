@@ -17,25 +17,16 @@
 import { bars as fetchBars, hasKey } from '../providers/polygon.mjs';
 import { run as runEngine } from '../core/intradayBacktest.mjs';
 import { validateStrategy } from '../core/lab/evaluate.mjs';
+import { getPolygonKey, polygonKeyStatus, savePolygonKey } from '../core/polygonKey.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const FETCH_BUDGET = 5;   // new stock-days fetched per run (Polygon free tier ≈ 5/min)
 const MAX_PAIRS = 300;    // universe cap per run (narrow the dates to cover a bigger screen)
 
-// ── the Polygon API key (stored in app_setting; the field in the Lab writes it) ──
-async function getKey(sb) {
-  const d = chk(await sb.from('app_setting').select('value').eq('key', 'polygon_api_key').limit(1));
-  return (d[0]?.value || '').trim();
-}
-export async function keyStatus(sb) {
-  const k = await getKey(sb);
-  return { hasKey: hasKey(k), masked: k ? `${k.slice(0, 3)}…${k.slice(-3)}` : null };
-}
-export async function saveKey(sb, key) {
-  const v = String(key || '').trim();
-  chk(await sb.from('app_setting').upsert({ key: 'polygon_api_key', value: v }, { onConflict: 'key' }));
-  return { ok: true, hasKey: hasKey(v), masked: v ? `${v.slice(0, 3)}…${v.slice(-3)}` : null };
-}
+// ── the shared Polygon API key (server-only storage — core/polygonKey.mjs) ──
+const getKey = (sb) => getPolygonKey(sb);
+export const keyStatus = (sb) => polygonKeyStatus(sb);
+export const saveKey = (sb, key) => savePolygonKey(sb, key);
 
 // ── the pickable screens (the migrated daily record's catalog) ──
 export async function screens(sb) {

@@ -8,7 +8,7 @@ Not reviewed: `core/market.mjs`, `core/oneilGroups.mjs`, `providers/edgar.mjs`,
 `providers/news.mjs`, and the React screens themselves.
 
 Run the tests: `cd app && npm install && npm test` (no network, no database needed).
-58 tests, all passing. "Live" means checked against the real TradingView scanner.
+61 tests, all passing. "Live" means checked against the real TradingView scanner.
 
 ## Fixed
 
@@ -42,10 +42,16 @@ Run the tests: `cd app && npm install && npm test` (no network, no database need
 
 ## Still open
 
-- **The Polygon key is readable by every signed-in user.** It is stored in `app_setting`,
-  whose read policy is "any authenticated user" (`db/supabase/schema.sql:271`). Fixing it
-  means a change to the hosted database (a per-account or admin-only table) and a decision:
-  one shared key, or one key per account. Not changed here.
+- **Run the Polygon key migration.** The one shared key now lives in `app_secret`, which only
+  the server can read (`core/polygonKey.mjs`). Until `db/supabase/2026-11-11-app-secret.sql`
+  is run in Supabase and `SUPABASE_SERVICE_ROLE_KEY` is set on the server, the app keeps
+  reading the old, readable `app_setting` row.
+- **Every account is an owner.** `profile.role` defaults to `owner` and a user may update
+  their own profile row, role included (`db/supabase/schema.sql:13,20`). So every "owner or
+  admin only" rule — the feed switch, the Polygon key save — is open to any signed-in user.
+- **The other provider keys are readable by every signed-in user.** They sit in
+  `source_group.keys`, whose read policy is "any authenticated user" — the same problem the
+  Polygon key had.
 - `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
   is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it

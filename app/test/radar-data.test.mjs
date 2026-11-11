@@ -186,3 +186,36 @@ test('yahoo provider: drops empty bars and surfaces provider errors', async () =
   f = stubFetch(() => ({ json: { chart: { result: null, error: { description: 'No data found' } } } }));
   try { await assert.rejects(yahoo.chart('AAA'), /No data found/); } finally { f.restore(); }
 });
+
+// ── the shared Polygon key ──
+import { getPolygonKey, polygonKeyStatus, savePolygonKey } from '../core/polygonKey.mjs';
+const KEY = 'pk_' + 'x'.repeat(20);
+const user = (role = 'owner', extra = {}) => fakeDb({ profile: [{ id: 'u1', role }], ...extra });
+
+test('polygon key: read from server-only storage, never from the table users can read', async () => {
+  const vault = fakeDb({ app_secret: [{ key: 'polygon_api_key', value: KEY }] });
+  const sb = user('member');
+  assert.equal(await getPolygonKey(sb, { adminClient: vault, env: {} }), KEY);
+  assert.deepEqual(await polygonKeyStatus(sb, { adminClient: vault, env: {} }), { hasKey: true, masked: 'pk_…xxx' });
+  assert.ok(!sb.log.some((q) => q.table === 'app_secret'), 'the user’s client never touches app_secret');
+  assert.equal(await getPolygonKey(sb, { adminClient: vault, env: { POLYGON_API_KEY: ' envkey ' } }), 'envkey');
+  await assert.rejects(getPolygonKey(fakeDb(), { adminClient: vault, env: {} }), /sign in/, 'no verified profile → no key');
+});
+
+test('polygon key: before the migration (or with no service-role key) the old row still works', async () => {
+  const sb = user('owner', { app_setting: [{ key: 'polygon_api_key', value: KEY }] });
+  assert.equal(await getPolygonKey(sb, { adminClient: null, env: {} }), KEY);
+  assert.equal(await getPolygonKey(sb, { adminClient: fakeDb(), env: {} }), KEY, 'empty app_secret → falls back');
+});
+
+test('polygon key: saving stores it privately, removes the readable copy, owners/admins only', async () => {
+  const vault = fakeDb();
+  const sb = user('owner', { app_setting: [{ key: 'polygon_api_key', value: 'old-key-old-key' }, { key: 'mode', value: 'personal' }] });
+  const r = await savePolygonKey(sb, ` ${KEY} `, { adminClient: vault });
+  assert.deepEqual(r, { ok: true, hasKey: true, masked: 'pk_…xxx', private: true });
+  assert.equal(vault.tables.app_secret[0].value, KEY);
+  assert.deepEqual(sb.tables.app_setting.map((x) => x.key), ['mode'], 'only the key row is removed');
+  await assert.rejects(savePolygonKey(user('member'), KEY, { adminClient: vault }), /owner or admin/);
+  const legacy = user('owner');
+  assert.equal((await savePolygonKey(legacy, KEY, { adminClient: null })).private, false);
+});
