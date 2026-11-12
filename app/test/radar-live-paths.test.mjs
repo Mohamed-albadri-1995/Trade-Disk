@@ -218,3 +218,81 @@ test('schedule: nothing runs on a weekend, a holiday, or with no service-role cl
   assert.deepEqual((await tick(null, new Date('2026-11-12T14:30:00Z'))).fired, []);
   assert.equal(f.calls.length, 0);
 });
+
+// ── shortlist cards, news / CAN SLIM flags, exact names, sparkline, labels ──
+import { warmNews, cachedNews, _resetNewsCache } from '../core/newsFlags.mjs';
+import { CLASSIFICATION } from '../core/screenerTranslate.mjs';
+import { runScreener, readRegister } from '../core/register.mjs';
+
+test('shortlist: every starred stock comes back as a card, whichever screener found it', async (t) => {
+  const f = stubFetch((url, body) => ({ json: { data: [
+    tvRow('OTC:IBM', COLUMNS, { description: 'IBM otc line', close: 1 }),
+    tvRow('NYSE:IBM', COLUMNS, { description: 'IBM', close: 250, change: 1 }),
+    tvRow('NASDAQ:NVDA', COLUMNS, { description: 'NVIDIA', close: 175, change: -2, change_abs: -3.5 })] } })); t.after(f.restore);
+  const db = fakeDb({ app_setting: [{ key: 'mode', value: 'personal' }], radar_shortlist: ['NVDA', 'GONE', 'IBM'].map((ticker) => ({ owner_id: 'u1', ticker })) });
+  const r = await radar.shortlistCards(db);
+  assert.deepEqual(r.stocks.map((s) => [s.t, s.p, s.c]), [['NVDA', 175, -2], ['IBM', 250, 1]], 'shortlist order; the listed line beats the OTC one');
+  assert.deepEqual(r.missing, ['GONE']);
+  assert.deepEqual(f.calls[0].body.filter, [{ left: 'name', operation: 'in_range', right: ['NVDA', 'GONE', 'IBM'] }]);
+  assert.deepEqual(await radar.shortlistCards(fakeDb()), { stocks: [], missing: [] });
+  assert.equal(f.calls.length, 1, 'an empty shortlist makes no request');
+});
+
+test('news flag: looked up off the scan, written to the day’s list, then stamped on later scans', async (t) => {
+  _resetNewsCache();
+  const fresh = { title: 'AAA wins big contract', link: 'https://x/1', publisher: 'Wire', providerPublishTime: Math.floor(Date.now() / 1000) - 3600, relatedTickers: ['AAA'] };
+  const f = stubFetch((url, body) => {
+    if (url.includes('tradingview')) return { json: { data: body.symbols?.tickers ? [] : [tvRow('NASDAQ:AAA', COLUMNS, { description: 'AAA Corp', close: 10, change: 5 }), tvRow('NASDAQ:BBB', COLUMNS, { description: 'BBB Corp', close: 10, change: 1 })] } };
+    return { json: { news: url.includes('AAA') ? [fresh] : [] } };       // the news search
+  }); t.after(f.restore);
+  const db = fakeDb();
+  const spec = { key: 'volume-surges', filters: [], sort: {} };
+  const first = await runScreener(db, 'u1', spec);
+  assert.deepEqual(first.stocks.map((s) => s.news), [false, false], 'not known yet — the scan does not wait for news');
+  assert.equal(await warmNews(db, 'u1', spec.key, first.day, first.stocks), 1);
+  assert.equal(cachedNews('AAA'), true); assert.equal(cachedNews('BBB'), false);
+  const list = await readRegister(db, spec.key, 'u1');
+  assert.deepEqual(list.stocks.map((s) => [s.t, s.news]), [['AAA', true], ['BBB', false]], 'the saved list now carries the flag');
+  const second = await runScreener(db, 'u1', spec);
+  assert.equal(second.stocks.find((s) => s.t === 'AAA').news, true, 'and a later scan keeps it');
+  const searches = f.calls.filter((c) => !c.url.includes('tradingview')).length;
+  await warmNews(db, 'u1', spec.key, first.day, first.stocks);
+  assert.equal(f.calls.filter((c) => !c.url.includes('tradingview')).length, searches, 'known answers are not looked up again');
+});
+
+test('card: CAN SLIM flag = quarterly and annual EPS both up 25% or more', () => {
+  const cs = (q, y) => toCard(full({ earnings_per_share_diluted_yoy_growth_fq: q, earnings_per_share_diluted_yoy_growth_fy: y }), 0, NOW).cs;
+  assert.deepEqual([cs(30, 40), cs(25, 25), cs(30, 10), cs(-5, 60), cs(null, 40), cs(undefined, undefined)], [true, true, false, false, false, false]);
+});
+
+test('card: the sparkline follows the day — previous close, pre-market close, open, last', () => {
+  assert.deepEqual(toCard(full({ premarket_close: 172.77, open: 172.8 }), 0, NOW).changeLine, [168.89, 172.77, 172.8, 175.59]);
+  assert.deepEqual(toCard(full({ open: 172.8 }), 0, NOW).changeLine, [168.89, 172.8, 175.59]);
+});
+
+test('builder: a sector / industry / exchange / country is matched to the scanner’s exact name', () => {
+  const run = (metric, value) => conditionsToFilters([V(metric, '=', value)]);
+  assert.equal(run('Sector', '  electronic technology ').filters[0].right, 'Electronic Technology');
+  assert.equal(run('Exchange', 'nasdaq').filters[0].right, 'NASDAQ');
+  assert.equal(run('Country', 'united states').filters[0].right, 'United States');
+  assert.match(run('Sector', 'tech').unsupported[0].reason, /did you mean .*Electronic Technology/);
+  assert.match(run('Industry', 'zzzz').unsupported[0].reason, /not a industry name the scanner knows$/);
+  assert.deepEqual(radar.classification(), CLASSIFICATION);
+  assert.ok(CLASSIFICATION.Sector.length >= 20 && CLASSIFICATION.Industry.length >= 100 && CLASSIFICATION.Exchange.includes('NYSE'));
+});
+
+test('schedule: outcome labels run after the close and again after the after-hours session', async (t) => {
+  const bars = [{ t: Date.parse('2026-11-12T15:00:00Z') / 1000, o: 10, h: 12, l: 9, c: 11, v: 5 }];
+  const yahoo = { chart: { result: [{ meta: {}, timestamp: bars.map((b) => b.t), indicators: { quote: [{ open: [10], high: [12], low: [9], close: [11], volume: [5] }] } }] } };
+  const f = stubFetch(() => ({ json: yahoo })); t.after(f.restore);
+  const db = scheduleDb(); db.tables.radar_snapshot = [{ owner_id: 'u1', day: '2026-11-12', ticker: 'AAA' }];
+  const at = (hm) => tick(db, new Date(`2026-11-12T${hm}:00Z`));          // Thursday; ET = UTC−5
+  const count = () => f.calls.length;
+  await (await at('20:30')).done; assert.equal(count(), 0, '15:30 ET — before the close, no labels');
+  await (await at('21:05')).done; assert.equal(count(), 1, '16:05 ET — labels run');
+  await (await at('21:06')).done; assert.equal(count(), 1, 'only once');
+  const late = await tick(db, new Date('2026-11-13T01:05:00Z')); await late.done;   // 20:05 ET, same ET day
+  assert.equal(count(), 2, '20:05 ET — labels run again for late arrivals');
+  // (the real table is keyed by account + day + ticker, so the second run overwrites the first)
+  assert.ok(db.tables.radar_snapshot_label.every((l) => l.ticker === 'AAA' && l.high === 12 && l.day === '2026-11-12'));
+});

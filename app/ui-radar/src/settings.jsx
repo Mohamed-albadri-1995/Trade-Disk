@@ -14,7 +14,8 @@ const MetricOptions = () => FILTER_LIBRARY.map((g) => (
 
 // One condition row: filter, timeframe, operator, compare mode and the fields each
 // mode/metric reveals — the prototype's addFilterCondition/updateConditionRow.
-function ConditionRow({ c, n, isLast, onChange, onRemove }) {
+function ConditionRow({ c, n, isLast, onChange, onRemove, names }) {
+  const pick = names?.[c.metric];   // sector / industry / exchange / country: offer the scanner's exact names
   const vis = fieldVisibility(c);
   const set = (patch) => onChange({ ...c, ...patch });
   return (
@@ -39,7 +40,8 @@ function ConditionRow({ c, n, isLast, onChange, onRemove }) {
           </select>
         </div>
         <div className="field condition-value-field" hidden={!vis.value}><label>Value</label>
-          <input className="condition-value" placeholder="e.g. 10" inputMode="decimal" value={c.value} onChange={(e) => set({ value: e.target.value })} />
+          <input className="condition-value" placeholder={pick ? 'Pick a name' : 'e.g. 10'} inputMode={pick ? 'text' : 'decimal'} list={pick ? `names-${c.id}` : undefined} value={c.value} onChange={(e) => set({ value: e.target.value })} />
+          {pick ? <datalist id={`names-${c.id}`}>{pick.map((v) => <option key={v} value={v} />)}</datalist> : null}
         </div>
         <div className="field condition-source-field" hidden={!vis.source}><label>Source</label>
           <select className="condition-source" value={c.source} onChange={(e) => set({ source: e.target.value })}>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
@@ -235,6 +237,7 @@ function DataCollection({ screeners, onToast }) {
 export function Settings({ onToast }) {
   const [configs, setConfigs] = useState([]);
   const [schedules, setSchedules] = useState({});
+  const [names, setNames] = useState(null);   // the scanner's sector / industry / exchange / country names
   const [builtins, setBuiltins] = useState([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -245,6 +248,7 @@ export function Settings({ onToast }) {
 
   useEffect(() => {
     api.configs().then(({ custom, schedules }) => { setConfigs(custom || []); setSchedules(schedules || {}); }).catch(() => {});
+    api.classification().then(setNames).catch(() => {});
     api.screeners().then(setBuiltins).catch(() => {});
   }, []);
   useEffect(() => { if (editorOpen && editorRef.current) editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [editorOpen]);
@@ -370,7 +374,7 @@ export function Settings({ onToast }) {
           <p className="condition-mobile-note">On smaller screens, each condition becomes a stacked rule card.</p>
           <div id="conditionRows" className="condition-list">
             {form.conditions.map((c, i) => (
-              <ConditionRow key={c.id} c={c} n={i + 1} isLast={i === form.conditions.length - 1}
+              <ConditionRow key={c.id} c={c} names={names} n={i + 1} isLast={i === form.conditions.length - 1}
                 onChange={(nc) => setConditions((cs) => cs.map((x) => (x.id === c.id ? nc : x)))}
                 onRemove={() => setConditions((cs) => cs.filter((x) => x.id !== c.id))} />
             ))}

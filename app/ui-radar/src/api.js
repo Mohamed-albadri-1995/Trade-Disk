@@ -15,6 +15,10 @@ export const api = {
   bundle: () => j('/api/radar/bundle'),
   stocks: () => j('/api/radar/stocks'),
   shortlist: () => j('/api/radar/shortlist'),
+  // The shortlist as full, freshly quoted cards (whichever screener each came from).
+  shortlistCards: () => j('/api/radar/shortlist-cards'),
+  // The scanner's exact sector / industry / exchange / country names (builder pick-lists).
+  classification: () => j('/api/radar/classification'),
   // Toggle a ticker in the shortlist; returns { ticker, saved }.
   toggleShortlist: (ticker) =>
     j(`/api/radar/shortlist/${encodeURIComponent(ticker)}`, { method: 'POST' }),

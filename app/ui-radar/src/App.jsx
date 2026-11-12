@@ -29,6 +29,10 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const toastTimer = useRef(null);
+  const [shortCards, setShortCards] = useState([]);       // the shortlist as freshly quoted cards
+  const appliedRef = useRef(false);                        // are the sidebar filters applied to the list?
+  const liveRef = useRef({});                              // what the once-a-minute refresh needs, always current
+  liveRef.current = { key: filters.preset, filters, mode: feed?.mode };
 
   // Load the available screeners + the saved shortlist. In Personal mode we run the
   // first screener live (TradingView) so the view opens on real market results; in
@@ -50,7 +54,21 @@ export default function App() {
     // Keep the Market tab (and the cards' market context) current while the page is
     // open: re-read the snapshot every minute when the tab is visible. The server
     // rebuilds it at most every two minutes during the session, so this is cheap.
-    const poll = setInterval(() => { if (!document.hidden) api.market().then(setMarket).catch(() => {}); }, 60 * 1000);
+    const poll = setInterval(() => {
+      if (document.hidden) return;
+      api.market().then(setMarket).catch(() => {});
+      // Re-read today's list for the screener on screen, so stocks found by a scheduled
+      // (background) scan, and news flags, appear without pressing Run. It only reads
+      // the saved list — it does not run a scan — and keeps any applied filters.
+      const { key, mode } = liveRef.current;
+      if (mode === 'personal' && key) {
+        api.register(key).then((res) => {
+          if (!res?.stocks?.length || liveRef.current.key !== key) return;
+          setStocks(res.stocks);
+          setVisible(appliedRef.current ? filterStocks(res.stocks, liveRef.current.filters) : res.stocks);
+        }).catch(() => {});
+      }
+    }, 60 * 1000);
     return () => clearInterval(poll);
   }, []);
 
@@ -74,12 +92,14 @@ export default function App() {
 
   // filterStocks(): narrow once from the full universe; on mobile, fold the panel.
   const onApply = () => {
+    appliedRef.current = true;
     setVisible(filterStocks(stocks, filters));
     if (isMobile()) setCollapsed(true);
   };
 
   // resetFilters(): defaults back, every stock visible again.
   const onReset = () => {
+    appliedRef.current = false;
     setFilters(structuredClone(DEFAULT_FILTERS));
     setVisible(stocks);
   };
@@ -89,6 +109,7 @@ export default function App() {
   // those results locally. The server-side screener has already done the real work,
   // so we don't auto-apply the numeric filters on top.
   const runScan = (key) => {
+    appliedRef.current = false;
     setLoaded(false);
     api.scan(key)
       .then((res) => {
@@ -124,8 +145,18 @@ export default function App() {
     const sorted = sortStocks(visible, sort);
     return [...sorted].sort((a, b) => (a.live === b.live ? 0 : a.live === false ? 1 : b.live === false ? -1 : 0));
   }, [visible, sort]);
-  const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
-  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
+  // The Shortlist tab shows every starred stock, quoted fresh by ticker; a stock the
+  // quote did not return falls back to its card from the scan on screen.
+  useEffect(() => {
+    if (screen !== 'shortlist') return;
+    api.shortlistCards().then((r) => setShortCards(r?.stocks || [])).catch(() => {});
+  }, [screen, shortlist]);
+  const savedCards = useMemo(() => {
+    const quoted = Object.fromEntries(shortCards.map((s) => [s.t, s]));
+    const onScreen = Object.fromEntries(stocks.map((s) => [s.t, s]));
+    return [...shortlist].map((t) => quoted[t] || onScreen[t]).filter(Boolean);
+  }, [stocks, shortlist, shortCards]);
+  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || shortCards.find((s) => s.t === selectedTicker) || null, [stocks, shortCards, selectedTicker]);
 
   // The header badge tells the truth about what's on screen. In Personal mode every
   // surface is live: the Screener and the analysis opened from its cards run on

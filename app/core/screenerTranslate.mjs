@@ -5,6 +5,23 @@
 // what you build is what runs. Conditions whose metric/operator cannot be mapped to a
 // scanner field are collected in `unsupported` and reported, never silently dropped.
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+// The scanner's own names for sectors, industries, exchanges and countries (captured
+// from it; refresh the file if TradingView renames one). A text filter only matches
+// the exact name, so what the user typed is matched case-insensitively to the real
+// name, and anything else is reported with the closest names.
+const ref = JSON.parse(readFileSync(join(import.meta.dirname, 'reference', 'tv-classification.json'), 'utf8'));
+export const CLASSIFICATION = { Sector: ref.sectors, Industry: ref.industries, Exchange: ref.exchanges, Country: ref.countries };
+function canonicalName(metric, raw) {
+  const v = String(raw).trim().toLowerCase();
+  const hit = CLASSIFICATION[metric].find((x) => x.toLowerCase() === v);
+  if (hit) return { value: hit };
+  const near = CLASSIFICATION[metric].filter((x) => x.toLowerCase().includes(v)).slice(0, 5);
+  return { error: `"${raw}" is not a ${metric.toLowerCase()} name the scanner knows${near.length ? ` — did you mean ${near.join(', ')}?` : ''}` };
+}
+
 // Builder metric → TradingView scanner field. Indicators (MA family) take a length;
 // others map to a fixed field. Only fields we have verified against the live scanner
 // are listed — an unmapped metric is reported, not guessed.
@@ -106,8 +123,12 @@ function translateOne(c) {
   }
   const raw = c.value;
   if (raw == null || String(raw).trim() === '') return { error: 'missing value' };
-  const right = STRING_METRIC.has(c.metric) ? String(raw) : Number(raw);
-  if (!STRING_METRIC.has(c.metric) && !Number.isFinite(right)) return { error: `"${raw}" is not a number` };
+  if (STRING_METRIC.has(c.metric)) {
+    const n = canonicalName(c.metric, raw);
+    return n.error ? n : { rule: { left, operation, right: n.value } };
+  }
+  const right = Number(raw);
+  if (!Number.isFinite(right)) return { error: `"${raw}" is not a number` };
   return { rule: { left, operation, right } };
 }
 

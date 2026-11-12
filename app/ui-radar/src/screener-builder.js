@@ -47,7 +47,6 @@ export const tzOptions = (tz) => (TIMEZONES.some(([v]) => v === tz) ? TIMEZONES 
 // picking one of them in the builder starts on a length that can run.
 export const FIXED_LENGTH = { VWMA: 20, ATR: 14, ADX: 14, CCI: 20, ROC: 9 };
 
-const MA_METRICS = ['SMA', 'EMA', 'WMA', 'VWMA'];
 // The metrics the saved-list summary renders with a (length, timeframe) suffix.
 const INDICATOR_SUMMARY = ['SMA', 'EMA', 'WMA', 'VWMA', 'RSI', 'MACD', 'ADX', 'ATR', 'Stochastic K', 'Stochastic D', 'Bollinger Upper', 'Bollinger Middle', 'Bollinger Lower', 'VWAP', 'CCI', 'OBV', 'MFI', 'ROC'];
 
@@ -90,7 +89,7 @@ export function fieldVisibility(c) {
   return {
     length: meta.type === 'indicator',
     source: meta.type === 'indicator',
-    variant: MA_METRICS.includes(c.metric),
+    variant: false,   // the moving-average kind IS the filter (SMA / EMA / VWMA); a second selector only contradicted it
     value: c.mode === 'value',
     second: c.mode === 'filter',
     percent: c.mode === 'percent' || c.operator.includes('%'),
@@ -102,7 +101,7 @@ export function fieldVisibility(c) {
 export function buildConditionPreview(c) {
   const meta = FILTER_MAP[c.metric] || {};
   const left = meta.type === 'indicator'
-    ? `${c.variant === 'Standard' ? '' : c.variant + ' '}${meta.label}(${c.length}, ${c.timeframe})`
+    ? `${meta.label}(${c.length}, ${c.timeframe})`
     : `${meta.label} (${c.timeframe})`;
   const val = c.value || '…';
   if (c.mode === 'filter') {
@@ -127,7 +126,7 @@ export function filterSummary(conds) {
   return conds.map((x) => {
     const m = FILTER_MAP[x.metric]?.label || x.metric;
     const lhs = INDICATOR_SUMMARY.includes(x.metric)
-      ? `${x.variant && x.variant !== 'Standard' ? x.variant + ' ' : ''}${m}(${x.length || 14}, ${x.timeframe || 'Daily'})`
+      ? `${m}(${x.length || 14}, ${x.timeframe || 'Daily'})`
       : m;
     const rhs = x.mode === 'filter'
       ? (FILTER_MAP[x.compareMetric]?.label || x.compareMetric) + `(${x.compareLength || 50}, ${x.compareTimeframe || 'Daily'})`

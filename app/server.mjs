@@ -98,6 +98,8 @@ async function api(req, res, url) {
         if (sub === 'bundle') return json(res, await radar.bundle(sb));
         if (sub === 'stocks') return json(res, await radar.stocks(sb));
         if (sub === 'shortlist') return json(res, await radar.shortlist(sb));
+        if (sub === 'shortlist-cards') return json(res, await radar.shortlistCards(sb));
+        if (sub === 'classification') return json(res, radar.classification());
         if (sub === 'market') return json(res, await radar.market(sb));
         if (sub === 'groups') return json(res, await radar.groups(sb));
         if (sub === 'screeners') return json(res, radar.screeners());

@@ -9,6 +9,7 @@
 
 import * as tv from '../providers/tradingview.mjs';
 import { COLUMNS, toCard, delayOf } from './screeners.mjs';
+import { cachedNews } from './newsFlags.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const COLORS = ['', 'blue', 'purple', 'orange', 'green'];
@@ -50,6 +51,9 @@ export async function runScreener(sb, uid, spec) {
     toWrite.push({ owner_id: uid, day, screener: key, ticker: e.ticker, sym: e.sym,
       card: refreshed[e.ticker] || e.card, live: false, first_seen: e.first_seen, last_live: e.last_live, updated_at: now });
   }
+
+  // stamp each card with the news flag when it is already known (looked up in the background)
+  for (const r of toWrite) { const has = cachedNews(r.ticker); if (has != null) r.card = { ...r.card, news: has }; }
 
   if (toWrite.length) chk(await sb.from('radar_register').upsert(toWrite, { onConflict: 'owner_id,day,screener,ticker' }));
 

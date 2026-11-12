@@ -8,7 +8,7 @@ Not reviewed: `core/market.mjs`, `core/oneilGroups.mjs`, `providers/edgar.mjs`,
 `providers/news.mjs`, and the React screens themselves.
 
 Run the tests: `cd app && npm install && npm test` (no network, no database needed).
-77 tests, all passing. "Live" means checked against the real TradingView scanner.
+83 tests, all passing. "Live" means checked against the real TradingView scanner.
 
 ## Fixed
 
@@ -81,6 +81,29 @@ or holidays (`test/radar-live-paths.test.mjs`).
     just been built. The fresh one is now returned, kept in memory, and built once for
     concurrent readers.
 
+## Third pass — the items left open after the second
+
+23. **Shortlist tab** now shows every starred stock, quoted fresh by ticker
+    (`/api/radar/shortlist-cards`), whichever screener it came from.
+24. **The screener list refreshes itself**: once a minute the page re-reads today's saved
+    list for the screener on screen (it does not run a scan), so stocks found by a
+    scheduled scan appear without pressing Run. Applied filters are kept.
+25. **News filter works.** Each card's "news in the last 24h" flag is looked up in the
+    background after a scan (Yahoo news search, about half a second per stock, answers kept
+    15 minutes) and written into the day's list, so it shows on the next refresh — a scan
+    never waits for it (`core/newsFlags.mjs`).
+26. **CAN SLIM filter works.** The flag is set when quarterly and annual EPS are both up 25%
+    or more — the same earnings test the Growth Pullback screener uses. It is that test
+    only, not a full CAN SLIM score.
+27. **Outcome labels run twice**: after the 16:00 ET close and again after 20:00 ET, so
+    stocks first seen by an after-hours window are labelled.
+28. **Builder names**: Sector, Industry, Exchange and Country offer the scanner's exact names
+    as a pick-list (`core/reference/tv-classification.json`, captured from the scanner
+    2026-11-12) and typed text is matched case-insensitively; an unknown name is reported
+    with the closest matches. The "Indicator type" selector on a moving average is removed
+    (the filter already is the type).
+29. **Sparkline** now follows the day: previous close → pre-market close → open → last.
+
 ## Still open
 
 - **Run the Polygon key migration.** The one shared key now lives in `app_secret`, which only
@@ -93,17 +116,6 @@ or holidays (`test/radar-live-paths.test.mjs`).
 - **The other provider keys are readable by every signed-in user.** They sit in
   `source_group.keys`, whose read policy is "any authenticated user" — the same problem the
   Polygon key had.
-- **News and CAN SLIM filters never match**: nothing sets `news` / `cs` on a card (those
-  feeds are not wired), so ticking either filter empties the list.
-- **Shortlist tab** shows only shortlisted stocks that are in the scan currently on screen
-  (`savedCards` in `ui-radar/src/App.jsx`); a starred stock from another screener is hidden.
-- **The screener list does not refresh itself** after a scheduled scan; it updates when a
-  scan is run from the page.
-- **Outcome labels run once at 16:05 ET**, so a stock first seen by a later (after-hours)
-  window that day gets no label until labels are run by hand.
-- **Builder:** text values must be typed exactly as TradingView names them (e.g. "Electronic
-  Technology"); the "Indicator type" selector on a moving average is not used.
-- The card's sparkline is two points (previous close → price).
 - `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
   is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it

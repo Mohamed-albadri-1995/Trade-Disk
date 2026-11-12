@@ -17,6 +17,7 @@ export function fakeDb(tables = {}) {
       insert(rows) { q.op = 'insert'; q.rows = [].concat(rows); return api; },
       upsert(rows, opts = {}) { q.op = 'upsert'; q.rows = [].concat(rows); q.conflict = opts.onConflict || null; return api; },
       delete() { q.op = 'delete'; return api; },
+      update(patch) { q.op = 'update'; q.patch = patch; return api; },
       then(resolve, reject) { return Promise.resolve(run()).then(resolve, reject); },
     };
     const match = (r) => q.filters.every(([c, v]) => r[c] === v);
@@ -32,6 +33,7 @@ export function fakeDb(tables = {}) {
         }
         return { data: q.rows, error: null };
       }
+      if (q.op === 'update') { for (const r of t) if (match(r)) Object.assign(r, q.patch); return { data: null, error: null }; }
       if (q.op === 'delete') { tables[name] = t.filter((r) => !match(r)); return { data: null, error: null }; }
       let out = t.filter(match);
       if (q.rng) out = out.slice(q.rng[0], q.rng[1] + 1);

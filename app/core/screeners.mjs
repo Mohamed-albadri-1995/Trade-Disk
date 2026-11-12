@@ -17,6 +17,8 @@ export const COLUMNS = [
   'EMA9', 'EMA13', 'EMA20', 'EMA50',
   'change_abs', 'ADR', 'premarket_high', 'premarket_low',
   'earnings_release_next_date', 'update_mode',
+  'open', 'premarket_close',
+  'earnings_per_share_diluted_yoy_growth_fq', 'earnings_per_share_diluted_yoy_growth_fy',
 ];
 
 // Each built-in also carries a `conditions` array in the BUILDER's own grammar
@@ -163,8 +165,7 @@ const capBand = (n) => (n == null ? '' : n >= 1e10 ? 'large' : n >= 2e9 ? 'mid' 
 
 // Map one TradingView row to the exact card record the Radar screener renders.
 // Price/change/volume/range/indicator fields are live; `s` is a transparent
-// activity score (not the trained model yet); news/CAN-SLIM flags stay off until
-// those feeds are wired (DATA-CATALOG groups 6 & 8).
+// activity score (not the trained model yet).
 export function toCard(r, i = 0, now = Date.now()) {
   const p = r.close, c = r.change ?? 0;
   // previous close: from the scanner's own $ change when it sends one, else implied by
@@ -200,8 +201,12 @@ export function toCard(r, i = 0, now = Date.now()) {
     pmHigh: +(+pmHigh).toFixed(2), pmLow: +(+pmLow).toFixed(2), pmRange, pmPct: pmc != null ? +pmc.toFixed(2) : 0,
     cap: capFmt(r.market_cap_basic), capBand: capBand(r.market_cap_basic),
     sec: r.industry || r.sector || '—', mark: (r.ticker || '?')[0], color: COLORS[i % COLORS.length],
-    tags, ema, stacked, news: false, cs: false,
-    changeLine: [+((prev ?? p) || 0).toFixed(2), +((p) || 0).toFixed(2)],
+    // `news` is filled in from the news lookup (core/newsFlags.mjs). `cs` is the CAN SLIM
+    // earnings test the Growth Pullback screener uses: quarterly AND annual EPS up ≥ 25%.
+    tags, ema, stacked, news: false,
+    cs: r.earnings_per_share_diluted_yoy_growth_fq >= 25 && r.earnings_per_share_diluted_yoy_growth_fy >= 25,
+    // the day so far, in time order: previous close → pre-market close → open → last
+    changeLine: [prev ?? p, r.premarket_close, r.open, p].filter((v) => v != null).map((v) => +(+v || 0).toFixed(2)),
   };
 }
 

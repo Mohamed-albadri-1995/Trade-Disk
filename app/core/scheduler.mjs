@@ -22,7 +22,7 @@ import { computeLabels } from './labels.mjs';
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 let timer = null;
 const firedThisMinute = new Set();   // `${owner}|${key}|${minuteStamp}`
-let lastLabelDay = null;
+let lastLabelRun = null;             // `${ET date}|close` or `${ET date}|late`
 
 // Full-day NYSE closures (ET dates). Early-close days still trade, so they are not
 // listed. Extend this each year from the exchange's published calendar.
@@ -80,11 +80,14 @@ export async function tick(client = admin, now = new Date()) {
         .catch((e) => console.log('[scheduler] collect error', s.id, e.message)));
     }
 
-    // Outcome labels once per day, shortly after the 16:00 ET close.
-    if (etMin >= 16 * 60 + 5 && lastLabelDay !== et.date) {
-      lastLabelDay = et.date;
+    // Outcome labels twice a day: shortly after the 16:00 ET close, and again after the
+    // after-hours session (20:00 ET) so stocks first seen by a late window are labelled
+    // too. The second run rewrites the same rows with the complete day.
+    const slot = etMin >= 20 * 60 + 5 ? 'late' : etMin >= 16 * 60 + 5 ? 'close' : null;
+    if (slot && lastLabelRun !== `${et.date}|${slot}`) {
+      lastLabelRun = `${et.date}|${slot}`;
       const owners = [...new Set(scheds.map((s) => s.owner_id))];
-      for (const o of owners) computeLabels(client, o, et.date).then((r) => console.log('[scheduler] labels', JSON.stringify(r))).catch(() => {});
+      for (const o of owners) jobs.push(computeLabels(client, o, et.date).then((r) => console.log('[scheduler] labels', slot, JSON.stringify(r))).catch(() => {}));
     }
     if (firedThisMinute.size > 5000) firedThisMinute.clear();
   } catch (e) { console.log('[scheduler] tick error', e.message); }

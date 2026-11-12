@@ -7,7 +7,8 @@
 import * as tv from '../providers/tradingview.mjs';
 import * as yahoo from '../providers/yahoo.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard, delayOf } from '../core/screeners.mjs';
-import { conditionsToFilters } from '../core/screenerTranslate.mjs';
+import { conditionsToFilters, CLASSIFICATION } from '../core/screenerTranslate.mjs';
+import { background, cachedNews, warmNews } from '../core/newsFlags.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
 import { collect, collectionStatus } from '../core/collect.mjs';
 import { computeLabels } from '../core/labels.mjs';
@@ -49,6 +50,27 @@ export async function toggleShortlist(sb, uid, ticker) {
   chk(await sb.from('radar_shortlist').insert({ owner_id: uid, ticker }));
   return { ticker, saved: true };
 }
+
+// The shortlist as full cards, quoted fresh from the scanner by ticker — so a starred
+// stock shows on the Shortlist tab whichever screener it came from, not only when it is
+// in the scan currently on screen. `missing` lists tickers the scanner no longer has.
+export async function shortlistCards(sb) {
+  const tickers = await shortlist(sb);
+  if (!tickers.length) return { stocks: [], missing: [] };
+  if (await getMode(sb) !== 'personal') return { stocks: [], missing: tickers, error: 'Live quotes run in Personal mode.' };
+  try {
+    const { rows } = await tv.scan({ filters: [{ left: 'name', operation: 'in_range', right: tickers }], columns: COLUMNS,
+      sort: { sortBy: 'name', sortOrder: 'asc' }, range: [0, Math.min(500, tickers.length * 4)] });
+    const by = {};   // one row per ticker; a listed exchange wins over an OTC line of the same name
+    for (const r of rows) { const cur = by[r.ticker]; if (!cur || (cur._sym.startsWith('OTC:') && !r._sym.startsWith('OTC:'))) by[r.ticker] = r; }
+    const stocks = tickers.filter((t) => by[t]).map((t, i) => ({ ...toCard(by[t], i), news: cachedNews(t) === true }));
+    return { stocks, missing: tickers.filter((t) => !by[t]), delayMin: delayOf(rows) };
+  } catch (e) { return { stocks: [], missing: tickers, error: String(e.message || e) }; }
+}
+
+// The exact sector / industry / exchange / country names the scanner uses, for the
+// builder's pick-lists.
+export const classification = () => CLASSIFICATION;
 
 // The feed the Price group is on, so the view shows a live/demo badge honestly.
 async function feedInfo(sb) {
@@ -98,6 +120,7 @@ export async function scan(sb, uid, key, limit = 50) {
     if (saved && saved.count) return { key, screener: name, provider: 'tradingview', ...saved, stale: true, scanError: String(e.message || e) };
     return { key, screener: name, error: String(e.message || e) };
   }
+  if (background.enabled) warmNews(sb, uid, key, reg.day, reg.stocks).catch(() => {});   // news flags, off the request path
   const market = await getMarket(sb, { force: true }).catch(() => null);
   return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };   // reg carries delayMin
 }
