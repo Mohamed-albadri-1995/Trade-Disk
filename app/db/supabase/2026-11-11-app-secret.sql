@@ -11,4 +11,10 @@ revoke all on public.app_secret from anon, authenticated;
 insert into public.app_secret (key, value)
   select key, value from public.app_setting where key = 'polygon_api_key'
   on conflict (key) do nothing;
-delete from public.app_setting where key = 'polygon_api_key';
+
+-- STEP 2 — run only AFTER the server is running the code that reads app_secret
+-- (core/polygonKey.mjs). Older code reads the key from app_setting, so deleting this row
+-- before the deploy would leave the live app with no Polygon key. (Saving the key again
+-- from the Lab with the new code also removes it.)
+-- Applied to the hosted project 2026-11-12: everything above. Not yet: the line below.
+-- delete from public.app_setting where key = 'polygon_api_key';

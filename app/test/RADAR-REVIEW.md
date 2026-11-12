@@ -106,10 +106,13 @@ or holidays (`test/radar-live-paths.test.mjs`).
 
 ## Still open
 
-- **Run the Polygon key migration.** The one shared key now lives in `app_secret`, which only
-  the server can read (`core/polygonKey.mjs`). Until `db/supabase/2026-11-11-app-secret.sql`
-  is run in Supabase and `SUPABASE_SERVICE_ROLE_KEY` is set on the server, the app keeps
-  reading the old, readable `app_setting` row.
+- **Finish the Polygon key move.** Done on the hosted database (2026-11-12): `app_secret`
+  exists, holds the key, and signed-in users cannot read it. Not done: the old readable row
+  in `app_setting` is still there, because the deployed app still runs the old code and
+  reads it. After this branch is deployed, delete that row (step 2 in
+  `db/supabase/2026-11-11-app-secret.sql`).
+- **Re-save the five schedules.** All five saved schedules hold `device` as their time zone,
+  so they keep running on US Eastern until each is opened and saved again from the page.
 - **Every account is an owner.** `profile.role` defaults to `owner` and a user may update
   their own profile row, role included (`db/supabase/schema.sql:13,20`). So every "owner or
   admin only" rule — the feed switch, the Polygon key save — is open to any signed-in user.
