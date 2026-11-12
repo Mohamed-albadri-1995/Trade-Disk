@@ -8,7 +8,7 @@ Not reviewed: `core/market.mjs`, `core/oneilGroups.mjs`, `providers/edgar.mjs`,
 `providers/news.mjs`, and the React screens themselves.
 
 Run the tests: `cd app && npm install && npm test` (no network, no database needed).
-88 tests, all passing. "Live" means checked against the real TradingView scanner.
+90 tests, all passing. "Live" means checked against the real TradingView scanner.
 
 ## Fixed
 
@@ -124,6 +124,19 @@ the hosted project). Every screen loaded with no page or console errors.
     role or plan, and new accounts are members, not owners. The two existing accounts keep
     their owner role (`db/supabase/2026-11-12-profile-role-lock.sql`).
 
+## Fifth pass — the hosted database's own record
+
+Read from the live project (2026-11-12), three trading days back.
+
+34. **The scheduler itself is healthy.** Each of the four all-day schedules fired 85 times a
+    day, every 5 minutes from 09:00 to 16:00 ET, and Trend Leaders fired its two pre-market
+    runs; every stock seen had its analysis captured (151 of 151, 133 of 133, 277 of 277).
+35. **But only ~20 stocks a day got outcome labels** (20 of 151, 23 of 133, 22 of 277). The
+    labels job read the day's snapshot rows in one request, and the API returns at most 1000
+    rows; a day has 8,000–14,000. It now reads in pages (`lib/pages.mjs`). The day's export
+    had the same cap and is paged too. Past days can be back-filled within about a month:
+    `POST /api/radar/labels?day=YYYY-MM-DD`.
+
 ## Still open
 
 - **Finish the Polygon key move.** Done on the hosted database (2026-11-12): `app_secret`
@@ -139,6 +152,11 @@ the hosted project). Every screen loaded with no page or console errors.
 - **Supabase Auth: leaked-password protection is off** (the project's only security
   advisory besides the intended policy-less `app_secret`). Turn it on in the dashboard:
   https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- **Back-fill the missing labels** after deploy (item 35) for each day since collection
+  began, before Yahoo's month of 5-minute history rolls off.
+- **Snapshot volume.** MA Stack Breakout alone writes 5,000–12,000 snapshot rows a day (every
+  sticky stock, every 5 minutes, with its full card). Watch the database size; a slower
+  cadence or storing only changed cards would cut it by an order of magnitude.
 - `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
   is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it

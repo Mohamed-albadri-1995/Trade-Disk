@@ -219,3 +219,33 @@ test('polygon key: saving stores it privately, removes the readable copy, owners
   const legacy = user('owner');
   assert.equal((await savePolygonKey(legacy, KEY, { adminClient: null })).private, false);
 });
+
+// ── more than 1000 rows (the API's per-request cap) ──
+import { allRows } from '../lib/pages.mjs';
+import * as radarApi from '../api/radar.mjs';
+// a database that, like Supabase, never returns more than 1000 rows for one request
+const capped = (tables) => {
+  const db = fakeDb(tables); const from = db.from;
+  db.from = (n) => { const q = from(n); const then = q.then; let ranged = false; const range = q.range;
+    q.range = (a, b) => { ranged = true; return range(a, Math.min(b, a + 999)); };
+    q.then = (res, rej) => then((r) => res(!ranged && Array.isArray(r.data) ? { ...r, data: r.data.slice(0, 1000) } : r), rej);
+    return q; };
+  return db;
+};
+
+test('labels: every stock of the day is labelled, not just those in the first 1000 snapshot rows', async (t) => {
+  const f = stubFetch(() => ({ json: yahooJson([bar('2026-01-05T14:30:00Z', 10, 12, 9.5, 11)]) })); t.after(f.restore);
+  // 30 stocks × 85 scans = 2550 snapshot rows, written scan by scan (so the first 1000 rows hold only some tickers' early scans)
+  const snaps = []; for (let scan = 0; scan < 85; scan++) for (let i = 0; i < 30; i++) if (i < 12 || scan >= 40) snaps.push({ owner_id: 'u1', day: '2026-01-05', ticker: 'T' + i, taken_at: String(scan).padStart(3, '0') });
+  const db = capped({ radar_snapshot: snaps });
+  assert.equal((await db.from('radar_snapshot').select('ticker')).data.length, 1000, 'the stand-in caps an unpaged read, like the real API');
+  const r = await computeLabels(db, 'u1', '2026-01-05');
+  assert.equal(r.tickers, 30); assert.equal(r.labeled, 30);
+});
+
+test('export: a day’s snapshots come back complete beyond 1000 rows', async () => {
+  const rows = Array.from({ length: 2300 }, (_, i) => ({ owner_id: 'u1', day: '2026-01-05', ticker: 'T' + i, taken_at: 'x' }));
+  const out = await radarApi.exportData(capped({ radar_snapshot: rows }), '2026-01-05');
+  assert.equal(out.snapshots.length, 2300);
+  assert.equal((await allRows(() => capped({ t: rows }).from('t').select('*'))).length, 2300);
+});

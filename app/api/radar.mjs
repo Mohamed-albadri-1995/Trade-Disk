@@ -9,6 +9,7 @@ import * as yahoo from '../providers/yahoo.mjs';
 import { COLUMNS, listScreeners, getScreener, toCard, delayOf } from '../core/screeners.mjs';
 import { conditionsToFilters, CLASSIFICATION } from '../core/screenerTranslate.mjs';
 import { background, cachedNews, warmNews } from '../core/newsFlags.mjs';
+import { allRows } from '../lib/pages.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
 import { collect, collectionStatus } from '../core/collect.mjs';
 import { computeLabels } from '../core/labels.mjs';
@@ -155,15 +156,17 @@ export async function collectNow(sb, uid, key) { return collect(sb, uid, key); }
 // What has been collected today (counts + the times snapshots were taken).
 export async function collectStatus(sb) { return collectionStatus(sb); }
 // Compute today's outcome labels now (normally the scheduler does this after the close).
-export async function labelsNow(sb, uid) { return computeLabels(sb, uid); }
+// `day` (YYYY-MM-DD, optional) back-fills a past day — Yahoo keeps 5-minute bars for about a month.
+export async function labelsNow(sb, uid, day) { return /^\d{4}-\d{2}-\d{2}$/.test(day || '') ? computeLabels(sb, uid, day) : computeLabels(sb, uid); }
 // Export a day's collected data (owner-scoped) as JSON, for model-building offline.
 export async function exportData(sb, day) {
   const d = day || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const [snapshots, market, facts, labels] = await Promise.all([
-    sb.from('radar_snapshot').select('*').eq('day', d).order('taken_at').then(chk),
-    sb.from('radar_snapshot_market').select('*').eq('day', d).order('taken_at').then(chk),
-    sb.from('radar_snapshot_facts').select('*').eq('day', d).then(chk),
-    sb.from('radar_snapshot_label').select('*').eq('day', d).then(chk),
+    // paged: a day is several thousand snapshot rows and the API caps a request at 1000
+    allRows(() => sb.from('radar_snapshot').select('*').eq('day', d).order('taken_at').order('screener').order('ticker'), 500),
+    allRows(() => sb.from('radar_snapshot_market').select('*').eq('day', d).order('taken_at'), 200),
+    allRows(() => sb.from('radar_snapshot_facts').select('*').eq('day', d).order('ticker'), 100),
+    allRows(() => sb.from('radar_snapshot_label').select('*').eq('day', d).order('ticker'), 100),
   ]);
   return { day: d, snapshots, market, facts, labels };
 }

@@ -8,6 +8,7 @@
 
 import * as yahoo from '../providers/yahoo.mjs';
 import { etDay } from './register.mjs';
+import { allRows } from '../lib/pages.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -17,7 +18,13 @@ const etDateOf = (tsSec) => new Date(tsSec * 1000).toLocaleDateString('en-CA', {
 // the writes (admin for the scheduler, the user's client for a manual run).
 export async function computeLabels(sb, uid, day = etDay()) {
   if (!sb) return { ok: false, error: 'data labels need a database client' };
-  const seen = chk(await sb.from('radar_snapshot').select('ticker').eq('owner_id', uid).eq('day', day));
+  // every stock on the day's registers (one row per stock per screener). Read in pages:
+  // the API caps a request at 1000 rows, and reading the snapshots unpaged labelled only
+  // the ~20 tickers that happened to be in the first 1000 of several thousand rows.
+  const seen = [
+    ...await allRows(() => sb.from('radar_register').select('ticker').eq('owner_id', uid).eq('day', day).order('ticker')),
+    ...await allRows(() => sb.from('radar_snapshot').select('ticker').eq('owner_id', uid).eq('day', day).order('taken_at')),
+  ];
   const tickers = [...new Set(seen.map((r) => r.ticker))];
   if (!tickers.length) return { ok: true, day, tickers: 0, labeled: 0 };
 

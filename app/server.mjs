@@ -125,7 +125,7 @@ async function api(req, res, url) {
       try {
         if (m === 'POST' && sub === 'preview') return json(res, await radar.previewConditions(sb, await readBody(req)));
         if (m === 'POST' && sub === 'collect' && seg[3]) return json(res, await radar.collectNow(sb, uid, decodeURIComponent(seg[3])));
-        if (m === 'POST' && sub === 'labels') return json(res, await radar.labelsNow(sb, uid));
+        if (m === 'POST' && sub === 'labels') return json(res, await radar.labelsNow(sb, uid, url.searchParams.get('day')));
         if (m === 'POST' && sub === 'config') return json(res, await radar.saveScreenerConfig(sb, uid, await readBody(req)), 201);
         if (m === 'POST' && sub === 'schedule' && seg[3]) return json(res, await radar.saveSchedule(sb, uid, decodeURIComponent(seg[3]), await readBody(req)));
         if (m === 'DELETE' && sub === 'config' && seg[3]) return json(res, await radar.deleteScreenerConfig(sb, uid, decodeURIComponent(seg[3])));
