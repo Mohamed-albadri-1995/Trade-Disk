@@ -80,7 +80,7 @@ const full = (o = {}) => ({ ticker: 'NVDA', description: 'NVIDIA Corporation', c
 test('card: every field comes from the scan, none left as a placeholder', () => {
   const c = toCard(full(), 0, NOW);
   assert.deepEqual(c, {
-    t: 'NVDA', n: 'NVIDIA Corporation', p: 175.59, c: 3.97, abs: 6.7, s: 54, r: 0.7,
+    t: 'NVDA', n: 'NVIDIA Corporation', ex: '', p: 175.59, c: 3.97, abs: 6.7, s: 54, r: 0.7,
     adr: 3.92,                                   // $6.89 average daily range on $175.59
     pm: 0.86,                                    // $5.90 pre-market range / $6.89 normal day
     pmHigh: 178.36, pmLow: 172.46, pmRange: 5.9, pmPct: 2.3,

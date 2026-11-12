@@ -8,7 +8,7 @@ Not reviewed: `core/market.mjs`, `core/oneilGroups.mjs`, `providers/edgar.mjs`,
 `providers/news.mjs`, and the React screens themselves.
 
 Run the tests: `cd app && npm install && npm test` (no network, no database needed).
-83 tests, all passing. "Live" means checked against the real TradingView scanner.
+88 tests, all passing. "Live" means checked against the real TradingView scanner.
 
 ## Fixed
 
@@ -104,6 +104,26 @@ or holidays (`test/radar-live-paths.test.mjs`).
     (the filter already is the type).
 29. **Sparkline** now follows the day: previous close → pre-market close → open → last.
 
+## Fourth pass — in a real browser, as the owner
+
+Radar was driven in headless Chromium through the real server and real code, with live
+market data and an in-memory database in place of Supabase (`test/e2e/`; nothing touches
+the hosted project). Every screen loaded with no page or console errors.
+
+30. **The sidebar filters were prototype leftovers.** "Market" (NASDAQ / NYSE) did nothing;
+    "Sector" offered five fixed names that never matched a real card; "Pre-Market Movers"
+    was ticked by default and did nothing; and pressing Apply silently added a minimum
+    activity of 60, relative volume of 2 and a $5–$500 price range. Now: Market filters by
+    exchange, Sector lists the industries in the results on screen, Pre-Market works, every
+    numeric filter starts off, and Reset keeps the screener on screen. Browser check: Growth
+    Pullback 5 cards → "Above 20 EMA" 0 (correct: that screener is below it) → Reset 5.
+31. **The header said LIVE at 3am.** It now reads MARKET CLOSED / PRE-MARKET / AFTER-HOURS
+    outside the session.
+32. **Light theme:** the selected analysis tab was dark text on blue; now white.
+33. **Accounts (database, applied 2026-11-12):** a user can no longer set or change their own
+    role or plan, and new accounts are members, not owners. The two existing accounts keep
+    their owner role (`db/supabase/2026-11-12-profile-role-lock.sql`).
+
 ## Still open
 
 - **Finish the Polygon key move.** Done on the hosted database (2026-11-12): `app_secret`
@@ -113,12 +133,12 @@ or holidays (`test/radar-live-paths.test.mjs`).
   `db/supabase/2026-11-11-app-secret.sql`).
 - **Re-save the five schedules.** All five saved schedules hold `device` as their time zone,
   so they keep running on US Eastern until each is opened and saved again from the page.
-- **Every account is an owner.** `profile.role` defaults to `owner` and a user may update
-  their own profile row, role included (`db/supabase/schema.sql:13,20`). So every "owner or
-  admin only" rule — the feed switch, the Polygon key save — is open to any signed-in user.
-- **The other provider keys are readable by every signed-in user.** They sit in
-  `source_group.keys`, whose read policy is "any authenticated user" — the same problem the
-  Polygon key had.
+- **Provider keys in `source_group.keys` are readable by every signed-in user** (same
+  problem the Polygon key had). No key is stored there today, so nothing is exposed yet;
+  move them to `app_secret` before the first one is saved.
+- **Supabase Auth: leaked-password protection is off** (the project's only security
+  advisory besides the intended policy-less `app_secret`). Turn it on in the dashboard:
+  https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 - `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
   is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it

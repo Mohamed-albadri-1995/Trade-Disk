@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from './api.js';
 import { getTheme, toggleTheme } from './theme.js';
-import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS } from './lib.js';
+import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS, marketSession } from './lib.js';
 import { Appbar, BottomNav, Footer, Toast } from './components.jsx';
 import { Screener, Shortlist } from './screens.jsx';
 import { Market } from './market.jsx';
@@ -100,7 +100,7 @@ export default function App() {
   // resetFilters(): defaults back, every stock visible again.
   const onReset = () => {
     appliedRef.current = false;
-    setFilters(structuredClone(DEFAULT_FILTERS));
+    setFilters({ ...structuredClone(DEFAULT_FILTERS), preset: filters.preset });   // keep the screener that is on screen
     setVisible(stocks);
   };
 
@@ -145,6 +145,8 @@ export default function App() {
     const sorted = sortStocks(visible, sort);
     return [...sorted].sort((a, b) => (a.live === b.live ? 0 : a.live === false ? 1 : b.live === false ? -1 : 0));
   }, [visible, sort]);
+  // the Sector filter offers the industries actually present in the results on screen
+  const sectorList = useMemo(() => [...new Set(stocks.map((s) => s.sec).filter((x) => x && x !== '—'))].sort(), [stocks]);
   // The Shortlist tab shows every starred stock, quoted fresh by ticker; a stock the
   // quote did not return falls back to its card from the scan on screen.
   useEffect(() => {
@@ -167,6 +169,12 @@ export default function App() {
     if (screen === 'analysis' || screen === 'data' || screen === 'registers') return { hide: true };   // these own their own header / need no live badge
     // the scanner says how far behind the market its data is (15 minutes without a paid TradingView feed)
     const delay = screen !== 'market' && scanInfo?.delayMin ? ` · ${scanInfo.delayMin}-MIN DELAYED` : '';
+    // outside trading hours nothing is moving: say so instead of "LIVE"
+    const sess = marketSession();
+    if (feed?.mode === 'personal' && sess !== 'open' && screen !== 'market') {
+      const what = sess === 'pre' ? 'PRE-MARKET' : sess === 'after' ? 'AFTER-HOURS' : 'MARKET CLOSED';
+      return { live: sess !== 'closed', label: `TRADINGVIEW · ${what}${sess === 'closed' ? '' : delay}`, title: sess === 'closed' ? 'The US market is closed — results show the last session' : 'Extended-hours session' };
+    }
     if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}${delay}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
     if (screen === 'market')
       return { live: true, label: 'LIVE · YAHOO', title: market?.asOf ? `Market snapshot · ${market.asOf}` : 'Live market snapshot, computed from Yahoo daily bars' };
@@ -188,7 +196,7 @@ export default function App() {
             screeners={screeners} scanInfo={scanInfo}
             sort={sort} setSort={setSort} shortlist={shortlist} selectedTicker={selectedTicker} screen={screen}
             collapsed={collapsed} loading={!loaded}
-            onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
+            sectors={sectorList} onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
             onRunScan={() => runScan(filters.preset)}
             onToggleFilters={onToggleFilters} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} onToast={toast} />
         )}

@@ -5,6 +5,7 @@
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { join, normalize, extname, sep } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
@@ -35,6 +36,11 @@ function readBody(req) {
   });
 }
 
+// The database client for a signed-in request. The browser test harness swaps this for
+// an in-memory database (test/e2e/serve.mjs); the real server never calls the setter.
+let makeClient = userClient;
+export const setClientFactory = (fn) => { makeClient = fn; };
+
 // The signed-in user for this request, from the login JWT the front end sends.
 // The uid is read from the token payload for stamping owner_id on writes; the
 // database is the real gatekeeper — row-level security rejects any row whose
@@ -46,7 +52,7 @@ function authCtx(req) {
   let uid = null;
   try { uid = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()).sub; } catch { /* malformed */ }
   if (!uid) return null;
-  return { sb: userClient(token), uid };
+  return { sb: makeClient(token), uid };
 }
 
 // the API, routed by product
@@ -256,7 +262,8 @@ async function serveStatic(res, url) {
 
 // No request may take the process down: a throw anywhere (bad URL, a handler bug)
 // is answered as an error instead of becoming an unhandled rejection that exits Node.
-createServer((req, res) => {
+export function start(port = PORT, { scheduler = true } = {}) {
+  return createServer((req, res) => {
   Promise.resolve().then(() => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     return url.pathname.startsWith('/api/') ? api(req, res, url) : serveStatic(res, url);
@@ -264,7 +271,12 @@ createServer((req, res) => {
     console.log('[server] request error', req.method, req.url, e && e.message);
     if (!res.headersSent) json(res, { error: 'bad request' }, 400); else res.end();
   });
-}).listen(PORT, () => {
-  console.log(`Trade-Disk (solo) on http://localhost:${PORT}`);
-  startScheduler();   // fire saved scan schedules + collect data during market hours (needs the service-role key)
-});
+}).listen(port, () => {
+    console.log(`Trade-Disk (solo) on http://localhost:${port}`);
+    if (scheduler) startScheduler();   // fire saved scan schedules + collect data during market hours (needs the service-role key)
+  });
+}
+
+// Start when run directly (`node server.mjs`, `npm start`); stay quiet when imported.
+const runDirectly = (() => { try { return realpathSync(process.argv[1] || '') === import.meta.filename; } catch { return false; } })();
+if (runDirectly) start();

@@ -402,3 +402,5 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .db-jt-v{color:var(--text);word-break:break-word;overflow-wrap:anywhere}
 .db-jt-v.num,.db-jt-v.bool{color:var(--cyan)}
 .db-swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;border:1px solid var(--line2)}
+
+/* light theme: the selected tab keeps white text on its blue fill (it was dark-on-blue) */[data-theme=light] .tab.active{color:#fff}

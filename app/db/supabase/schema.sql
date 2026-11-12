@@ -11,7 +11,7 @@ create table if not exists public.profile (
   id           uuid primary key references auth.users(id) on delete cascade,
   email        text,
   display_name text,
-  role         text not null default 'owner',      -- owner | member | admin
+  role         text not null default 'member',     -- owner | member | admin (set only by the service role)
   plan         text not null default 'personal',   -- personal | commercial
   created_at   timestamptz not null default now()
 );
@@ -19,6 +19,10 @@ alter table public.profile enable row level security;
 create policy profile_select_own on public.profile for select to authenticated using (id = (select auth.uid()));
 create policy profile_update_own on public.profile for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
 create policy profile_insert_own on public.profile for insert to authenticated with check (id = (select auth.uid()));
+-- A user may not set or change role / plan: only these columns are writable by them.
+revoke insert, update, delete, truncate, references, trigger on public.profile from authenticated, anon;
+grant insert (id, email, display_name) on public.profile to authenticated;
+grant update (email, display_name) on public.profile to authenticated;
 -- NB: the profile row is created by the app right after signup (a trigger on
 -- auth.users cannot be added through the connector).
 

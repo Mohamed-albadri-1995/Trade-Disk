@@ -192,7 +192,7 @@ export function toCard(r, i = 0, now = Date.now()) {
   if (toEarnings != null && toEarnings > -86400e3 && toEarnings <= 7 * 86400e3) tags.push('Earnings');
   const score = Math.max(5, Math.min(99, Math.round(50 + c * 1.5 + ((rvol ?? 1) - 1) * 6)));
   return {
-    t: r.ticker, n: r.description || r.ticker,
+    t: r.ticker, n: r.description || r.ticker, ex: String(r._sym || '').split(':')[0] || '',   // exchange, for the Market filter
     p: p != null ? +p.toFixed(2) : 0, c: +(+c).toFixed(2), abs,
     s: score, r: rvol != null ? +rvol.toFixed(2) : 0, adr,
     // PM/ADR: the pre-market range as a share of a normal day's range; before the

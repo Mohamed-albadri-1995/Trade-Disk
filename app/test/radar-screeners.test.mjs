@@ -158,3 +158,41 @@ test('everything the translator can run exists in the builder', () => {
 test('the builder offers every operator the translator can run', () => {
   for (const op of ['>', '≥', '<', '≤', '=', '≠', 'Between']) assert.ok(OPERATORS.includes(op));
 });
+
+// ── the screener's sidebar filters (ui-radar/src/lib.js) ──
+import { filterStocks, DEFAULT_FILTERS, filterCount, marketSession } from '../ui-radar/src/lib.js';
+const stock = (o) => ({ t: 'X', s: 50, r: 1, p: 20, ex: 'NASDAQ', sec: 'Semiconductors', capBand: 'mid', tags: [], cs: false, ema: false, stacked: false, news: false, c: 1, ...o });
+const F = (o = {}) => ({ ...structuredClone(DEFAULT_FILTERS), ...o, checks: { ...DEFAULT_FILTERS.checks, ...(o.checks || {}) } });
+
+test('filters: with nothing set, every stock is shown', () => {
+  const all = [stock({}), stock({ t: 'PENNY', p: 0.4, s: 5, r: 0.1 }), stock({ t: 'BIG', p: 4000 })];
+  assert.equal(filterStocks(all, F()).length, 3);
+  assert.equal(filterCount(DEFAULT_FILTERS.checks), 0);
+});
+
+test('filters: each numeric filter narrows only when set', () => {
+  const all = [stock({ t: 'A', s: 80, r: 3, p: 10 }), stock({ t: 'B', s: 40, r: 1, p: 300 })];
+  const pick = (f) => filterStocks(all, F(f)).map((s) => s.t).join('');
+  assert.deepEqual([pick({ score: 60 }), pick({ rvol: 2 }), pick({ minp: 100 }), pick({ maxp: 100 }), pick({ minp: 5, maxp: 500 }), pick({ maxp: '' })], ['A', 'A', 'B', 'A', 'AB', 'AB']);
+});
+
+test('filters: market, sector, cap and every tick-box match the card’s own fields', () => {
+  const all = [
+    stock({ t: 'A', ex: 'NYSE', sec: 'Packaged Software', capBand: 'large', tags: ['Pre-Market', 'Earnings'], cs: true, ema: true, stacked: true, news: true, c: 6 }),
+    stock({ t: 'B' })];
+  const pick = (f) => filterStocks(all, F(f)).map((s) => s.t).join('');
+  assert.equal(pick({ market: 'NYSE' }), 'A'); assert.equal(pick({ market: 'NASDAQ' }), 'B'); assert.equal(pick({ market: 'US Stocks' }), 'AB');
+  assert.equal(pick({ sector: 'Semiconductors' }), 'B'); assert.equal(pick({ cap: 'large' }), 'A');
+  for (const id of ['premarket', 'earnings', 'canslimfilter', 'ema', 'stacked', 'hot', 'newsfilter']) assert.equal(pick({ checks: { [id]: true } }), 'A', id);
+});
+
+test('header: the market session is read on the New York clock', () => {
+  const at = (iso) => marketSession(new Date(iso));
+  assert.deepEqual(['2026-11-12T08:00:00Z', '2026-11-12T10:00:00Z', '2026-11-12T14:30:00Z', '2026-11-12T20:59:00Z', '2026-11-12T21:00:00Z', '2026-11-13T01:00:00Z', '2026-11-14T15:00:00Z'].map(at),
+    ['closed', 'pre', 'open', 'open', 'after', 'closed', 'closed']);
+});
+
+test('card: carries its exchange for the Market filter', () => {
+  assert.equal(toCard({ ticker: 'IBM', _sym: 'NYSE:IBM', close: 1 }).ex, 'NYSE');
+  assert.equal(toCard({ ticker: 'IBM', close: 1 }).ex, '');
+});

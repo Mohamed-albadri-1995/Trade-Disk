@@ -143,7 +143,7 @@ export function Market({ snapshot, onNav, onToast }) {
         </article>
       </section>
 
-      <div className="notice market-notice" style={LIVE_NOTE}><strong>Live data.</strong> Index prices, the market model, final regime, sector heatmap and breadth are computed server-side from free Yahoo daily bars and refreshed when you open this page. Informational only — not investment advice.</div>
+      <div className="notice market-notice" style={LIVE_NOTE}><strong>Live data.</strong> Index prices, the market model, final regime, sector heatmap and breadth are computed server-side from free Yahoo daily bars and refreshed every two minutes while the market is open (this page re-reads it each minute). Informational only — not investment advice.</div>
 
       <section className="market-block">
         <div className="block-head"><div><h2>Market Index Dashboard</h2><p className="subtitle">Close, daily change and weekly change · matching periods across each instrument</p></div><span className="tag">{m.indexes.length} instruments</span></div>

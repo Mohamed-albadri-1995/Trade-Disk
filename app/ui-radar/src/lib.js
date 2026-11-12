@@ -25,17 +25,19 @@ export function sparkData(points) {
 export const sortStocks = (list, sort) =>
   [...list].sort((a, b) => (sort === 'change' ? b.c - a.c : sort === 'ticker' ? a.t.localeCompare(b.t) : b.s - a.s));
 
-// filterStocks's predicate, field for field. Note: the Pre-Market toggle is a view
-// chip in the prototype and does not narrow the list, so it is absent here too.
+// The sidebar filters over the scan's results. A numeric filter left at 0 (or blank)
+// is off, so "Apply" narrows by exactly what the user set and nothing else.
 export function filterStocks(stocks, f) {
-  const c = f.checks;
+  const c = f.checks, on = (v) => Number(v) > 0;
   return stocks.filter((s) =>
-    s.s >= f.score &&
-    s.r >= f.rvol &&
-    s.p >= f.minp &&
-    s.p <= f.maxp &&
+    (!on(f.score) || s.s >= f.score) &&
+    (!on(f.rvol) || s.r >= f.rvol) &&
+    (!on(f.minp) || s.p >= f.minp) &&
+    (!on(f.maxp) || s.p <= f.maxp) &&
+    (!f.market || f.market === 'US Stocks' || s.ex === f.market) &&
     (f.sector === 'Any' || s.sec === f.sector) &&
     (f.cap === 'Any' || s.capBand === f.cap) &&
+    (!c.premarket || s.tags.includes('Pre-Market')) &&
     (!c.earnings || s.tags.includes('Earnings')) &&
     (!c.canslimfilter || s.cs) &&
     (!c.ema || s.ema) &&
@@ -53,19 +55,29 @@ export function presetValues(preset) {
 }
 export const presetTitle = (preset) => preset.split(' — ')[0] + ' Scanner';
 
-// updateFilterCount: checked boxes + the three always-on numeric filters.
-export const filterCount = (checks) => Object.values(checks).filter(Boolean).length + 3;
+// How many filter boxes are ticked (shown on the mobile filters toggle).
+export const filterCount = (checks) => Object.values(checks).filter(Boolean).length;
 
 export const CHECK_IDS = ['premarket', 'earnings', 'canslimfilter', 'ema', 'stacked', 'hot', 'newsfilter'];
 
+// Everything off: a fresh scan shows all its matches, and Apply only narrows by what
+// the user then sets.
 export const DEFAULT_FILTERS = {
   market: 'US Stocks',
-  preset: 'T1 — Big Move',
-  score: 60,
-  rvol: 2,
-  minp: 5,
-  maxp: 500,
+  preset: '',
+  score: 0,
+  rvol: 0,
+  minp: 0,
+  maxp: 0,
   cap: 'Any',
   sector: 'Any',
-  checks: { premarket: true, earnings: false, canslimfilter: false, ema: false, stacked: false, hot: false, newsfilter: false },
+  checks: { premarket: false, earnings: false, canslimfilter: false, ema: false, stacked: false, hot: false, newsfilter: false },
 };
+
+// The US market's session right now, for the header badge.
+export function marketSession(now = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now).map((x) => [x.type, x.value]));
+  const m = (+p.hour % 24) * 60 + +p.minute;
+  if (p.weekday === 'Sat' || p.weekday === 'Sun' || m < 240 || m >= 1200) return 'closed';
+  return m < 570 ? 'pre' : m < 960 ? 'open' : 'after';
+}
