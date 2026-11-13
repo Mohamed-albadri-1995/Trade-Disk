@@ -61,26 +61,36 @@ export async function runBacktest(spec, deps = {}) {
 
   all.sort((a, b) => a.entry_ts - b.entry_ts || a.exit_ts - b.exit_ts);
 
-  // account sizing: shares from the stop so every stop-out risks the same budget;
-  // equity compounds in entry order. Trades with no usable stop, or that the
-  // buying power cannot take, are excluded and counted — never silently sized at 1.
+  // account sizing, walked in time: shares from the stop so every stop-out risks the same
+  // budget, sized on the equity REALISED by the entry time (a trade still running elsewhere
+  // has not paid out yet), and capped by the cash not already in open positions (no margin:
+  // several positions at once share one account). Trades with no usable stop, or that the
+  // cash cannot take, are excluded and counted — never silently sized at 1. A position
+  // still open at the end ties up its cash and is reported unrealised.
   const accountInfo = { skippedNoStop: 0, skippedNoBuyingPower: 0 };
   if (acct.mode === 'account') {
     let equity = +acct.startEquity || 10000;
     const feePS = +spec.feePerShare || 0, feeMin = +spec.feeMin || 0;
+    const open = [];                                  // { t, exit_ts, cost } — positions holding cash
+    const realiseUpTo = (ts) => {
+      open.sort((a, b) => a.exit_ts - b.exit_ts);
+      while (open.length && open[0].exit_ts <= ts && open[0].t.reason !== 'open') {
+        const p = open.shift(); equity += p.t.pnl; p.t.equityAfter = Math.round(equity * 100) / 100;
+      }
+    };
     for (const t of all) {
-      if (t.reason === 'open') { t.pnl = 0; continue; }
-      const dir = t.side === 'short' ? -1 : 1;
+      realiseUpTo(t.entry_ts);
       const rps = t.stop != null ? Math.abs(t.entry - t.stop) : null;
       if (!rps) { t.skipped = 'no stop'; accountInfo.skippedNoStop++; continue; }
       const budget = acct.riskUsd != null ? +acct.riskUsd : equity * (+acct.riskPct || 1) / 100;
-      let shares = Math.floor(budget / rps);
-      shares = Math.min(shares, Math.floor(equity / t.entry));   // no margin
+      const cash = equity - open.reduce((a, p) => a + p.cost, 0);
+      const shares = Math.min(Math.floor(budget / rps), Math.floor(cash / t.entry));
       if (shares < 1) { t.skipped = 'buying power'; accountInfo.skippedNoBuyingPower++; continue; }
       const fees = Math.max(feeMin, feePS * shares) * 2;         // two orders
-      const pnl = shares * t.entry * (t.ret / 100) - fees;
-      t.shares = shares; t.pnl = Math.round(pnl * 100) / 100; equity += t.pnl; t.equityAfter = Math.round(equity * 100) / 100;
+      t.shares = shares; t.pnl = Math.round((shares * t.entry * (t.ret / 100) - fees) * 100) / 100;
+      open.push({ t, exit_ts: t.exit_ts, cost: shares * t.entry });
     }
+    realiseUpTo(Infinity);
   }
   const counted = acct.mode === 'account' ? all.filter((t) => t.skipped == null) : all;
 

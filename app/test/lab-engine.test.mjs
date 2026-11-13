@@ -121,3 +121,21 @@ test('backtest: only trades entered inside the range count; account sizing risks
   assert.equal(t.shares, Math.floor(100 / 3));                // $100 risk / $3 per share
   assert.equal(t.pnl, Math.round(t.shares * 2 * 100) / 100);  // +$2 a share
 });
+
+test('backtest account: a trade still running elsewhere does not size the next one, and cash is shared', async () => {
+  // A: enters day 71, runs to the end (+big). B: enters day 75 while A is open.
+  const up = [...flat(70), [99, 101, 99, 101], ...Array.from({ length: 20 }, (_, i) => [102 + i, 103 + i, 101.5 + i, 102.5 + i])];
+  const late = [...flat(74), [99, 101, 99, 101], ...Array.from({ length: 16 }, () => [102, 102.5, 101.5, 102])];
+  const day = (i) => new Date((T0 + i * DAY) * 1000).toISOString().slice(0, 10);
+  const run = (acct) => runBacktest({ strategy: strat({ sl: { type: 'points', value: 2 } }), universe: { symbols: ['A', 'B'] },
+    start: day(60), end: day(90), fill: 'desk', accounting: acct }, { getBars: async (s) => ({ bars: mk(s === 'A' ? up : late) }) });
+  const r = await run({ mode: 'account', startEquity: 10000, riskPct: 1 });
+  const [a, b] = ['A', 'B'].map((s) => r.trades.find((t) => t.symbol === s));
+  assert.equal(a.reason, 'open'); assert.equal(b.reason, 'open');
+  assert.equal(a.shares, Math.floor(100 / 3)); assert.equal(b.shares, Math.floor(100 / 3), 'B is sized on $10,000, not on A’s unrealised gain');
+  // cash: with a $1,000 account and 100% risk, A takes the cash and B cannot be bought
+  const small = await run({ mode: 'account', startEquity: 1000, riskPct: 100 });
+  assert.equal(small.trades.find((t) => t.symbol === 'A').shares, Math.floor(1000 / 102));
+  assert.equal(small.trades.some((t) => t.symbol === 'B'), false);
+  assert.equal(small.report.account.skippedNoBuyingPower, 1);
+});

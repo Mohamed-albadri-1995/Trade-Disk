@@ -169,3 +169,41 @@ Read from the live project (2026-11-12), three trading days back.
   again; harmless, it overwrites the same rows).
 - `tools/smoke.mjs` (Journal) still calls the old SQLite API and crashes; most of
   `app/README.md` still describes the SQLite build.
+
+---
+
+# Lab review — 2026-11-13
+
+Scope: the backtest engine (`core/lab/evaluate.mjs`, `backtest.mjs`, `report.mjs`) and the
+Lab page in a real browser (`test/e2e/lab.e2e.mjs`: chart, strategy save, a daily backtest
+over live Yahoo data, the register tab — all ran with no page, console or API errors).
+Tests: `test/lab-engine.test.mjs`.
+
+## Fixed
+
+1. **Close fills could hit their target on the bar they entered.** With the `close` / `live`
+   fill, the entry bar's own high and low were checked against the new stop and target —
+   prices that happened before the position existed. The walk now starts on the next bar.
+2. **Trailing indicator stops looked ahead.** The stop for a bar was moved using that bar's
+   own (close-based) indicator value, then tested against its low. It now moves on the last
+   closed bar's value.
+3. **Stop and target in the same bar counted as a win.** Daily bars cannot say which came
+   first; the target was assumed. Now the stop is assumed unless the bar opened beyond the
+   target (`stop_first: false` restores the optimistic order on purpose). A gap through the
+   target fills at the open.
+4. **Account backtests sized trades on money not yet made.** Equity grew trade by trade in
+   ENTRY order, so a trade's profit sized trades that entered before it closed, and every
+   concurrent position could use the whole account. Sizing now uses equity realised by the
+   entry time and the cash not already in open positions.
+5. A close fill on the last bar is reported as an open position (it was dropped);
+   Sharpe/Sortino annualise the calendar-daily series by 365 (was 252).
+
+## Still open (Lab)
+
+- **Saved backtests from before this change** keep their old numbers; re-run any you rely on.
+- **Unit-% mode** compounds trades one after another as if one position at a time; with
+  several symbols at once it overstates compounding. Use account mode for portfolio numbers.
+- **Intraday backtest** needs the Polygon key (now server-only) and fetches about 5 stock-days
+  a minute on the free tier; not exercised in the browser here.
+- **qp-compute** (the Python indicator service) is not configured in this environment, so
+  every run used the JS indicator library — documented as bar-for-bar equal, not re-verified.
