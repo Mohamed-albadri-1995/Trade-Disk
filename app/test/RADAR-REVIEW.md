@@ -137,6 +137,14 @@ Read from the live project (2026-11-12), three trading days back.
     had the same cap and is paged too. Past days can be back-filled within about a month:
     `POST /api/radar/labels?day=YYYY-MM-DD`.
 
+36. **Analysis context:** the per-ticker cache now holds only the fetched data; each request
+    builds its own snapshot, so one user's card name, sector and the current market regime
+    are never served from another request's minutes-old copy.
+37. **Prototype leftovers removed:** the Notifications button (it only said "outside this
+    prototype"); the sidebar's two hard-coded "Quick screeners" now list the user's own saved
+    screeners; the indicator catalog returns an empty list, not a server error, when the
+    qp-compute service is not configured.
+
 ## Still open
 
 - **Finish the Polygon key move.** Done on the hosted database (2026-11-12): `app_secret`
@@ -157,8 +165,6 @@ Read from the live project (2026-11-12), three trading days back.
 - **Snapshot volume.** MA Stack Breakout alone writes 5,000–12,000 snapshot rows a day (every
   sticky stock, every 5 minutes, with its full card). Watch the database size; a slower
   cadence or storing only changed cards would cut it by an order of magnitude.
-- `buildAnalysis` caches per ticker only, so the name/sector context of whoever asked first
-  is served to everyone for 8 minutes.
 - The after-close labels run is remembered only in memory (a restart after 16:05 ET runs it
   again; harmless, it overwrites the same rows).
 - `tools/smoke.mjs` (Journal) still calls the old SQLite API and crashes; most of

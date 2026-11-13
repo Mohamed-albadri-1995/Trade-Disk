@@ -28,7 +28,6 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }
         <button className="iconbtn" aria-label="Registers" title="Registers — a screener&#39;s picks by day, charted" onClick={() => onNav && onNav('registers')}>▤</button>
         <button className="iconbtn" aria-label="Database" title="Database — browse &amp; export your data" onClick={() => onNav && onNav('data')}>▦</button>
         <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
-        <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>
       </div>
     </header>
   );
@@ -176,9 +175,11 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
       <button className="primary" onClick={onApply}>Apply Filters</button>
       <div className="countline"><span id="filterSummary">{loading ? 'Scanning…' : `${visibleCount} stock${visibleCount === 1 ? '' : 's'} shown`}</span><span>Activity = %chg + RVOL · a heuristic, not a model</span></div>
       <div className="saved">
-        <div className="panel-title"><h3>Quick screeners</h3><button className="linkbtn" onClick={() => onToast('Build and save custom screeners in Settings.')}>＋</button></div>
-        <div className="savedrow"><span>Trend Leaders</span><button onClick={() => onLoadSaved('trend-leaders')}>↗</button></div>
-        <div className="savedrow"><span>Growth Pullback</span><button onClick={() => onLoadSaved('growth-pullback')}>↗</button></div>
+        <div className="panel-title"><h3>My screeners</h3><button className="linkbtn" title="Build a screener" onClick={() => onToast('Build and save your own screeners in Settings (⚙ at the top).')}>＋</button></div>
+        {(screeners || []).filter((s) => s.custom).length
+          ? (screeners || []).filter((s) => s.custom).map((s) => (
+            <div key={s.key} className="savedrow"><span>{s.name}</span><button title={`Run ${s.name}`} onClick={() => onLoadSaved(s.key)}>↗</button></div>))
+          : <div className="savedrow"><span className="subtitle">None yet — build one in Settings.</span></div>}
       </div>
     </aside>
   );
