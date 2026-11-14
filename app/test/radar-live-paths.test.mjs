@@ -314,7 +314,8 @@ test('register chart: minute views open on the minute it was first seen (New Yor
   const bars = ['13:30', '14:30', '14:45', '14:46', '14:47'].map((hm) => dayBar(`2026-11-13T${hm}:00Z`));   // 08:30, 09:30, 09:45 … ET
   assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: 16, firstSeen: '09:46' }, '1').index, 3);
   assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: -60, firstSeen: '08:30' }, '5').index, 0, 'pre-market sightings too');
-  assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: null }, '1'), null);
+  assert.deepEqual(registerFocus(bars, { day: '2026-11-13', firstSeenMin: null }, '1'), { index: 1, label: '▼ 2026-11-13 open (first-seen time not recorded)' }, 'no first-seen time: the 09:30 open');
+  for (const tf of ['1', '5', '15']) assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: 16, firstSeen: '09:46' }, tf).index, 3, `same anchor on ${tf}m`);
 });
 
 test('register chart: the opening window shows the focus bar, a little right of centre, inside the data', () => {

@@ -13,9 +13,11 @@ export function registerFocus(bars, pick, tf) {
     const i = bars.findIndex((b) => etDayOf(b.t) === pick.day);
     return i >= 0 ? { index: i, label: `▼ on the register ${pick.day}` } : null;
   }
-  if (pick.firstSeenMin == null) return null;
-  const i = bars.findIndex((b) => etDayOf(b.t) === pick.day && etMinOf(b.t) >= pick.firstSeenMin);
-  return i >= 0 ? { index: i, label: `▼ first seen ${pick.firstSeen || ''} ET` } : null;
+  // the same anchor in every minute view; with no recorded first-seen time, the day's 09:30 open
+  const known = pick.firstSeenMin != null;
+  const i = bars.findIndex((b) => etDayOf(b.t) === pick.day && etMinOf(b.t) >= (known ? pick.firstSeenMin : 0));
+  if (i < 0) return null;
+  return { index: i, label: known ? `▼ first seen ${pick.firstSeen || ''} ET` : `▼ ${pick.day} open (first-seen time not recorded)` };
 }
 
 // The window a chart opens on: `count` bars (all when 0), placed so `focusIndex` sits a
