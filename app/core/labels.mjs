@@ -16,7 +16,8 @@ const etDateOf = (tsSec) => new Date(tsSec * 1000).toLocaleDateString('en-CA', {
 
 // Compute and store labels for every ticker an account collected on `day`. `sb` owns
 // the writes (admin for the scheduler, the user's client for a manual run).
-export async function computeLabels(sb, uid, day = etDay()) {
+// `onlyMissing` skips tickers that already have a label for that day (used by the back-fill).
+export async function computeLabels(sb, uid, day = etDay(), { onlyMissing = false } = {}) {
   if (!sb) return { ok: false, error: 'data labels need a database client' };
   // every stock on the day's registers (one row per stock per screener). Read in pages:
   // the API caps a request at 1000 rows, and reading the snapshots unpaged labelled only
@@ -25,7 +26,11 @@ export async function computeLabels(sb, uid, day = etDay()) {
     ...await allRows(() => sb.from('radar_register').select('ticker').eq('owner_id', uid).eq('day', day).order('ticker')),
     ...await allRows(() => sb.from('radar_snapshot').select('ticker').eq('owner_id', uid).eq('day', day).order('taken_at')),
   ];
-  const tickers = [...new Set(seen.map((r) => r.ticker))];
+  let tickers = [...new Set(seen.map((r) => r.ticker))];
+  if (onlyMissing && tickers.length) {
+    const have = new Set((await allRows(() => sb.from('radar_snapshot_label').select('ticker').eq('owner_id', uid).eq('day', day).order('ticker'))).map((r) => r.ticker));
+    tickers = tickers.filter((t) => !have.has(t));
+  }
   if (!tickers.length) return { ok: true, day, tickers: 0, labeled: 0 };
 
   let labeled = 0;
@@ -49,4 +54,18 @@ export async function computeLabels(sb, uid, day = etDay()) {
     await sleep(200);
   }
   return { ok: true, day, tickers: tickers.length, labeled };
+}
+
+// Label every past collection day of the last `days` days that still has unlabelled
+// stocks (Yahoo keeps 5-minute bars for about a month). Today is left to the after-close
+// run. Returns one line per day it worked on.
+export async function backfillLabels(sb, uid, { days = 25, today = etDay() } = {}) {
+  const since = new Date(Date.parse(today + 'T12:00:00Z') - days * 86400e3).toISOString().slice(0, 10);
+  const rows = await allRows(() => sb.from('radar_register').select('day').eq('owner_id', uid).gte('day', since).order('day'));
+  const out = [];
+  for (const day of [...new Set(rows.map((r) => r.day))].filter((d) => d < today)) {
+    const r = await computeLabels(sb, uid, day, { onlyMissing: true });
+    if (r.tickers) out.push(r);
+  }
+  return out;
 }

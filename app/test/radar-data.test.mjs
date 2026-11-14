@@ -249,3 +249,17 @@ test('export: a day’s snapshots come back complete beyond 1000 rows', async ()
   assert.equal(out.snapshots.length, 2300);
   assert.equal((await allRows(() => capped({ t: rows }).from('t').select('*'))).length, 2300);
 });
+
+test('labels back-fill: labels only the missing stocks of past days, never today', async (t) => {
+  const { backfillLabels } = await import('../core/labels.mjs');
+  const f = stubFetch(() => ({ json: yahooJson([bar('2026-11-02T15:00:00Z', 10, 12, 9.5, 11), bar('2026-11-03T15:00:00Z', 10, 12, 9.5, 11)]) })); t.after(f.restore);
+  const reg = (day, ticker) => ({ owner_id: 'u1', day, ticker });
+  const db = fakeDb({
+    radar_register: [reg('2026-11-02', 'A'), reg('2026-11-02', 'B'), reg('2026-11-03', 'C'), reg('2026-11-14', 'D'), reg('2026-09-01', 'OLD'), { owner_id: 'u2', day: '2026-11-02', ticker: 'X' }],
+    radar_snapshot_label: [{ owner_id: 'u1', day: '2026-11-02', ticker: 'A', high: 1 }],
+  });
+  const out = await backfillLabels(db, 'u1', { today: '2026-11-14' });
+  assert.deepEqual(out.map((r) => [r.day, r.tickers, r.labeled]), [['2026-11-02', 1, 1], ['2026-11-03', 1, 1]]);
+  assert.deepEqual(db.tables.radar_snapshot_label.map((l) => l.ticker).sort(), ['A', 'B', 'C']);
+  assert.equal(db.tables.radar_snapshot_label.find((l) => l.ticker === 'A').high, 1, 'an existing label is left alone');
+});
