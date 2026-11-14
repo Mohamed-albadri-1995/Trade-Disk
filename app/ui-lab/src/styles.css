@@ -270,3 +270,8 @@ table.trades td { padding: 6px 9px; border-bottom: 1px solid var(--surface3); }
 .reg-chart-empty { display: grid; place-items: center; height: 430px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .reg-foot { padding: 2px; }
 @media (max-width: 920px) { .reg-controls .sel { min-width: 0; width: 100%; } .reg-controls label { width: 100%; } }
+
+/* chart navigation buttons (zoom / move / back to the register day) — usable on a phone */
+.qpchart-nav { position: absolute; right: 62px; bottom: 26px; display: flex; gap: 4px; }
+.qpchart-btn { min-width: 32px; height: 30px; border-radius: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface2) 92%, transparent); color: var(--text); font-size: 14px; line-height: 1; padding: 0 8px; }
+.qpchart-btn:disabled { opacity: .35; }

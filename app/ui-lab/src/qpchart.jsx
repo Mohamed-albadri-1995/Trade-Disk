@@ -1,9 +1,12 @@
-// Trade-Disk — the qp chart. Our own canvas chart (no third-party library), made a
-// real chart: drag to pan, scroll to zoom, the price axis auto-fits the visible bars,
-// a crosshair with an OHLC read-out. It draws candles + a volume pane + price overlays
-// (EMA/SMA/VWAP/Bollinger) + an oscillator pane (RSI) + entry/exit markers — the parent
-// computes the series (from the qp library math) and hands them in.
+// Trade-Disk — the qp chart. Our own canvas chart (no third-party library): drag (or
+// swipe) to pan, scroll (or pinch) to zoom, on-screen buttons for both, the price axis
+// auto-fits the visible bars, a crosshair with an OHLC read-out (tap on a phone). It
+// draws candles + a volume pane + price overlays + an oscillator pane + entry/exit
+// markers, and can open centred on one bar it highlights (`focus`: the day a stock showed
+// up on a register, or the minute it was first seen). The parent computes the series.
+// This file is shared by Radar and Lab (ui-radar/src and ui-lab/src hold the same copy).
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import { initialView } from './chartview.js';
 
 const PAD = { l: 8, r: 56, t: 10, b: 20 };
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888';
@@ -18,13 +21,16 @@ const MIN_BARS = 15;
 
 // priceOverlays/oscOverlays: [{ color, series (aligned to bars), dashed? }]
 // markers: [{ t, dir:'up'|'down', color }]
-export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [], markers = [], height = 420, intraday = false }) {
+// focus: { index, label } — the bar to centre on and highlight; initialCount: bars shown at first
+export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [], markers = [], height = 420, intraday = false, focus = null, initialCount = 0 }) {
   const wrap = useRef(null), cv = useRef(null);
   const [w, setW] = useState(900);
   const [hover, setHover] = useState(null);
   const [view, setView] = useState({ start: 0, count: 0 });   // visible window into bars
-  const drag = useRef(null);
+  const pointers = useRef(new Map());                          // active pointers (mouse / fingers)
+  const gesture = useRef(null);                                // { kind:'pan'|'pinch', ... }
   const hasOsc = oscOverlays.length > 0;
+  const focusIndex = focus && isNum(focus.index) && focus.index >= 0 && focus.index < bars.length ? focus.index : null;
 
   useLayoutEffect(() => {
     const el = wrap.current; if (!el) return;
@@ -32,36 +38,38 @@ export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [
     return () => ro.disconnect();
   }, []);
 
-  // reset the window to fit when the bar set changes (new symbol / day / timeframe)
-  const key = `${bars[0]?.t || 0}:${bars[bars.length - 1]?.t || 0}:${bars.length}`;
+  // open on the focus (or fit) when the bar set or focus changes (new symbol / day / timeframe)
+  const key = `${bars[0]?.t || 0}:${bars[bars.length - 1]?.t || 0}:${bars.length}:${focusIndex}:${initialCount}`;
   const keyRef = useRef('');
-  useEffect(() => { if (key !== keyRef.current) { keyRef.current = key; setView({ start: 0, count: bars.length }); setHover(null); } }, [key, bars.length]);
+  const reset = () => { setView(initialView(bars.length, focusIndex, initialCount)); setHover(null); };
+  useEffect(() => { if (key !== keyRef.current) { keyRef.current = key; reset(); } }); // eslint-disable-line
 
   const vStart = Math.max(0, Math.min(view.start, Math.max(0, bars.length - MIN_BARS)));
   const vCount = view.count > 0 ? Math.min(view.count, bars.length - vStart) : bars.length;
   const s0 = vStart, s1 = Math.min(bars.length, vStart + vCount);
   const viewBars = bars.slice(s0, s1);
+  const plotW = () => w - PAD.l - PAD.r;
+
+  // zoom by `factor` (<1 in, >1 out) keeping the bar under `frac` (0..1 across the plot) still
+  function zoom(factor, frac = 0.5, from = { start: s0, count: vCount }) {
+    if (!bars.length) return;
+    const anchorIdx = from.start + frac * (from.count - 1);
+    const count = clamp(Math.round(from.count * factor), Math.min(MIN_BARS, bars.length), bars.length);
+    const start = clamp(Math.round(anchorIdx - frac * (count - 1)), 0, Math.max(0, bars.length - count));
+    setView({ start, count });
+  }
+  function pan(dBars, from = { start: s0, count: vCount }) {
+    setView({ start: clamp(from.start + dBars, 0, Math.max(0, bars.length - from.count)), count: from.count });
+  }
+  const fracAt = (clientX) => { const r = cv.current.getBoundingClientRect(); return clamp((clientX - r.left - PAD.l) / Math.max(1, plotW()), 0, 1); };
 
   // native wheel listener (so we can preventDefault page scroll while zooming)
   useEffect(() => {
     const el = cv.current; if (!el) return;
-    const onWheel = (e) => {
-      e.preventDefault();
-      if (!bars.length) return;
-      const rect = el.getBoundingClientRect();
-      const plotW = w - PAD.l - PAD.r, bw = plotW / Math.max(1, vCount);
-      const cursorBar = clamp(Math.round((e.clientX - rect.left - PAD.l) / (bw || 1)), 0, vCount - 1);
-      const anchorIdx = s0 + cursorBar;
-      const factor = e.deltaY < 0 ? 0.82 : 1.22;                 // in / out
-      const newCount = clamp(Math.round(vCount * factor), MIN_BARS, bars.length);
-      const frac = vCount > 1 ? cursorBar / (vCount - 1) : 0.5;
-      let newStart = Math.round(anchorIdx - frac * (newCount - 1));
-      newStart = clamp(newStart, 0, Math.max(0, bars.length - newCount));
-      setView({ start: newStart, count: newCount });
-    };
+    const onWheel = (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 0.82 : 1.22, fracAt(e.clientX)); };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [w, vCount, s0, bars.length]);
+  });
 
   useEffect(() => { draw(); }); // redraw on any relevant change
 
@@ -70,7 +78,7 @@ export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [
     const oscBot = height - PAD.b, oscTop = oscBot - oscH;
     const volBot = hasOsc ? oscTop - gap : height - PAD.b, volTop = volBot - volH;
     const priceTop = PAD.t, priceBot = volTop - gap;
-    const n = viewBars.length, plotW = w - PAD.l - PAD.r, bw = n ? plotW / n : 0;
+    const n = viewBars.length, bw = n ? plotW() / n : 0;
     const x = (i) => PAD.l + i * bw + bw / 2;
     let lo = Infinity, hi = -Infinity;
     for (const b of viewBars) { if (b.l < lo) lo = b.l; if (b.h > hi) hi = b.h; }
@@ -90,7 +98,17 @@ export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [
     const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, height);
     if (!viewBars.length) return;
     const G = geom(); const { n, bw, x, y, vy, oy } = G;
-    const line = css('--line'), muted = css('--muted'), green = css('--green'), red = css('--red');
+    const line = css('--line'), muted = css('--muted'), green = css('--green'), red = css('--red'), accent = css('--yellow') || '#f5c542';
+    // focus: a band behind the bar the chart is about, with its label
+    if (focusIndex != null && focusIndex >= s0 && focusIndex < s1) {
+      const fx = x(focusIndex - s0);
+      g.fillStyle = accent; g.globalAlpha = 0.14; g.fillRect(fx - Math.max(bw, 6) / 2, PAD.t, Math.max(bw, 6), G.oscBot - PAD.t); g.globalAlpha = 1;
+      if (focus.label) {
+        g.font = 'bold 11px Inter, sans-serif'; const tw = g.measureText(focus.label).width;
+        const lx = clamp(fx - tw / 2, PAD.l + 2, w - PAD.r - tw - 2);
+        g.fillStyle = accent; g.fillText(focus.label, lx, PAD.t + 12);
+      }
+    }
     g.strokeStyle = line; g.fillStyle = muted; g.font = '10px Inter, sans-serif'; g.textBaseline = 'middle';
     for (let k = 0; k <= 4; k++) { const p = G.lo + (G.hi - G.lo) * (k / 4), yy = y(p); g.globalAlpha = 0.3; g.beginPath(); g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke(); g.globalAlpha = 1; g.fillText(fmt(p, p > 500 ? 0 : 2), w - PAD.r + 4, yy); }
     g.textBaseline = 'alphabetic'; g.textAlign = 'center';
@@ -123,23 +141,64 @@ export default function QpChart({ bars = [], priceOverlays = [], oscOverlays = [
   }
   function tri(g, cx, cy, r, up, color) { g.fillStyle = color; g.beginPath(); if (up) { g.moveTo(cx, cy); g.lineTo(cx - r, cy + r * 1.4); g.lineTo(cx + r, cy + r * 1.4); } else { g.moveTo(cx, cy); g.lineTo(cx - r, cy - r * 1.4); g.lineTo(cx + r, cy - r * 1.4); } g.closePath(); g.fill(); }
 
-  function px2bar(e) { const rect = cv.current.getBoundingClientRect(); const plotW = w - PAD.l - PAD.r, bw = plotW / Math.max(1, viewBars.length); return Math.round((e.clientX - rect.left - PAD.l) / (bw || 1) - 0.5); }
-  function onDown(e) { drag.current = { x: e.clientX, start: s0, count: vCount }; }
-  function onMove(e) {
-    if (drag.current) {
-      const plotW = w - PAD.l - PAD.r, bw = plotW / Math.max(1, drag.current.count);
-      const dBars = Math.round((e.clientX - drag.current.x) / (bw || 1));
-      const ns = clamp(drag.current.start - dBars, 0, Math.max(0, bars.length - drag.current.count));
-      setView({ start: ns, count: drag.current.count });
-    } else { const i = px2bar(e); setHover(i >= 0 && i < viewBars.length ? i : null); }
+  function barAt(clientX) { const r = cv.current.getBoundingClientRect(); const bw = plotW() / Math.max(1, viewBars.length); const i = Math.round((clientX - r.left - PAD.l) / (bw || 1) - 0.5); return i >= 0 && i < viewBars.length ? i : null; }
+
+  // ── pointer input: one pointer pans (mouse drag or finger swipe), two fingers pinch-zoom,
+  //    a tap shows the read-out; the mouse also hovers ──
+  function onPointerDown(e) {
+    cv.current.setPointerCapture?.(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX });
+    const ps = [...pointers.current.values()];
+    if (ps.length === 1) gesture.current = { kind: 'pan', x: e.clientX, from: { start: s0, count: vCount }, moved: false };
+    else if (ps.length === 2) gesture.current = { kind: 'pinch', dist: Math.abs(ps[0].x - ps[1].x) || 1, mid: (ps[0].x + ps[1].x) / 2, from: { start: s0, count: vCount } };
   }
-  function onUp() { drag.current = null; }
+  function onPointerMove(e) {
+    if (!pointers.current.has(e.pointerId)) { if (e.pointerType === 'mouse') setHover(barAt(e.clientX)); return; }
+    pointers.current.set(e.pointerId, { x: e.clientX });
+    const gs = gesture.current; if (!gs) return;
+    if (gs.kind === 'pan') {
+      const bw = plotW() / Math.max(1, gs.from.count);
+      const dx = e.clientX - gs.x;
+      if (Math.abs(dx) > 4) gs.moved = true;
+      pan(-Math.round(dx / (bw || 1)), gs.from);
+      if (e.pointerType === 'mouse') setHover(barAt(e.clientX));
+    } else if (gs.kind === 'pinch') {
+      const ps = [...pointers.current.values()]; if (ps.length < 2) return;
+      const dist = Math.abs(ps[0].x - ps[1].x) || 1;
+      zoom(gs.dist / dist, fracAt(gs.mid), gs.from);              // fingers apart → zoom in
+    }
+  }
+  function onPointerUp(e) {
+    const gs = gesture.current;
+    if (gs && gs.kind === 'pan' && !gs.moved && e.pointerType !== 'mouse') setHover(barAt(e.clientX));   // tap → read-out
+    pointers.current.delete(e.pointerId);
+    const left = [...pointers.current.values()];
+    gesture.current = left.length === 1 ? { kind: 'pan', x: left[0].x, from: { start: s0, count: vCount }, moved: true } : null;
+  }
   const hb = hover != null ? viewBars[hover] : null;
+  const step = Math.max(1, Math.round(vCount / 4));
+  // Buttons act on the finger lifting: a phone can drop the click that follows a swipe on
+  // the chart, which left the buttons dead after panning. The click (mouse / keyboard) is
+  // still handled, and a touch that already acted swallows its own click.
+  const touched = useRef(0);
+  const btn = (label, title, act, disabled = false) => (
+    <button type="button" className="qpchart-btn" title={title} aria-label={title} disabled={disabled}
+      onPointerUp={(e) => { if (e.pointerType !== 'mouse' && !disabled) { touched.current = Date.now(); act(); } }}
+      onClick={() => { if (Date.now() - touched.current < 700) return; act(); }}>{label}</button>);
 
   return (
     <div className="qpchart" ref={wrap} style={{ height }}>
-      <canvas ref={cv} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={() => { drag.current = null; setHover(null); }} style={{ cursor: drag.current ? 'grabbing' : 'crosshair' }} />
-      {hb && <div className="qpchart-tip"><b>{intraday ? etTime(hb.t) : etDate(hb.t)}</b><span>O {fmt(hb.o)}</span><span>H {fmt(hb.h)}</span><span>L {fmt(hb.l)}</span><span>C {fmt(hb.c)}</span><span className="muted">V {fmtInt(hb.v)}</span></div>}
+      <canvas ref={cv} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse' && !pointers.current.size) setHover(null); }}
+        style={{ cursor: gesture.current ? 'grabbing' : 'crosshair', touchAction: 'none' }} />
+      {hb && <div className="qpchart-tip"><b>{intraday ? `${etDate(hb.t)} ${etTime(hb.t)}` : etDate(hb.t)}</b><span>O {fmt(hb.o)}</span><span>H {fmt(hb.h)}</span><span>L {fmt(hb.l)}</span><span>C {fmt(hb.c)}</span><span className="muted">V {fmtInt(hb.v)}</span></div>}
+      <div className="qpchart-nav">
+        {btn('◀', 'Earlier', () => pan(-step), s0 === 0)}
+        {btn('−', 'Zoom out', () => zoom(1.5), vCount >= bars.length)}
+        {btn('+', 'Zoom in', () => zoom(0.66), vCount <= MIN_BARS)}
+        {btn('▶', 'Later', () => pan(step), s1 >= bars.length)}
+        {btn('⟲', focusIndex != null ? 'Back to the day it showed up' : 'Reset', reset)}
+      </div>
     </div>
   );
 }

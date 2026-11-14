@@ -404,3 +404,5 @@ a.news-item:hover{border-color:var(--blue);transform:translateY(-1px)}
 .db-swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;border:1px solid var(--line2)}
 
 /* light theme: the selected tab keeps white text on its blue fill (it was dark-on-blue) */[data-theme=light] .tab.active{color:#fff}
+
+/* chart navigation buttons (zoom / move / back to the register day) — usable on a phone */.qpchart-nav{position:absolute;right:62px;bottom:26px;display:flex;gap:4px}.qpchart-btn{min-width:32px;height:30px;border-radius:7px;border:1px solid #3a5a74;background:#0a1f30e6;color:#e8f2fb;font-weight:700;font-size:14px;line-height:1;padding:0 8px}.qpchart-btn:disabled{opacity:.35}
