@@ -17,7 +17,7 @@
 
 import { admin } from '../lib/supabase.mjs';
 import { collect } from './collect.mjs';
-import { computeLabels } from './labels.mjs';
+import { computeLabels, backfillLabels } from './labels.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 let timer = null;
@@ -100,4 +100,14 @@ export function startScheduler() {
   console.log('[scheduler] on — checking schedules every minute (each schedule in its own time zone)');
   tick();
   timer = setInterval(() => tick(), 20 * 1000);
+  // Once at start-up, in the background: label any past day that is missing labels (a
+  // restart, an outage, or the old 1000-row bug can leave gaps). Skips stocks already done.
+  backfillAll(admin).catch((e) => console.log('[scheduler] back-fill error', e.message));
+}
+
+export async function backfillAll(client) {
+  const owners = [...new Set((chk(await client.from('radar_screener').select('owner_id'))).map((r) => r.owner_id))];
+  for (const o of owners) {
+    for (const r of await backfillLabels(client, o)) console.log('[scheduler] back-fill labels', JSON.stringify(r));
+  }
 }

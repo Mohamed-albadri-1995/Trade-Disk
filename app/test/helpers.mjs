@@ -11,6 +11,7 @@ export function fakeDb(tables = {}) {
     const api = {
       select() { return api; },
       eq(col, val) { q.filters.push([col, val]); return api; },
+      gte(col, val) { q.filters.push([col, val, 'gte']); return api; },
       order() { return api; },
       limit(n) { q.lim = n; return api; },
       range(a, b) { q.rng = [a, b]; return api; },
@@ -20,7 +21,7 @@ export function fakeDb(tables = {}) {
       update(patch) { q.op = 'update'; q.patch = patch; return api; },
       then(resolve, reject) { return Promise.resolve(run()).then(resolve, reject); },
     };
-    const match = (r) => q.filters.every(([c, v]) => r[c] === v);
+    const match = (r) => q.filters.every(([c, v, op]) => (op === 'gte' ? r[c] >= v : r[c] === v));
     function run() {
       db.log.push({ table: name, op: q.op, filters: q.filters.map((f) => f[0]) });
       const t = tables[name];
