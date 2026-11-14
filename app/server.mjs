@@ -5,7 +5,8 @@
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { join, normalize, extname } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { join, normalize, extname, sep } from 'node:path';
 import * as journal from './api/journal.mjs';
 import * as radar from './api/radar.mjs';
 import * as lab from './api/lab.mjs';
@@ -35,6 +36,11 @@ function readBody(req) {
   });
 }
 
+// The database client for a signed-in request. The browser test harness swaps this for
+// an in-memory database (test/e2e/serve.mjs); the real server never calls the setter.
+let makeClient = userClient;
+export const setClientFactory = (fn) => { makeClient = fn; };
+
 // The signed-in user for this request, from the login JWT the front end sends.
 // The uid is read from the token payload for stamping owner_id on writes; the
 // database is the real gatekeeper — row-level security rejects any row whose
@@ -46,7 +52,7 @@ function authCtx(req) {
   let uid = null;
   try { uid = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()).sub; } catch { /* malformed */ }
   if (!uid) return null;
-  return { sb: userClient(token), uid };
+  return { sb: makeClient(token), uid };
 }
 
 // the API, routed by product
@@ -98,11 +104,13 @@ async function api(req, res, url) {
         if (sub === 'bundle') return json(res, await radar.bundle(sb));
         if (sub === 'stocks') return json(res, await radar.stocks(sb));
         if (sub === 'shortlist') return json(res, await radar.shortlist(sb));
+        if (sub === 'shortlist-cards') return json(res, await radar.shortlistCards(sb));
+        if (sub === 'classification') return json(res, radar.classification());
         if (sub === 'market') return json(res, await radar.market(sb));
         if (sub === 'groups') return json(res, await radar.groups(sb));
         if (sub === 'screeners') return json(res, radar.screeners());
-        if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, uid, decodeURIComponent(seg[3]), Math.min(100, +url.searchParams.get('limit') || 50)));
-        if (sub === 'register' && seg[3]) return json(res, await radar.register(sb, decodeURIComponent(seg[3])));
+        if (sub === 'scan' && seg[3]) return json(res, await radar.scan(sb, uid, decodeURIComponent(seg[3]), url.searchParams.get('limit')));
+        if (sub === 'register' && seg[3]) return json(res, await radar.register(sb, decodeURIComponent(seg[3]), uid));
         if (sub === 'bars' && seg[3]) return json(res, await radar.bars(sb, decodeURIComponent(seg[3])));
         if (sub === 'register-screens') return json(res, await registers.screens(sb));
         if (sub === 'register-days') return json(res, await registers.days(sb, url.searchParams.get('screen')));
@@ -110,14 +118,14 @@ async function api(req, res, url) {
         if (sub === 'intraday-bars') return json(res, await registers.intradayBars(sb, uid, url.searchParams.get('ticker'), url.searchParams.get('day'), url.searchParams.get('interval')));
         if (sub === 'collection') return json(res, await radar.collectStatus(sb));
         if (sub === 'export') return json(res, await radar.exportData(sb, url.searchParams.get('day')));
-        if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }));
+        if (sub === 'analysis' && seg[3]) return json(res, await radar.analysis(sb, decodeURIComponent(seg[3]), { n: url.searchParams.get('name'), sec: url.searchParams.get('sec'), cap: url.searchParams.get('cap'), capBand: url.searchParams.get('capBand'), tags: (url.searchParams.get('tags') || '').split(',').filter(Boolean) }, uid));
         if (sub === 'configs') return json(res, await radar.screenerConfigs(sb));
       }
       if (m === 'POST' && sub === 'shortlist' && seg[3]) return json(res, await radar.toggleShortlist(sb, uid, decodeURIComponent(seg[3])));
       try {
         if (m === 'POST' && sub === 'preview') return json(res, await radar.previewConditions(sb, await readBody(req)));
         if (m === 'POST' && sub === 'collect' && seg[3]) return json(res, await radar.collectNow(sb, uid, decodeURIComponent(seg[3])));
-        if (m === 'POST' && sub === 'labels') return json(res, await radar.labelsNow(sb, uid));
+        if (m === 'POST' && sub === 'labels') return json(res, await radar.labelsNow(sb, uid, url.searchParams.get('day')));
         if (m === 'POST' && sub === 'config') return json(res, await radar.saveScreenerConfig(sb, uid, await readBody(req)), 201);
         if (m === 'POST' && sub === 'schedule' && seg[3]) return json(res, await radar.saveSchedule(sb, uid, decodeURIComponent(seg[3]), await readBody(req)));
         if (m === 'DELETE' && sub === 'config' && seg[3]) return json(res, await radar.deleteScreenerConfig(sb, uid, decodeURIComponent(seg[3])));
@@ -227,7 +235,9 @@ async function sendFile(res, file) {
 // back to the owning app's index.html (SPA client routing). The root serves the
 // Station launcher once it exists, otherwise it sends users to the Journal.
 async function serveStatic(res, url) {
-  let rel = decodeURIComponent(url.pathname);
+  let rel;
+  try { rel = decodeURIComponent(url.pathname); }
+  catch { return json(res, { error: 'bad request' }, 400); }   // malformed %-escape
 
   if (rel === '/') {
     try { return await sendFile(res, join(WEB, 'index.html')); }
@@ -236,7 +246,7 @@ async function serveStatic(res, url) {
 
   if (rel.endsWith('/')) rel += 'index.html';
   const path = normalize(join(WEB, rel));
-  if (!path.startsWith(WEB)) return json(res, { error: 'forbidden' }, 403);
+  if (path !== WEB && !path.startsWith(WEB + sep)) return json(res, { error: 'forbidden' }, 403);
   try {
     const s = await stat(path);
     return await sendFile(res, s.isDirectory() ? join(path, 'index.html') : path);
@@ -250,11 +260,23 @@ async function serveStatic(res, url) {
   }
 }
 
-createServer((req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname.startsWith('/api/')) return api(req, res, url);
-  return serveStatic(res, url);
-}).listen(PORT, () => {
-  console.log(`Trade-Disk (solo) on http://localhost:${PORT}`);
-  startScheduler();   // fire saved scan schedules + collect data during market hours (needs the service-role key)
-});
+// No request may take the process down: a throw anywhere (bad URL, a handler bug)
+// is answered as an error instead of becoming an unhandled rejection that exits Node.
+export function start(port = PORT, { scheduler = true } = {}) {
+  return createServer((req, res) => {
+  Promise.resolve().then(() => {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    return url.pathname.startsWith('/api/') ? api(req, res, url) : serveStatic(res, url);
+  }).catch((e) => {
+    console.log('[server] request error', req.method, req.url, e && e.message);
+    if (!res.headersSent) json(res, { error: 'bad request' }, 400); else res.end();
+  });
+}).listen(port, () => {
+    console.log(`Trade-Disk (solo) on http://localhost:${port}`);
+    if (scheduler) startScheduler();   // fire saved scan schedules + collect data during market hours (needs the service-role key)
+  });
+}
+
+// Start when run directly (`node server.mjs`, `npm start`); stay quiet when imported.
+const runDirectly = (() => { try { return realpathSync(process.argv[1] || '') === import.meta.filename; } catch { return false; } })();
+if (runDirectly) start();

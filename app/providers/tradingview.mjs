@@ -45,9 +45,17 @@ const BASE_FILTER = {
 // object keyed by the requested column names, plus `ticker` (bare symbol). Throws
 // on a bad response or a column mismatch (a dropped field shifts every column, so
 // we refuse rather than map misaligned data — the reference scanner's rule).
-export async function scan({ filters, columns, sort, range = [0, 50] }) {
+//
+// `anyOf` (optional) is a list of rule groups: a stock matches when EVERY rule of at
+// least ONE group holds — how the builder's "OR" runs. It rides in the same boolean
+// tree as the universe gate; `filters` (all must hold) still applies on top.
+export async function scan({ filters = [], anyOf = null, columns, sort, range = [0, 50] }) {
+  const filter2 = anyOf && anyOf.length
+    ? { operator: 'and', operands: [{ operation: BASE_FILTER }, { operation: { operator: 'or',
+      operands: anyOf.map((g) => ({ operation: { operator: 'and', operands: g.map((f) => ({ expression: f })) } })) } }] }
+    : BASE_FILTER;
   const body = {
-    columns, filter: filters, filter2: BASE_FILTER,
+    columns, filter: filters, filter2,
     markets: ['america'], options: { lang: 'en' }, range, sort, symbols: {},
     ignore_unknown_fields: true,
   };

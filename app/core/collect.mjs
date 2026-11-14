@@ -15,6 +15,7 @@ import * as radar from '../api/radar.mjs';
 import { getMarket } from './market.mjs';
 import { buildAnalysis } from './analysis.mjs';
 import { etDay } from './register.mjs';
+import { allRows } from '../lib/pages.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -45,7 +46,7 @@ export async function collect(sb, uid, key, { withFacts = true } = {}) {
   // 3) per-stock analysis facts, once per day per ticker
   let facts = 0;
   if (withFacts && stocks.length) {
-    const have = new Set(chk(await sb.from('radar_snapshot_facts').select('ticker').eq('owner_id', uid).eq('day', day)).map((r) => r.ticker));
+    const have = new Set((await allRows(() => sb.from('radar_snapshot_facts').select('ticker').eq('owner_id', uid).eq('day', day).order('ticker'))).map((r) => r.ticker));
     const todo = stocks.filter((s) => !have.has(s.t)).slice(0, FACTS_PER_FIRE);
     for (const s of todo) {
       try {

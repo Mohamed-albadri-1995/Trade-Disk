@@ -13,7 +13,7 @@ import * as edgar from '../providers/edgar.mjs';
 import { news } from '../providers/news.mjs';
 
 const TTL_MS = 8 * 60 * 1000;
-const cache = new Map(); // ticker → { at, snap }
+const cache = new Map(); // ticker → { at, src: { bars, fund, newsRes } } — the fetched data only
 
 const r2 = (v) => (v == null || !isFinite(v) ? null : +(+v).toFixed(2));
 const pct2 = (v) => (v == null || !isFinite(v) ? null : +(+v).toFixed(2));
@@ -43,9 +43,18 @@ function ret(bars, n) {
 
 export async function buildAnalysis(ticker, { scan = null, market = null } = {}) {
   const t = String(ticker).toUpperCase();
+  // Only the slow fetches (Yahoo bars, SEC EDGAR, news) are cached per ticker. The snapshot
+  // itself is built per request, so the name / sector / tags of the card this user opened
+  // and the current market regime are never someone else's from minutes ago.
   const cached = cache.get(t);
-  if (cached && Date.now() - cached.at < TTL_MS) return cached.snap;
+  let src = cached && Date.now() - cached.at < TTL_MS ? cached.src : null;
+  if (!src) { src = await fetchSources(t, scan); cache.set(t, { at: Date.now(), src }); }
+  if (cache.size > 500) cache.delete(cache.keys().next().value);   // drop the oldest; the cache must not grow without limit
+  const { bars, fund, newsRes } = src;
+  return buildFrom(t, bars, fund, newsRes, scan, market);
+}
 
+async function fetchSources(t, scan) {
   const [{ bars }, fund] = await Promise.all([
     // 2 years: the chart shows ~1 year, and the extra year is warm-up so the 200-day
     // moving average is defined from the very first visible candle (not just the right edge).
@@ -53,12 +62,15 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
     edgar.fundamentals(t).catch(() => ({ available: false })),
   ]);
   if (!bars || !bars.length) throw new Error(`no price bars for ${t}`);
-  const tech = technicals(bars);
   // Fresh, stock-specific news (≤48h) from free sources — needs the resolved CIK and
   // name for exact matching, so it runs after fundamentals rather than alongside.
   const newsRes = await news(t, { name: scan?.n || fund?.name || t, cik: fund?.cik || null, maxAgeHours: 48, limit: 12 })
     .catch(() => ({ available: false, maxAgeHours: 48, items: [] }));
+  return { bars, fund, newsRes };
+}
 
+function buildFrom(t, bars, fund, newsRes, scan, market) {
+  const tech = technicals(bars);
   const price = tech.price;
   const shares = fund?.sharesDiluted || null;
   const marketCap = shares && price ? price * shares : null;
@@ -141,6 +153,5 @@ export async function buildAnalysis(ticker, { scan = null, market = null } = {})
     },
   };
 
-  cache.set(t, { at: Date.now(), snap });
   return snap;
 }

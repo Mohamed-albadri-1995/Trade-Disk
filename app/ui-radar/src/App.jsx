@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from './api.js';
 import { getTheme, toggleTheme } from './theme.js';
-import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS } from './lib.js';
+import { filterStocks, sortStocks, presetValues, DEFAULT_FILTERS, marketSession } from './lib.js';
 import { Appbar, BottomNav, Footer, Toast } from './components.jsx';
 import { Screener, Shortlist } from './screens.jsx';
 import { Market } from './market.jsx';
@@ -29,6 +29,10 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const toastTimer = useRef(null);
+  const [shortCards, setShortCards] = useState([]);       // the shortlist as freshly quoted cards
+  const appliedRef = useRef(false);                        // are the sidebar filters applied to the list?
+  const liveRef = useRef({});                              // what the once-a-minute refresh needs, always current
+  liveRef.current = { key: filters.preset, filters, mode: feed?.mode };
 
   // Load the available screeners + the saved shortlist. In Personal mode we run the
   // first screener live (TradingView) so the view opens on real market results; in
@@ -47,6 +51,25 @@ export default function App() {
       }
     }).catch(() => setLoaded(true));
     api.market().then(setMarket).catch(() => {});
+    // Keep the Market tab (and the cards' market context) current while the page is
+    // open: re-read the snapshot every minute when the tab is visible. The server
+    // rebuilds it at most every two minutes during the session, so this is cheap.
+    const poll = setInterval(() => {
+      if (document.hidden) return;
+      api.market().then(setMarket).catch(() => {});
+      // Re-read today's list for the screener on screen, so stocks found by a scheduled
+      // (background) scan, and news flags, appear without pressing Run. It only reads
+      // the saved list — it does not run a scan — and keeps any applied filters.
+      const { key, mode } = liveRef.current;
+      if (mode === 'personal' && key) {
+        api.register(key).then((res) => {
+          if (!res?.stocks?.length || liveRef.current.key !== key) return;
+          setStocks(res.stocks);
+          setVisible(appliedRef.current ? filterStocks(res.stocks, liveRef.current.filters) : res.stocks);
+        }).catch(() => {});
+      }
+    }, 60 * 1000);
+    return () => clearInterval(poll);
   }, []);
 
   const toast = (msg) => {
@@ -69,13 +92,15 @@ export default function App() {
 
   // filterStocks(): narrow once from the full universe; on mobile, fold the panel.
   const onApply = () => {
+    appliedRef.current = true;
     setVisible(filterStocks(stocks, filters));
     if (isMobile()) setCollapsed(true);
   };
 
   // resetFilters(): defaults back, every stock visible again.
   const onReset = () => {
-    setFilters(structuredClone(DEFAULT_FILTERS));
+    appliedRef.current = false;
+    setFilters({ ...structuredClone(DEFAULT_FILTERS), preset: filters.preset });   // keep the screener that is on screen
     setVisible(stocks);
   };
 
@@ -84,6 +109,7 @@ export default function App() {
   // those results locally. The server-side screener has already done the real work,
   // so we don't auto-apply the numeric filters on top.
   const runScan = (key) => {
+    appliedRef.current = false;
     setLoaded(false);
     api.scan(key)
       .then((res) => {
@@ -119,8 +145,20 @@ export default function App() {
     const sorted = sortStocks(visible, sort);
     return [...sorted].sort((a, b) => (a.live === b.live ? 0 : a.live === false ? 1 : b.live === false ? -1 : 0));
   }, [visible, sort]);
-  const savedCards = useMemo(() => stocks.filter((s) => shortlist.has(s.t)), [stocks, shortlist]);
-  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || null, [stocks, selectedTicker]);
+  // the Sector filter offers the industries actually present in the results on screen
+  const sectorList = useMemo(() => [...new Set(stocks.map((s) => s.sec).filter((x) => x && x !== '—'))].sort(), [stocks]);
+  // The Shortlist tab shows every starred stock, quoted fresh by ticker; a stock the
+  // quote did not return falls back to its card from the scan on screen.
+  useEffect(() => {
+    if (screen !== 'shortlist') return;
+    api.shortlistCards().then((r) => setShortCards(r?.stocks || [])).catch(() => {});
+  }, [screen, shortlist]);
+  const savedCards = useMemo(() => {
+    const quoted = Object.fromEntries(shortCards.map((s) => [s.t, s]));
+    const onScreen = Object.fromEntries(stocks.map((s) => [s.t, s]));
+    return [...shortlist].map((t) => quoted[t] || onScreen[t]).filter(Boolean);
+  }, [stocks, shortlist, shortCards]);
+  const selectedStock = useMemo(() => stocks.find((s) => s.t === selectedTicker) || shortCards.find((s) => s.t === selectedTicker) || null, [stocks, shortCards, selectedTicker]);
 
   // The header badge tells the truth about what's on screen. In Personal mode every
   // surface is live: the Screener and the analysis opened from its cards run on
@@ -129,12 +167,20 @@ export default function App() {
   // back to DEMO in Commercial mode before a licensed engine is wired.
   const badge = useMemo(() => {
     if (screen === 'analysis' || screen === 'data' || screen === 'registers') return { hide: true };   // these own their own header / need no live badge
-    if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
+    // the scanner says how far behind the market its data is (15 minutes without a paid TradingView feed)
+    const delay = screen !== 'market' && scanInfo?.delayMin ? ` · ${scanInfo.delayMin}-MIN DELAYED` : '';
+    // outside trading hours nothing is moving: say so instead of "LIVE"
+    const sess = marketSession();
+    if (feed?.mode === 'personal' && sess !== 'open' && screen !== 'market') {
+      const what = sess === 'pre' ? 'PRE-MARKET' : sess === 'after' ? 'AFTER-HOURS' : 'MARKET CLOSED';
+      return { live: sess !== 'closed', label: `TRADINGVIEW · ${what}${sess === 'closed' ? '' : delay}`, title: sess === 'closed' ? 'The US market is closed — results show the last session' : 'Extended-hours session' };
+    }
+    if (feed?.live) return { live: true, label: `LIVE · ${String(feed.provider).toUpperCase()}${delay}`, title: feed.at ? `Updated ${new Date(feed.at).toLocaleString()}` : '' };
     if (screen === 'market')
       return { live: true, label: 'LIVE · YAHOO', title: market?.asOf ? `Market snapshot · ${market.asOf}` : 'Live market snapshot, computed from Yahoo daily bars' };
     const liveScan = scanInfo && !scanInfo.error && scanInfo.provider;
     if (liveScan)
-      return { live: true, label: `LIVE · ${String(scanInfo.provider).toUpperCase()}`, title: 'Live screener results from TradingView' };
+      return { live: true, label: `LIVE · ${String(scanInfo.provider).toUpperCase()}${delay}`, title: delay ? `Screener results from TradingView, ${scanInfo.delayMin} minutes behind the market` : 'Live screener results from TradingView' };
     if (feed?.mode === 'personal')
       return { live: true, label: 'LIVE · TRADINGVIEW', title: 'Live screeners (TradingView) + analysis (Yahoo + SEC EDGAR)' };
     return { live: false, label: 'DEMO DATA', title: 'Seeded sample until a licensed feed is wired (Commercial mode)' };
@@ -150,7 +196,7 @@ export default function App() {
             screeners={screeners} scanInfo={scanInfo}
             sort={sort} setSort={setSort} shortlist={shortlist} selectedTicker={selectedTicker} screen={screen}
             collapsed={collapsed} loading={!loaded}
-            onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
+            sectors={sectorList} onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
             onRunScan={() => runScan(filters.preset)}
             onToggleFilters={onToggleFilters} onToggleStar={onToggleStar} onOpen={onOpen} onNav={nav} onToast={toast} />
         )}

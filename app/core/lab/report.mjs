@@ -112,7 +112,7 @@ function dailyRatios(curve, mddPct) {
   const sd = Math.sqrt(mean(rets.map((x) => (x - m) ** 2)));
   // downside deviation: squared negatives averaged over ALL periods (target 0), the standard Sortino denominator
   const dsd = Math.sqrt(sum(rets.map((x) => (x < 0 ? x * x : 0))) / rets.length);
-  const ann = Math.sqrt(252);
+  const ann = Math.sqrt(365);   // the series is CALENDAR-daily (weekends carried flat), so annualise by 365, not 252
   const totalRet = last && daily[0] ? (last / (daily[0] || pts[0].equity) - 1) * 100 : 0;
   const years = span / 365;
   const cagr = years > 0 && daily[0] ? ((last / daily[0]) ** (1 / years) - 1) * 100 : null;

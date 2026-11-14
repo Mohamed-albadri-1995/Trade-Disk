@@ -28,7 +28,6 @@ export function Appbar({ theme, onToggleTheme, onSearch, onToast, badge, onNav }
         <button className="iconbtn" aria-label="Registers" title="Registers — a screener&#39;s picks by day, charted" onClick={() => onNav && onNav('registers')}>▤</button>
         <button className="iconbtn" aria-label="Database" title="Database — browse &amp; export your data" onClick={() => onNav && onNav('data')}>▦</button>
         <button className="iconbtn" aria-label="Settings" title="Settings &amp; scan schedule" onClick={() => onNav && onNav('settings')}>⚙</button>
-        <button className="iconbtn" aria-label="Notifications" onClick={() => onToast('Notifications are outside this frontend prototype.')}>♧</button>
       </div>
     </header>
   );
@@ -87,7 +86,7 @@ export function StockCard({ s, selected, saved, onOpen, onToggleStar, variant = 
       </div>
       <div className="stock-price">
         <div className="priceval">{money(s.p)}</div>
-        <div className="change">+{s.abs.toFixed(2)} (+{s.c.toFixed(2)}%)</div>
+        <div className={`change ${s.c < 0 ? 'negative' : ''}`}>{s.c < 0 ? '−' : '+'}{Math.abs(s.abs).toFixed(2)} ({s.c < 0 ? '−' : '+'}{Math.abs(s.c).toFixed(2)}%)</div>
         <Spark points={s.changeLine} />
       </div>
       <div className="stock-detail">
@@ -116,7 +115,7 @@ const CHECK_LABELS = {
 };
 
 // The left filter panel — the approved screener layout, controlled by App state.
-export function FilterPanel({ filters, setFilters, visibleCount, collapsed, screeners, onApply, onReset, onChangePreset, onLoadSaved, onRunScan, loading, onToast }) {
+export function FilterPanel({ filters, setFilters, visibleCount, collapsed, screeners, sectors = [], onApply, onReset, onChangePreset, onLoadSaved, onRunScan, loading, onToast }) {
   const set = (patch) => setFilters({ ...filters, ...patch });
   const setCheck = (id, v) => setFilters({ ...filters, checks: { ...filters.checks, [id]: v } });
   return (
@@ -125,7 +124,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
       <div className="field">
         <label htmlFor="marketFilter">Market</label>
         <select id="marketFilter" className="select" value={filters.market} onChange={(e) => set({ market: e.target.value })}>
-          <option>US Stocks</option><option>NASDAQ</option><option>NYSE</option>
+          <option value="US Stocks">All US exchanges</option><option>NASDAQ</option><option>NYSE</option><option>AMEX</option>
         </select>
       </div>
       <div className="field">
@@ -141,8 +140,8 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
         {loading ? 'Scanning the market…' : '▶ Run screener'}
       </button>
       <div className="field">
-        <div className="rangehead"><label htmlFor="score" title="Activity = % change + relative volume. A transparent heuristic, not a trained model.">Min Activity</label><strong id="scoreVal">{filters.score}</strong></div>
-        <input className="range" id="score" type="range" min="40" max="95" value={filters.score} onChange={(e) => set({ score: +e.target.value })} />
+        <div className="rangehead"><label htmlFor="score" title="Activity = % change + relative volume. A transparent heuristic, not a trained model.">Min Activity</label><strong id="scoreVal">{filters.score > 0 ? filters.score : 'Any'}</strong></div>
+        <input className="range" id="score" type="range" min="0" max="95" value={filters.score} onChange={(e) => set({ score: +e.target.value })} />
       </div>
       <div className="field">
         <label htmlFor="rvol">Min Relative Volume</label>
@@ -153,7 +152,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
         <div className="rangegrid">
           <input id="minp" className="input" type="number" min="0" value={filters.minp} aria-label="Minimum price" onChange={(e) => set({ minp: +e.target.value })} />
           <span className="subtitle">to</span>
-          <input id="maxp" className="input" type="number" min="0" value={filters.maxp} aria-label="Maximum price" onChange={(e) => set({ maxp: +e.target.value })} />
+          <input id="maxp" className="input" type="number" min="0" placeholder="no max" value={filters.maxp || ''} aria-label="Maximum price" onChange={(e) => set({ maxp: +e.target.value })} />
         </div>
       </div>
       <div className="field">
@@ -165,7 +164,7 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
       <div className="field">
         <label htmlFor="sector">Sector</label>
         <select id="sector" className="select" value={filters.sector} onChange={(e) => set({ sector: e.target.value })}>
-          <option value="Any">Any sector</option><option>Semiconductors</option><option>Software</option><option>Computer Hardware</option><option>Automotive</option><option>Financial</option>
+          <option value="Any">Any sector</option>{sectors.map((x) => <option key={x}>{x}</option>)}
         </select>
       </div>
       <div className="checklist">
@@ -174,11 +173,13 @@ export function FilterPanel({ filters, setFilters, visibleCount, collapsed, scre
         ))}
       </div>
       <button className="primary" onClick={onApply}>Apply Filters</button>
-      <div className="countline"><span id="filterSummary">{visibleCount} stocks match</span><span>Activity = %chg + RVOL · a heuristic, not a model</span></div>
+      <div className="countline"><span id="filterSummary">{loading ? 'Scanning…' : `${visibleCount} stock${visibleCount === 1 ? '' : 's'} shown`}</span><span>Activity = %chg + RVOL · a heuristic, not a model</span></div>
       <div className="saved">
-        <div className="panel-title"><h3>Quick screeners</h3><button className="linkbtn" onClick={() => onToast('Build and save custom screeners in Settings.')}>＋</button></div>
-        <div className="savedrow"><span>Trend Leaders</span><button onClick={() => onLoadSaved('trend-leaders')}>↗</button></div>
-        <div className="savedrow"><span>Growth Pullback</span><button onClick={() => onLoadSaved('growth-pullback')}>↗</button></div>
+        <div className="panel-title"><h3>My screeners</h3><button className="linkbtn" title="Build a screener" onClick={() => onToast('Build and save your own screeners in Settings (⚙ at the top).')}>＋</button></div>
+        {(screeners || []).filter((s) => s.custom).length
+          ? (screeners || []).filter((s) => s.custom).map((s) => (
+            <div key={s.key} className="savedrow"><span>{s.name}</span><button title={`Run ${s.name}`} onClick={() => onLoadSaved(s.key)}>↗</button></div>))
+          : <div className="savedrow"><span className="subtitle">None yet — build one in Settings.</span></div>}
       </div>
     </aside>
   );

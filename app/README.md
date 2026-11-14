@@ -27,7 +27,8 @@ Then open **http://localhost:8787** — the Station launcher.
   active feed. Set that group to **Yahoo** in Admin first (or use the Refresh button there);
   on demo it's a no-op. Wires groups 1·2·3·4·7 (price/volume/range/indicators/name);
   5·6·8 stay demo until a paid feed is added.
-- `npm run smoke` — quick API check.
+- `npm test` — the Radar test suite (90 tests; no network or database needed). The review
+  it came from is in `test/RADAR-REVIEW.md`.
 - Re-run `npm run setup` any time to rebuild after code changes.
 
 ## What's where
@@ -37,5 +38,7 @@ Then open **http://localhost:8787** — the Station launcher.
 - `ui/` (Journal), `ui-radar/` (Radar), `ui-station/` (Station) — Vite/React apps
   that build into `web/`.
 
-> TradeLab and TradePilot are not built yet. Hosted mode (accounts, Postgres/
+> Note: parts of this page predate the move to Supabase — the API now reads and writes
+> through Supabase (`lib/supabase.mjs`), and TradeLab (`/lab/`, `ui-lab/`) is built.
+> TradePilot is not built yet. Hosted mode (accounts, Postgres/
 > Supabase, licensed data providers) is designed in `/design`, not built here.

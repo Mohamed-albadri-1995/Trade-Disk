@@ -284,19 +284,30 @@ export function simulate(bars, strat, opts = {}) {
     // ---- walk the position forward ----
     let remaining = 1, bankedPx = 0, bankedFr = 0, exitReason = null, exitBar = null, movedStop = stopPrice;
     const minHold = risk.min_hold_bars | 0;
-    for (let j = entryBar; j < n; j++) {
+    // A fill AT a bar's close happens after that bar's high and low: the bar cannot hit the
+    // stop or target of a position that did not exist yet, so the walk starts on the next bar.
+    const walkFrom = entryBar === i && (fill === 'close' || fill === 'live') ? entryBar + 1 : entryBar;
+    const trailSer = stopIsPrim && !stopFrozen ? primSeries(bars, { name: primAnchor.anchor, source: primAnchor.source, params: primAnchor.params, sub: primAnchor.sub }, opts) : null;
+    // When a bar reaches both the stop and a target, the bars cannot say which came first.
+    // Unless the bar OPENED beyond the target, the stop is assumed first: the backtest must
+    // not flatter. `stop_first: false` opts back into the optimistic order.
+    const optimistic = risk.stop_first === false;
+    if (walkFrom >= n) { exitBar = entryBar; exitReason = 'open'; bankedPx = bars[entryBar].c; bankedFr = 1; remaining = 0; }
+    for (let j = walkFrom; j < n; j++) {
       const b = bars[j];
-      if (stopIsPrim && !stopFrozen) {              // trailing primitive stop, protective-only
-        const ser = primSeries(bars, { name: primAnchor.anchor, source: primAnchor.source, params: primAnchor.params, sub: primAnchor.sub }, opts);
-        if (isNum(ser[j])) movedStop = dir > 0 ? Math.max(movedStop, ser[j]) : Math.min(movedStop, ser[j]);
-      }
+      // trailing primitive stop, protective-only, from the LAST CLOSED bar's value: the
+      // indicator at bar j is only known at bar j's close, after its high and low happened
+      if (trailSer && j - 1 >= i && isNum(trailSer[j - 1])) movedStop = dir > 0 ? Math.max(movedStop, trailSer[j - 1]) : Math.min(movedStop, trailSer[j - 1]);
       const sp = stopIsPrim ? (stopFrozen != null ? stopFrozen : movedStop) : stopPrice;
-      // 1) leg targets banked first (unless stop_first), 2) stop, 3) exit rule, 4) end
-      if (legs.length && !risk.stop_first) {
-        for (const leg of legs) {
-          if (leg.done) continue;
-          const hit = dir > 0 ? b.h >= leg.tp : b.l <= leg.tp;
-          if (hit) { leg.done = true; bankedPx += leg.fraction * leg.tp; bankedFr += leg.fraction; remaining -= leg.fraction; exitReason = 'TP'; }
+      const stopTouched = sp != null && isNum(sp) && (dir > 0 ? b.l <= sp : b.h >= sp);
+      // 1) targets the bar reached first, 2) stop, 3) remaining targets, 4) exit rule, 5) end
+      for (const leg of legs) {
+        if (leg.done) continue;
+        const openedBeyond = dir > 0 ? b.o >= leg.tp : b.o <= leg.tp;
+        const hit = dir > 0 ? b.h >= leg.tp : b.l <= leg.tp;
+        if (hit && (openedBeyond || optimistic || !stopTouched)) {
+          const px = openedBeyond ? b.o : leg.tp;            // a gap through the target fills at the open
+          leg.done = true; bankedPx += leg.fraction * px; bankedFr += leg.fraction; remaining -= leg.fraction; exitReason = 'TP';
         }
       }
       if (sp != null && isNum(sp) && remaining > 0) {
@@ -307,13 +318,6 @@ export function simulate(bars, strat, opts = {}) {
           const inProfit = dir > 0 ? px > entryFill : px < entryFill;
           bankedPx += remaining * px; bankedFr += remaining; remaining = 0;
           exitReason = inProfit && (stopIsPrim || movedStop !== stopPrice) ? 'trail' : 'SL'; exitBar = j; break;
-        }
-      }
-      if (legs.length && risk.stop_first) {           // stop had priority; now take any leg the bar reached
-        for (const leg of legs) {
-          if (leg.done) continue;
-          const hit = dir > 0 ? b.h >= leg.tp : b.l <= leg.tp;
-          if (hit) { leg.done = true; bankedPx += leg.fraction * leg.tp; bankedFr += leg.fraction; remaining -= leg.fraction; exitReason = 'TP'; }
         }
       }
       if (remaining <= 1e-9) { exitBar = j; break; }

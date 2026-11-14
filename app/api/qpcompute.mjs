@@ -22,7 +22,9 @@ async function call(path, opts = {}) {
 }
 
 // The full primitive catalog (what the indicator picker offers).
-export const primitives = () => call('/primitives');
+// When the service is not configured the catalog is simply empty (with the reason), so the
+// pages that offer extra indicators keep working instead of showing a server error.
+export const primitives = () => (BASE ? call('/primitives') : Promise.resolve({ primitives: [], configured: false, note: 'qp-compute is not configured (QP_COMPUTE_URL); the built-in indicators still work.' }));
 
 // Compute indicator series on provided bars.
 // bars: [{t,o,h,l,c,v}] ; overlays: [{id?, key, source?, params?}]

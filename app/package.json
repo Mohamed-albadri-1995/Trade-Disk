@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.0.1",
-  "description": "Trade-Disk — the product build (solo mode: Node + SQLite + static apps). Portable to Postgres/Supabase for hosted mode.",
+  "description": "Trade-Disk \u2014 the product build (solo mode: Node + SQLite + static apps). Portable to Postgres/Supabase for hosted mode.",
   "engines": {
     "node": ">=22.5"
   },
@@ -13,7 +13,8 @@
     "refresh": "node core/ingest.mjs",
     "build": "node build.mjs",
     "start": "node server.mjs",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "test": "node --test 'test/*.test.mjs'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0"

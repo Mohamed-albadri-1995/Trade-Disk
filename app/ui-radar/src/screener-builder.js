@@ -6,11 +6,14 @@
 // does and as its copy says ("Saved on this device"); hosted mode persists them
 // per-account server-side (SCREENERS.md §4.7).
 
-// The 81-filter library, 8 categories, exactly as the prototype offers them.
+// The filter library, 8 categories: the prototype's 81 filters plus the ones the
+// built-in screeners use (pre-market volume/change, 90-day average volume, intraday
+// relative volume, week/month high and low), so a built-in loaded into the builder
+// shows every one of its rules.
 export const FILTER_LIBRARY = [
-  {"category":"Price & trading","items":[["Close","Close price","number","price"],["Open","Open price","number","price"],["High","High price","number","price"],["Low","Low price","number","price"],["Previous close","Previous close","number","price"],["Daily change","Daily change %","number","percent"],["Gap %","Gap %","number","percent"],["Change from open","Change from open %","number","percent"],["Distance from high","Distance from day high %","number","percent"],["Distance from low","Distance from day low %","number","percent"]]},
-  {"category":"Volume & liquidity","items":[["Volume","Volume","number","volume"],["Average volume","Average volume","number","volume"],["Relative volume","Relative volume","number","ratio"],["Dollar volume","Dollar volume","number","money"],["Float","Float shares","number","shares"],["Short float","Short float %","number","percent"],["Shares outstanding","Shares outstanding","number","shares"]]},
-  {"category":"Performance & range","items":[["Perf 1D","Performance · 1 day %","number","percent"],["Perf 1W","Performance · 1 week %","number","percent"],["Perf 1M","Performance · 1 month %","number","percent"],["Perf 3M","Performance · 3 months %","number","percent"],["Perf 6M","Performance · 6 months %","number","percent"],["Perf 1Y","Performance · 1 year %","number","percent"],["Distance 52W high","Distance from 52-week high %","number","percent"],["Distance 52W low","Distance from 52-week low %","number","percent"],["ADR","Average daily range %","number","percent"],["ATR percent","ATR as % of price","indicator","percent"]]},
+  {"category":"Price & trading","items":[["Close","Close price","number","price"],["Open","Open price","number","price"],["High","High price","number","price"],["Low","Low price","number","price"],["Previous close","Previous close","number","price"],["Daily change","Daily change %","number","percent"],["Gap %","Gap %","number","percent"],["Change from open","Change from open %","number","percent"],["Distance from high","Distance from day high %","number","percent"],["Distance from low","Distance from day low %","number","percent"],["Premarket change","Pre-market change %","number","percent"]]},
+  {"category":"Volume & liquidity","items":[["Volume","Volume","number","volume"],["Average volume","Average volume (10 days)","number","volume"],["Average volume 90D","Average volume (90 days)","number","volume"],["Relative volume","Relative volume","number","ratio"],["Intraday relative volume","Intraday relative volume","number","ratio"],["Premarket volume","Pre-market volume","number","volume"],["Dollar volume","Dollar volume","number","money"],["Float","Float shares","number","shares"],["Short float","Short float %","number","percent"],["Shares outstanding","Shares outstanding","number","shares"]]},
+  {"category":"Performance & range","items":[["Perf 1D","Performance · 1 day %","number","percent"],["Perf 1W","Performance · 1 week %","number","percent"],["Perf 1M","Performance · 1 month %","number","percent"],["Perf 3M","Performance · 3 months %","number","percent"],["Perf 6M","Performance · 6 months %","number","percent"],["Perf 1Y","Performance · 1 year %","number","percent"],["Distance 52W high","Distance from 52-week high %","number","percent"],["Distance 52W low","Distance from 52-week low %","number","percent"],["Week high","5-day high","number","price"],["Week low","5-day low","number","price"],["Month high","1-month high","number","price"],["Month low","1-month low","number","price"],["ADR","Average daily range %","number","percent"],["ATR percent","ATR as % of price","indicator","percent"]]},
   {"category":"Technical indicators","items":[["SMA","Simple moving average","indicator","price"],["EMA","Exponential moving average","indicator","price"],["WMA","Weighted moving average","indicator","price"],["VWMA","Volume-weighted moving average","indicator","price"],["RSI","Relative strength index","indicator","number"],["MACD","MACD line","indicator","number"],["MACD Signal","MACD signal line","indicator","number"],["ADX","Average directional index","indicator","number"],["ATR","Average true range","indicator","price"],["Stochastic K","Stochastic %K","indicator","number"],["Stochastic D","Stochastic %D","indicator","number"],["Bollinger Upper","Bollinger upper band","indicator","price"],["Bollinger Middle","Bollinger middle band","indicator","price"],["Bollinger Lower","Bollinger lower band","indicator","price"],["VWAP","VWAP","indicator","price"],["CCI","Commodity channel index","indicator","number"],["OBV","On-balance volume","indicator","number"],["MFI","Money flow index","indicator","number"],["ROC","Rate of change %","indicator","percent"]]},
   {"category":"Fundamentals & valuation","items":[["Market cap","Market capitalization","number","money"],["PE","P/E ratio","number","ratio"],["Forward PE","Forward P/E","number","ratio"],["PEG","PEG ratio","number","ratio"],["PS","Price / sales","number","ratio"],["PB","Price / book","number","ratio"],["EV EBITDA","EV / EBITDA","number","ratio"],["Gross margin","Gross margin %","number","percent"],["Operating margin","Operating margin %","number","percent"],["Net margin","Net margin %","number","percent"],["ROE","Return on equity %","number","percent"],["ROIC","Return on invested capital %","number","percent"],["Debt equity","Debt / equity","number","ratio"],["Current ratio","Current ratio","number","ratio"],["Free cash flow","Free cash flow","number","money"]]},
   {"category":"Growth & estimates","items":[["Revenue growth Q","Quarterly revenue growth %","number","percent"],["Revenue growth Y","Annual revenue growth %","number","percent"],["EPS growth Q","Quarterly EPS growth %","number","percent"],["EPS growth Y","Annual EPS growth %","number","percent"],["EPS surprise","EPS surprise %","number","percent"],["Analyst target upside","Analyst target upside %","number","percent"]]},
@@ -30,7 +33,20 @@ export const SESSIONS = ['Pre-market', 'Opening range', 'Regular session', 'Afte
 export const EVERY_OPTIONS = [1, 5, 10, 15, 30, 60];
 export const TIMEZONES = [['device', 'Device local time'], ['America/New_York', 'US Eastern Time'], ['UTC', 'UTC']];
 
-const MA_METRICS = ['SMA', 'EMA', 'WMA', 'VWMA'];
+// "Device local time" is saved as this device's real time zone (e.g. Asia/Riyadh), so
+// the server — which cannot see the device — fires the schedule at the hours the user
+// typed. Shown back as "Device local time" on a device in that same zone.
+export const deviceZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'; } catch { return 'America/New_York'; } };
+export const tzToSave = (tz) => (!tz || tz === 'device' ? deviceZone() : tz);
+export const tzToShow = (tz) => (!tz || tz === 'device' || (tz === deviceZone() && !TIMEZONES.some(([v]) => v === tz)) ? 'device' : tz);
+// The dropdown's options, plus the saved zone itself when it is none of them (a
+// schedule saved from a device in another zone).
+export const tzOptions = (tz) => (TIMEZONES.some(([v]) => v === tz) ? TIMEZONES : [...TIMEZONES, [tz, tz]]);
+
+// The length the live scanner has for indicators that come in one length only, so
+// picking one of them in the builder starts on a length that can run.
+export const FIXED_LENGTH = { VWMA: 20, ATR: 14, ADX: 14, CCI: 20, ROC: 9 };
+
 // The metrics the saved-list summary renders with a (length, timeframe) suffix.
 const INDICATOR_SUMMARY = ['SMA', 'EMA', 'WMA', 'VWMA', 'RSI', 'MACD', 'ADX', 'ATR', 'Stochastic K', 'Stochastic D', 'Bollinger Upper', 'Bollinger Middle', 'Bollinger Lower', 'VWAP', 'CCI', 'OBV', 'MFI', 'ROC'];
 
@@ -73,7 +89,7 @@ export function fieldVisibility(c) {
   return {
     length: meta.type === 'indicator',
     source: meta.type === 'indicator',
-    variant: MA_METRICS.includes(c.metric),
+    variant: false,   // the moving-average kind IS the filter (SMA / EMA / VWMA); a second selector only contradicted it
     value: c.mode === 'value',
     second: c.mode === 'filter',
     percent: c.mode === 'percent' || c.operator.includes('%'),
@@ -85,7 +101,7 @@ export function fieldVisibility(c) {
 export function buildConditionPreview(c) {
   const meta = FILTER_MAP[c.metric] || {};
   const left = meta.type === 'indicator'
-    ? `${c.variant === 'Standard' ? '' : c.variant + ' '}${meta.label}(${c.length}, ${c.timeframe})`
+    ? `${meta.label}(${c.length}, ${c.timeframe})`
     : `${meta.label} (${c.timeframe})`;
   const val = c.value || '…';
   if (c.mode === 'filter') {
@@ -110,7 +126,7 @@ export function filterSummary(conds) {
   return conds.map((x) => {
     const m = FILTER_MAP[x.metric]?.label || x.metric;
     const lhs = INDICATOR_SUMMARY.includes(x.metric)
-      ? `${x.variant && x.variant !== 'Standard' ? x.variant + ' ' : ''}${m}(${x.length || 14}, ${x.timeframe || 'Daily'})`
+      ? `${m}(${x.length || 14}, ${x.timeframe || 'Daily'})`
       : m;
     const rhs = x.mode === 'filter'
       ? (FILTER_MAP[x.compareMetric]?.label || x.compareMetric) + `(${x.compareLength || 50}, ${x.compareTimeframe || 'Daily'})`

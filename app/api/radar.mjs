@@ -6,8 +6,10 @@
 
 import * as tv from '../providers/tradingview.mjs';
 import * as yahoo from '../providers/yahoo.mjs';
-import { COLUMNS, listScreeners, getScreener, toCard } from '../core/screeners.mjs';
-import { conditionsToFilters } from '../core/screenerTranslate.mjs';
+import { COLUMNS, listScreeners, getScreener, toCard, delayOf } from '../core/screeners.mjs';
+import { conditionsToFilters, CLASSIFICATION } from '../core/screenerTranslate.mjs';
+import { background, cachedNews, warmNews } from '../core/newsFlags.mjs';
+import { allRows } from '../lib/pages.mjs';
 import { runScreener, readRegister, tickerStamps } from '../core/register.mjs';
 import { collect, collectionStatus } from '../core/collect.mjs';
 import { computeLabels } from '../core/labels.mjs';
@@ -17,6 +19,8 @@ import { getGroups } from '../core/oneilGroups.mjs';
 import { buildAnalysis } from '../core/analysis.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
+// A result limit from the page: 1..100, default 50 (a negative or junk value is the default).
+const clampLimit = (v, dflt = 50) => { const n = Math.floor(+v); return Number.isFinite(n) && n >= 1 ? Math.min(100, n) : dflt; };
 
 // A compact market read for the screener/register response, so running any scan
 // carries the current broad-market regime to the UI (and the cards' market context).
@@ -48,6 +52,27 @@ export async function toggleShortlist(sb, uid, ticker) {
   return { ticker, saved: true };
 }
 
+// The shortlist as full cards, quoted fresh from the scanner by ticker — so a starred
+// stock shows on the Shortlist tab whichever screener it came from, not only when it is
+// in the scan currently on screen. `missing` lists tickers the scanner no longer has.
+export async function shortlistCards(sb) {
+  const tickers = await shortlist(sb);
+  if (!tickers.length) return { stocks: [], missing: [] };
+  if (await getMode(sb) !== 'personal') return { stocks: [], missing: tickers, error: 'Live quotes run in Personal mode.' };
+  try {
+    const { rows } = await tv.scan({ filters: [{ left: 'name', operation: 'in_range', right: tickers }], columns: COLUMNS,
+      sort: { sortBy: 'name', sortOrder: 'asc' }, range: [0, Math.min(500, tickers.length * 4)] });
+    const by = {};   // one row per ticker; a listed exchange wins over an OTC line of the same name
+    for (const r of rows) { const cur = by[r.ticker]; if (!cur || (cur._sym.startsWith('OTC:') && !r._sym.startsWith('OTC:'))) by[r.ticker] = r; }
+    const stocks = tickers.filter((t) => by[t]).map((t, i) => ({ ...toCard(by[t], i), news: cachedNews(t) === true }));
+    return { stocks, missing: tickers.filter((t) => !by[t]), delayMin: delayOf(rows) };
+  } catch (e) { return { stocks: [], missing: tickers, error: String(e.message || e) }; }
+}
+
+// The exact sector / industry / exchange / country names the scanner uses, for the
+// builder's pick-lists.
+export const classification = () => CLASSIFICATION;
+
 // The feed the Price group is on, so the view shows a live/demo badge honestly.
 async function feedInfo(sb) {
   const first = (await activeFor(sb, 'price'))[0] || { id: 'demo' };
@@ -71,32 +96,34 @@ export const screeners = () => listScreeners();
 // Running any scan also force-refreshes the market snapshot, so the Market tab and the
 // cards' market context update on every scan.
 export async function scan(sb, uid, key, limit = 50) {
+  limit = clampLimit(limit);
   if (await getMode(sb) !== 'personal') {
     return { key, error: 'The live screener runs in Personal mode (TradingView, personal-use). A licensed commercial screener is not wired yet.' };
   }
   const def = getScreener(key);
-  let filters, sort, name, unsupported = [];
+  let filters, anyOf = null, sort, name, unsupported = [];
   if (def) { filters = def.filters; sort = def.sort; name = def.name; }
   else {
     const cfg = chk(await sb.from('radar_screener').select('*').eq('owner_id', uid).eq('id', key).eq('kind', 'custom').limit(1))[0];
     if (!cfg) return { key, error: `unknown screener "${key}"` };
     const t = conditionsToFilters(cfg.conditions || []);
     unsupported = t.unsupported;
-    if (!t.filters.length) return { key, screener: cfg.name, error: 'This screener has no runnable conditions yet.', unsupported };
-    filters = t.filters; sort = { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' }; name = cfg.name;
+    if (!t.filters.length && !t.anyOf) return { key, screener: cfg.name, error: 'This screener has no runnable conditions yet.', unsupported };
+    filters = t.filters; anyOf = t.anyOf || null; sort = { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' }; name = cfg.name;
   }
   let reg;
-  try { reg = await runScreener(sb, uid, { key, filters, sort, limit }); }
+  try { reg = await runScreener(sb, uid, { key, filters, anyOf, sort, limit }); }
   catch (e) {
     // Live scan failed (market closed, provider hiccup/rate-limit). Don't wipe the
     // day's sticky list — fall back to today's saved register so the stocks that
     // already appeared (now "not live") stay on screen instead of the view going blank.
-    const saved = await readRegister(sb, key).catch(() => null);
+    const saved = await readRegister(sb, key, uid).catch(() => null);
     if (saved && saved.count) return { key, screener: name, provider: 'tradingview', ...saved, stale: true, scanError: String(e.message || e) };
     return { key, screener: name, error: String(e.message || e) };
   }
+  if (background.enabled) warmNews(sb, uid, key, reg.day, reg.stocks).catch(() => {});   // news flags, off the request path
   const market = await getMarket(sb, { force: true }).catch(() => null);
-  return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };
+  return { screener: name, key, provider: 'tradingview', ...reg, market: marketSummary(market), unsupported };   // reg carries delayMin
 }
 
 // Builder "Run": preview the current (possibly unsaved) conditions live, without
@@ -104,14 +131,14 @@ export async function scan(sb, uid, key, limit = 50) {
 export async function previewConditions(sb, body) {
   if (await getMode(sb) !== 'personal') return { error: 'The live screener runs in Personal mode (TradingView, personal-use).' };
   const t = conditionsToFilters(body?.conditions || []);
-  if (!t.filters.length) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
+  if (!t.filters.length && !t.anyOf) return { error: 'No runnable conditions — add at least one the live scanner supports.', unsupported: t.unsupported };
   const sort = body?.sort || { sortBy: 'relative_volume_10d_calc', sortOrder: 'desc' };
-  const { totalCount, rows } = await tv.scan({ filters: t.filters, columns: COLUMNS, sort, range: [0, Math.min(100, +body?.limit || 50)] });
-  return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported };
+  const { totalCount, rows } = await tv.scan({ filters: t.filters, anyOf: t.anyOf, columns: COLUMNS, sort, range: [0, clampLimit(body?.limit)] });
+  return { provider: 'tradingview', totalCount, count: rows.length, stocks: rows.map(toCard), unsupported: t.unsupported, delayMin: delayOf(rows) };
 }
 
 // Today's register for a screener without running a new scan (page revisit / tab switch).
-export async function register(sb, key) { return readRegister(sb, key); }
+export async function register(sb, key, uid = null) { return readRegister(sb, key, uid); }
 
 // Daily bars for one symbol (index/ETF/stock) — for the Market tab's quick chart popup.
 export async function bars(sb, ticker) {
@@ -129,15 +156,17 @@ export async function collectNow(sb, uid, key) { return collect(sb, uid, key); }
 // What has been collected today (counts + the times snapshots were taken).
 export async function collectStatus(sb) { return collectionStatus(sb); }
 // Compute today's outcome labels now (normally the scheduler does this after the close).
-export async function labelsNow(sb, uid) { return computeLabels(sb, uid); }
+// `day` (YYYY-MM-DD, optional) back-fills a past day — Yahoo keeps 5-minute bars for about a month.
+export async function labelsNow(sb, uid, day) { return /^\d{4}-\d{2}-\d{2}$/.test(day || '') ? computeLabels(sb, uid, day) : computeLabels(sb, uid); }
 // Export a day's collected data (owner-scoped) as JSON, for model-building offline.
 export async function exportData(sb, day) {
   const d = day || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const [snapshots, market, facts, labels] = await Promise.all([
-    sb.from('radar_snapshot').select('*').eq('day', d).order('taken_at').then(chk),
-    sb.from('radar_snapshot_market').select('*').eq('day', d).order('taken_at').then(chk),
-    sb.from('radar_snapshot_facts').select('*').eq('day', d).then(chk),
-    sb.from('radar_snapshot_label').select('*').eq('day', d).then(chk),
+    // paged: a day is several thousand snapshot rows and the API caps a request at 1000
+    allRows(() => sb.from('radar_snapshot').select('*').eq('day', d).order('taken_at').order('screener').order('ticker'), 500),
+    allRows(() => sb.from('radar_snapshot_market').select('*').eq('day', d).order('taken_at'), 200),
+    allRows(() => sb.from('radar_snapshot_facts').select('*').eq('day', d).order('ticker'), 100),
+    allRows(() => sb.from('radar_snapshot_label').select('*').eq('day', d).order('ticker'), 100),
   ]);
   return { day: d, snapshots, market, facts, labels };
 }
@@ -145,10 +174,10 @@ export async function exportData(sb, day) {
 // The per-stock analysis workspace, live from Yahoo + SEC EDGAR. `scan` carries the
 // card context (name/sector/cap) from the result the user opened, for fields Yahoo
 // doesn't provide. The live market snapshot feeds the market-direction factor.
-export async function analysis(sb, ticker, scan = null) {
+export async function analysis(sb, ticker, scan = null, uid = null) {
   const [market, stamps] = await Promise.all([
     getMarket(sb).catch(() => null),
-    tickerStamps(sb, ticker).catch(() => null),  // first-seen / last-live today, for the hero
+    tickerStamps(sb, String(ticker || '').toUpperCase(), uid).catch(() => null),  // first-seen / last-live today, for the hero
   ]);
   try {
     const a = await buildAnalysis(ticker, { scan, market });
@@ -184,6 +213,9 @@ export async function screenerConfigs(sb) {
 export async function saveScreenerConfig(sb, uid, cfg) {
   if (!cfg || !String(cfg.name || '').trim()) throw new Error('a screener name is required');
   const id = cfg.id || ('scr-' + Date.now());
+  // A custom screener may not take a built-in's key: it would overwrite that built-in's
+  // saved schedule and could never run (the built-in definition always wins a scan).
+  if (getScreener(id)) throw new Error(`"${id}" is a built-in screener — save your copy under a new name`);
   chk(await sb.from('radar_screener').upsert({
     owner_id: uid, id, kind: 'custom', name: String(cfg.name).trim(), description: cfg.description || '',
     conditions: cfg.conditions || [], windows: cfg.windows || [], timezone: cfg.timezone || 'device',

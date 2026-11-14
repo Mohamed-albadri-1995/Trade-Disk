@@ -8,7 +8,8 @@
 // radar_register (which also becomes the historical daily record the Lab can backtest).
 
 import * as tv from '../providers/tradingview.mjs';
-import { COLUMNS, toCard } from './screeners.mjs';
+import { COLUMNS, toCard, delayOf } from './screeners.mjs';
+import { cachedNews } from './newsFlags.mjs';
 
 const chk = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const COLORS = ['', 'blue', 'purple', 'orange', 'green'];
@@ -19,8 +20,8 @@ const etTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-US', { timeZ
 // Run one screener (built-in or custom) and merge its results into today's register.
 // `spec` = { key, filters, sort, limit }. Returns the full merged list for the UI.
 export async function runScreener(sb, uid, spec) {
-  const { key, filters, sort, limit = 50 } = spec;
-  const { rows } = await tv.scan({ filters, columns: COLUMNS, sort, range: [0, Math.min(100, limit)] });
+  const { key, filters, anyOf = null, sort, limit = 50 } = spec;
+  const { rows } = await tv.scan({ filters, anyOf, columns: COLUMNS, sort, range: [0, Math.min(100, limit)] });
   const liveCards = rows.map((r, i) => ({ card: toCard(r, i), sym: r._sym }));
   const liveTickers = new Set(liveCards.map((l) => l.card.t));
 
@@ -51,6 +52,9 @@ export async function runScreener(sb, uid, spec) {
       card: refreshed[e.ticker] || e.card, live: false, first_seen: e.first_seen, last_live: e.last_live, updated_at: now });
   }
 
+  // stamp each card with the news flag when it is already known (looked up in the background)
+  for (const r of toWrite) { const has = cachedNews(r.ticker); if (has != null) r.card = { ...r.card, news: has }; }
+
   if (toWrite.length) chk(await sb.from('radar_register').upsert(toWrite, { onConflict: 'owner_id,day,screener,ticker' }));
 
   // Build the response list: live names first, then carried-over, each by activity
@@ -62,13 +66,17 @@ export async function runScreener(sb, uid, spec) {
   }));
   stocks.sort((a, b) => (b.live === a.live ? (b.s || 0) - (a.s || 0) : (b.live ? 1 : -1)));
   stocks.forEach((c, i) => { c.color = COLORS[i % COLORS.length]; });
-  return { stocks, liveCount: liveCards.length, count: stocks.length, day };
+  return { stocks, liveCount: liveCards.length, count: stocks.length, day, delayMin: delayOf(rows) };
 }
 
 // Read today's register for a screener without running a scan (page revisit).
-export async function readRegister(sb, key) {
+// `uid` scopes the read to one account. Page requests are already scoped by row-level
+// security, but the scheduler's service-role client is not, so callers pass it.
+export async function readRegister(sb, key, uid = null) {
   const day = etDay();
-  const rows = chk(await sb.from('radar_register').select('*').eq('day', day).eq('screener', key));
+  let q = sb.from('radar_register').select('*').eq('day', day).eq('screener', key);
+  if (uid) q = q.eq('owner_id', uid);
+  const rows = chk(await q);
   const stocks = rows.map((r) => ({ ...r.card, live: r.live, firstSeen: r.first_seen, lastLive: r.last_live, firstSeenEt: etTime(r.first_seen), lastLiveEt: etTime(r.last_live) }));
   stocks.sort((a, b) => (b.live === a.live ? (b.s || 0) - (a.s || 0) : (b.live ? 1 : -1)));
   stocks.forEach((c, i) => { c.color = COLORS[i % COLORS.length]; });
@@ -76,9 +84,11 @@ export async function readRegister(sb, key) {
 }
 
 // The first-seen / last-live stamps for one ticker today (for the analysis hero).
-export async function tickerStamps(sb, ticker) {
+export async function tickerStamps(sb, ticker, uid = null) {
   const day = etDay();
-  const rows = chk(await sb.from('radar_register').select('screener, live, first_seen, last_live').eq('day', day).eq('ticker', ticker));
+  let q = sb.from('radar_register').select('screener, live, first_seen, last_live').eq('day', day).eq('ticker', ticker);
+  if (uid) q = q.eq('owner_id', uid);
+  const rows = chk(await q);
   if (!rows.length) return null;
   const firstSeen = rows.map((r) => r.first_seen).sort()[0];
   const lastLive = rows.map((r) => r.last_live).sort().at(-1);

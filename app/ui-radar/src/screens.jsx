@@ -2,7 +2,7 @@ import React from 'react';
 import { StockCard, FilterPanel, FiltersToggle, presetTitle } from './components.jsx';
 
 // Screener — the landing screen: the filter panel + the result cards.
-export function Screener({ filters, setFilters, visibleSorted, visibleCount, screeners, scanInfo, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onRunScan, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
+export function Screener({ filters, setFilters, visibleSorted, visibleCount, screeners, sectors, scanInfo, sort, setSort, shortlist, selectedTicker, screen, collapsed, loading, onApply, onReset, onChangePreset, onLoadSaved, onRunScan, onToggleFilters, onToggleStar, onOpen, onNav, onToast }) {
   const current = (screeners || []).find((s) => s.key === filters.preset);
   const matched = scanInfo && Number.isFinite(scanInfo.totalCount) ? scanInfo.totalCount : null;
   return (
@@ -22,7 +22,7 @@ export function Screener({ filters, setFilters, visibleSorted, visibleCount, scr
       <FiltersToggle checks={filters.checks} collapsed={collapsed} onToggle={onToggleFilters} />
       <div className="layout">
         <FilterPanel
-          filters={filters} setFilters={setFilters} visibleCount={visibleCount} collapsed={collapsed} screeners={screeners}
+          filters={filters} setFilters={setFilters} visibleCount={visibleCount} collapsed={collapsed} screeners={screeners} sectors={sectors}
           onApply={onApply} onReset={onReset} onChangePreset={onChangePreset} onLoadSaved={onLoadSaved}
           onRunScan={onRunScan} loading={loading} onToast={onToast} />
         <section className="panel results">
