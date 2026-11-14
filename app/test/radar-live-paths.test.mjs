@@ -296,3 +296,31 @@ test('schedule: outcome labels run after the close and again after the after-hou
   // (the real table is keyed by account + day + ticker, so the second run overwrites the first)
   assert.ok(db.tables.radar_snapshot_label.every((l) => l.ticker === 'AAA' && l.high === 12 && l.day === '2026-11-12'));
 });
+
+// ── the register chart opens on the stock's own day ──
+import { registerFocus, initialView } from '../ui-radar/src/chartview.js';
+import { registerFocus as labFocus } from '../ui-lab/src/chartview.js';
+const dayBar = (iso) => ({ t: Date.parse(iso) / 1000, o: 1, h: 1, l: 1, c: 1, v: 1 });
+
+test('register chart: the daily view opens on the day the stock was on the register', () => {
+  const bars = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-11-13'].map((d) => dayBar(`${d}T14:30:00Z`));
+  const f = registerFocus(bars, { day: '2026-10-02' }, 'D');
+  assert.deepEqual(f, { index: 1, label: '▼ on the register 2026-10-02' });
+  assert.equal(registerFocus(bars, { day: '2025-01-02' }, 'D'), null, 'a day outside the bars is not faked');
+  assert.deepEqual(labFocus(bars, { day: '2026-10-02' }, 'D'), f, 'Lab’s copy behaves the same');
+});
+
+test('register chart: minute views open on the minute it was first seen (New York time)', () => {
+  const bars = ['13:30', '14:30', '14:45', '14:46', '14:47'].map((hm) => dayBar(`2026-11-13T${hm}:00Z`));   // 08:30, 09:30, 09:45 … ET
+  assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: 16, firstSeen: '09:46' }, '1').index, 3);
+  assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: -60, firstSeen: '08:30' }, '5').index, 0, 'pre-market sightings too');
+  assert.equal(registerFocus(bars, { day: '2026-11-13', firstSeenMin: null }, '1'), null);
+});
+
+test('register chart: the opening window shows the focus bar, a little right of centre, inside the data', () => {
+  assert.deepEqual(initialView(500, 300, 120), { start: 228, count: 120 });
+  assert.deepEqual(initialView(500, 5, 120), { start: 0, count: 120 }, 'near the start: clamps to the first bar');
+  assert.deepEqual(initialView(500, 498, 120), { start: 380, count: 120 }, 'near the end: clamps to the last bar');
+  assert.deepEqual(initialView(500, null, 120), { start: 380, count: 120 }, 'no focus: the latest bars');
+  assert.deepEqual(initialView(50, 10, 0), { start: 0, count: 50 });
+});

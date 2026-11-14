@@ -7,6 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import QpChart from './qpchart.jsx';
+import { registerFocus } from './chartview.js';
 
 const COLORS = ['--cyan', '--yellow', '--purple', '--orange', '--green', '--blue'];
 const TFS = [['D', 'Daily'], ['1', '1m'], ['5', '5m'], ['15', '15m']];
@@ -91,6 +92,7 @@ export function RegisterView() {
   if (!screens) return <div className="muted pad">{err ? <span className="err">⚠ {err}</span> : 'Loading registers…'}</div>;
   if (!screens.length) return <div className="muted pad">No screeners with recorded history yet.</div>;
   const curDay = days.find((d) => d.day === day);
+  const focus = registerFocus(bars, pick, tf);
 
   return (
     <div className="reg">
@@ -113,7 +115,7 @@ export function RegisterView() {
       {rows && (rows.length ? (
         <div className="reg-grid">
           {rows.map((r) => (
-            <button key={r.ticker} className={'reg-card' + (pick?.ticker === r.ticker ? ' on' : '')} onClick={() => setPick({ ticker: r.ticker, name: r.name, day })}>
+            <button key={r.ticker} className={'reg-card' + (pick?.ticker === r.ticker ? ' on' : '')} onClick={() => setPick({ ticker: r.ticker, name: r.name, day, firstSeenMin: r.firstSeenMin, firstSeen: r.firstSeen })}>
               <span className="reg-tk">{r.ticker}</span>
               {r.name ? <span className="reg-nm muted">{r.name}</span> : null}
               <span className="reg-seen muted">seen {r.firstSeen || '—'}</span>
@@ -141,10 +143,10 @@ export function RegisterView() {
               <button onClick={addInd} disabled={!addKey}>+ Add</button>
             </span>
           </div>
-          {bars.length ? <QpChart bars={bars} priceOverlays={priceOverlays} oscOverlays={oscOverlays} height={430} intraday={tf !== 'D'} />
+          {bars.length ? <QpChart bars={bars} priceOverlays={priceOverlays} oscOverlays={oscOverlays} height={430} intraday={tf !== 'D'} focus={focus} initialCount={tf === 'D' ? 120 : tf === '1' ? 180 : 0} />
             : <div className="reg-chart-empty muted">{loading ? 'Loading…' : (msg || 'No data.')}</div>}
           <div className="muted small reg-foot">
-            {loading ? `Loading ${tf === 'D' ? 'daily' : tf + 'm'} bars…` : msg ? msg : `${tf === 'D' ? 'Daily candles · Yahoo' : `${tf}-minute candles for ${pick.day} · Polygon`} · ${bars.length} bars · indicators: qp library (Python) · drag to pan, scroll to zoom`}
+            {loading ? `Loading ${tf === 'D' ? 'daily' : tf + 'm'} bars…` : msg ? msg : `${tf === 'D' ? `Daily candles · Yahoo${focus ? '' : ` · ${pick.day} is not in this range`}` : `${tf}-minute candles for ${pick.day} · Polygon`} · ${bars.length} bars · indicators: qp library (Python) · drag or swipe to move, scroll or pinch to zoom, or use the buttons`}
           </div>
         </div>
       )}
